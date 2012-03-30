@@ -20,17 +20,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Kafka.Client.Exceptions
+namespace Kafka.Client.Messages
 {
-    public class ZKRebalancerException : Exception
+    public enum CompressionCodecs
     {
-        public ZKRebalancerException()
-        {
-        }
-
-        public ZKRebalancerException(string message)
-            : base(message)
-        {
-        }
+        NoCompressionCodec,
+        DefaultCompressionCodec,
+        GZIPCompressionCodec
     }
 }

@@ -14,23 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Kafka.Client.Exceptions
+namespace Kafka.Client.Messages
 {
-    public class ZKRebalancerException : Exception
+    public class MessageAndOffset
     {
-        public ZKRebalancerException()
-        {
-        }
+        public Message Message { get; private set; }
 
-        public ZKRebalancerException(string message)
-            : base(message)
+        public long Offset { get; private set; }
+
+        public MessageAndOffset(Message message, long offset)
         {
+            this.Message = message;
+            this.Offset = offset;
         }
     }
 }

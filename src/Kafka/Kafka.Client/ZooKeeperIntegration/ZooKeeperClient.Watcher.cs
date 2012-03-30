@@ -107,7 +107,7 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// <remarks>
         /// Used for testing purpose
         /// </remarks>
-        public int IdleTime
+        public int? IdleTime
         {
             get
             {

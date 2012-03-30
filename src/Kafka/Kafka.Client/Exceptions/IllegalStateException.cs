@@ -22,13 +22,14 @@ using System.Text;
 
 namespace Kafka.Client.Exceptions
 {
-    public class ZKRebalancerException : Exception
+    public class IllegalStateException : Exception
     {
-        public ZKRebalancerException()
+        public IllegalStateException()
+            : base()
         {
         }
 
-        public ZKRebalancerException(string message)
+        public IllegalStateException(string message)
             : base(message)
         {
         }

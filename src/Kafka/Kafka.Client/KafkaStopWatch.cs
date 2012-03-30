@@ -15,22 +15,32 @@
  * limitations under the License.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Kafka.Client.Exceptions
+namespace Kafka.Client
 {
-    public class ZKRebalancerException : Exception
+    using System;
+    using System.Collections.Generic;
+
+using System.Diagnostics;
+
+    public static class KafkaStopWatch
     {
-        public ZKRebalancerException()
+        private static Stopwatch stopWatch;
+        private static long memUsage;
+
+        public static void Start()
         {
+            stopWatch = Stopwatch.StartNew();
+            memUsage = GC.GetTotalMemory(false);
         }
 
-        public ZKRebalancerException(string message)
-            : base(message)
+        public static void Checkpoint(string msg)
         {
+            stopWatch.Stop();
+            var current = GC.GetTotalMemory(false) - memUsage;
+            var result = stopWatch.Elapsed.TotalMilliseconds;
+            Console.WriteLine(string.Format("{0}: {1,-6:0.000}ms, {2, 10:0.0}kB, {3, 10:0.0}kB", msg, result, (GC.GetTotalMemory(false) / 1000.0), (current / 1000.0)));
+            memUsage = GC.GetTotalMemory(false);
+            stopWatch.Restart();
         }
     }
 }

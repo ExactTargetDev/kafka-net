@@ -15,22 +15,38 @@
  * limitations under the License.
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Kafka.Client.Exceptions
+namespace Kafka.Client.Cfg
 {
-    public class ZKRebalancerException : Exception
+    using System.Configuration;
+
+    public class BrokerConfigurationElementCollection : ConfigurationElementCollection
     {
-        public ZKRebalancerException()
+        public BrokerConfigurationElement this[int index]
         {
+            get
+            {
+                return this.BaseGet(index) as BrokerConfigurationElement;
+            }
+
+            set
+            {
+                if (this.BaseGet(index) != null)
+                {
+                    this.BaseRemoveAt(index);
+                }
+
+                this.BaseAdd(index, value);
+            }
+        }
+    
+        protected override ConfigurationElement CreateNewElement()
+        {
+            return new BrokerConfigurationElement();
         }
 
-        public ZKRebalancerException(string message)
-            : base(message)
+        protected override object GetElementKey(ConfigurationElement element)
         {
+            return ((BrokerConfigurationElement)element).Id;
         }
     }
 }

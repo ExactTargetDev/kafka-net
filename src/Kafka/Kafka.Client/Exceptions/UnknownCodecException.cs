@@ -22,13 +22,14 @@ using System.Text;
 
 namespace Kafka.Client.Exceptions
 {
-    public class ZKRebalancerException : Exception
+    public class UnknownCodecException : Exception
     {
-        public ZKRebalancerException()
+        public UnknownCodecException()
+            : base()
         {
         }
 
-        public ZKRebalancerException(string message)
+        public UnknownCodecException(string message)
             : base(message)
         {
         }

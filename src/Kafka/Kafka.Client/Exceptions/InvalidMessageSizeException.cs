@@ -22,13 +22,14 @@ using System.Text;
 
 namespace Kafka.Client.Exceptions
 {
-    public class ZKRebalancerException : Exception
+    public class InvalidMessageSizeException : Exception
     {
-        public ZKRebalancerException()
+        public InvalidMessageSizeException()
+            : base()
         {
         }
 
-        public ZKRebalancerException(string message)
+        public InvalidMessageSizeException(string message)
             : base(message)
         {
         }
