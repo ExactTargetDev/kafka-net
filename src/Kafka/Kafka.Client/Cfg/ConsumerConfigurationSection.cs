@@ -18,6 +18,8 @@ namespace Kafka.Client.Cfg
 {
     using System.Configuration;
     using Kafka.Client.Requests;
+    using System.Xml.Linq;
+
 
     public class ConsumerConfigurationSection : ConfigurationSection
     {
@@ -128,5 +130,13 @@ namespace Kafka.Client.Cfg
                 return (BrokerConfigurationElement)this["broker"];
             }
         }
+
+        public static ConsumerConfigurationSection FromXml(XElement element)
+        {
+            var section = new ConsumerConfigurationSection();
+            section.DeserializeSection(element.CreateReader());
+            return section;
+        }
+
     }
 }

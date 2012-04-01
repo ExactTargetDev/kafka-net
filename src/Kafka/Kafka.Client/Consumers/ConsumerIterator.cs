@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using System.Threading;
+
 namespace Kafka.Client.Consumers
 {
     using System;
@@ -35,6 +37,7 @@ namespace Kafka.Client.Consumers
     /// </remarks>
     internal class ConsumerIterator : IEnumerator<Message>
     {
+        private readonly CancellationToken cancellationToken;
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private readonly BlockingCollection<FetchedDataChunk> channel;
         private readonly int consumerTimeoutMs;
@@ -54,10 +57,21 @@ namespace Kafka.Client.Consumers
         /// <param name="consumerTimeoutMs">
         /// The consumer timeout in ms.
         /// </param>
-        public ConsumerIterator(BlockingCollection<FetchedDataChunk> channel, int consumerTimeoutMs)
+        public ConsumerIterator(BlockingCollection<FetchedDataChunk> channel, int consumerTimeoutMs) : this(channel, consumerTimeoutMs, CancellationToken.None)
+        { 
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConsumerIterator"/> with a <see cref="CancellationToken"/>
+        /// </summary>
+        /// <param name="channel">The queue containing</param>
+        /// <param name="consumerTimeoutMs">The consumer timeout in ms</param>
+        /// <param name="cacellationToken">The <see cref="CancellationToken"/> to allow for clean task cancellation</param>
+        public ConsumerIterator(BlockingCollection<FetchedDataChunk> channel, int consumerTimeoutMs, CancellationToken cancellationToken)
         {
             this.channel = channel;
             this.consumerTimeoutMs = consumerTimeoutMs;
+            this.cancellationToken = cancellationToken;
         }
 
         /// <summary>
@@ -146,7 +160,16 @@ namespace Kafka.Client.Consumers
         private bool MaybeComputeNext()
         {
             state = ConsumerIteratorState.Failed;
-            nextItem = this.MakeNext();
+            try
+            {
+                nextItem = this.MakeNext();
+            }
+            catch (OperationCanceledException)
+            {
+                state = ConsumerIteratorState.Done;
+                return false;
+            }
+
             if (state == ConsumerIteratorState.Done)
             {
                 return false;
@@ -162,11 +185,11 @@ namespace Kafka.Client.Consumers
             {
                 if (consumerTimeoutMs < 0)
                 {
-                    currentDataChunk = this.channel.Take();
+                    currentDataChunk = this.channel.Take(cancellationToken);
                 }
                 else
                 {
-                    bool done = channel.TryTake(out currentDataChunk, consumerTimeoutMs);
+                    bool done = channel.TryTake(out currentDataChunk, consumerTimeoutMs, cancellationToken);
                     if (!done)
                     {
                         Logger.Debug("Consumer iterator timing out...");

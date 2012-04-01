@@ -71,6 +71,12 @@
   <PropertyGroup>
     <StartupObject />
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>KafkaClient.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="log4net">
       <HintPath>..\..\..\..\lib\log4Net\log4net.dll</HintPath>
@@ -83,6 +89,8 @@
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.XML" />
+    <Reference Include="System.Xml.Linq" />
     <Reference Include="ZooKeeperNet">
       <HintPath>..\..\..\..\lib\zookeeper\ZooKeeperNet.dll</HintPath>
     </Reference>
@@ -120,6 +128,7 @@
     <None Include="Config\Debug\App.config">
       <SubType>Designer</SubType>
     </None>
+    <None Include="KafkaClient.snk" />
     <None Include="Log4Net.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

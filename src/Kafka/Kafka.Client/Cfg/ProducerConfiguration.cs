@@ -24,6 +24,8 @@ namespace Kafka.Client.Cfg
     using System.Text;
     using Kafka.Client.Producers;
     using Kafka.Client.Utils;
+    using System.Xml.Linq;
+
 
     /// <summary>
     /// High-level API configuration for the producer
@@ -31,7 +33,7 @@ namespace Kafka.Client.Cfg
     public class ProducerConfiguration : ISyncProducerConfigShared, IAsyncProducerConfigShared
     {
         public const ProducerTypes DefaultProducerType = ProducerTypes.Sync;
-        public const string DefaultPartitioner = "Kafka.Client.Producers.Partitioning.DefaultPartitioner";
+        public const string DefaultPartitioner = "Kafka.Client.Producers.Partitioning.DefaultStringPartitioner";
         public const string DefaultSectionName = "kafkaProducer";
 
         public static ProducerConfiguration Configure(string section)
@@ -48,6 +50,10 @@ namespace Kafka.Client.Cfg
             this.SocketTimeout = SyncProducerConfiguration.DefaultSocketTimeout;
             this.MaxMessageSize = SyncProducerConfiguration.DefaultMaxMessageSize;
             this.SerializerClass = AsyncProducerConfiguration.DefaultSerializerClass;
+        }
+
+        public ProducerConfiguration(XElement xml) : this(ProducerConfigurationSection.FromXml(xml))
+        {
         }
 
         public ProducerConfiguration(IList<BrokerConfiguration> brokersConfig)

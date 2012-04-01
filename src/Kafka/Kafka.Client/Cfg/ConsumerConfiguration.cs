@@ -22,6 +22,8 @@ namespace Kafka.Client.Cfg
     using System.Net;
     using System.Globalization;
     using System.Text;
+    using System.Xml.Linq;
+
 
     /// <summary>
     /// Configuration used by the consumer

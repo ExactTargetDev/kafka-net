@@ -19,6 +19,8 @@ namespace Kafka.Client.Cfg
 {
     using System.Configuration;
     using Kafka.Client.Producers;
+    using System.Xml.Linq;
+
 
     public class ProducerConfigurationSection : ConfigurationSection
     {
@@ -127,5 +129,13 @@ namespace Kafka.Client.Cfg
                 return (string)this["partitioner"];
             }
         }
+
+        public static ProducerConfigurationSection FromXml(XElement xml)
+        {
+            var config = new ProducerConfigurationSection();
+            config.DeserializeSection(xml.CreateReader());
+            return config;
+        }
+
     }
 }

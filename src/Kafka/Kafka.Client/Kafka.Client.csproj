@@ -95,6 +95,12 @@
     <CodeContractsReferenceAssembly>%28none%29</CodeContractsReferenceAssembly>
     <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>KafkaClient.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="log4net">
       <HintPath>..\..\..\lib\log4Net\log4net.dll</HintPath>
@@ -104,6 +110,8 @@
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.XML" />
+    <Reference Include="System.Xml.Linq" />
     <Reference Include="ZooKeeperNet">
       <HintPath>..\..\..\lib\zookeeper\ZooKeeperNet.dll</HintPath>
     </Reference>
@@ -159,6 +167,7 @@
     <Compile Include="Messages\MessageAndOffset.cs" />
     <Compile Include="Producers\Async\AsyncProducerPool.cs" />
     <Compile Include="Producers\Async\MessageSent.cs" />
+    <Compile Include="Producers\Partitioning\DefaultStringPartitioner.cs" />
     <Compile Include="Producers\Producer.StrMsg.cs" />
     <Compile Include="Producers\Sync\SyncProducerPool.cs" />
     <Compile Include="Serialization\StringEncoder.cs" />
@@ -239,6 +248,7 @@
     <None Include="..\..\..\Settings.StyleCop">
       <Link>Settings.StyleCop</Link>
     </None>
+    <None Include="KafkaClient.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\..\..\lib\StyleCop\Microsoft.StyleCop.Targets" />
