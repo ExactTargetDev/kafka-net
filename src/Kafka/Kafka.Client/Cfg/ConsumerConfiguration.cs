@@ -88,6 +88,11 @@ namespace Kafka.Client.Cfg
             }
         }
 
+        public ConsumerConfiguration(XElement xmlElement)
+            : this(ConsumerConfigurationSection.FromXml(xmlElement))
+        {
+        }
+
         public static ConsumerConfiguration Configure(string section)
         {
             var config = ConfigurationManager.GetSection(section) as ConsumerConfigurationSection;
