@@ -38,13 +38,10 @@ namespace Kafka.Client.Messages
     public class BufferedMessageSet : MessageSet, IEnumerable<MessageAndOffset>, IEnumerator<MessageAndOffset>
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        private MemoryStream topIter;
         private int topIterPosition;
         private long currValidBytes = 0;
         private IEnumerator<MessageAndOffset> innerIter = null;
         private long lastMessageSize = 0;
-        private long deepValidByteCount = -1;
-        private long shallowValidByteCount = -1;
         private ConsumerIteratorState state = ConsumerIteratorState.NotReady;
         private MessageAndOffset nextItem;
 
