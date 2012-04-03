@@ -90,11 +90,19 @@ namespace Kafka.Client.Producers
 
             if (this.populateProducerPool)
             {
-                IDictionary<int, Broker> allBrokers = this.brokerPartitionInfo.GetAllBrokerInfo();
-                foreach (var broker in allBrokers)
+                try
                 {
-                    this.producerPool.AddProducer(
-                        new Broker(broker.Key, broker.Value.Host, broker.Value.Host, broker.Value.Port));
+                    IDictionary<int, Broker> allBrokers = this.brokerPartitionInfo.GetAllBrokerInfo();
+                    foreach (var broker in allBrokers)
+                    {                    
+                        this.producerPool.AddProducer(
+                            new Broker(broker.Key, broker.Value.Host, broker.Value.Host, broker.Value.Port));
+                    }
+                }
+                catch
+                {
+                    this.brokerPartitionInfo.Dispose();
+                    throw;
                 }
             }
         }
