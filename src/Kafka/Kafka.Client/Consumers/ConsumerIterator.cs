@@ -193,6 +193,7 @@ namespace Kafka.Client.Consumers
                     if (!done)
                     {
                         Logger.Debug("Consumer iterator timing out...");
+                        state = ConsumerIteratorState.NotReady;
                         throw new ConsumerTimeoutException();
                     }
                 }
