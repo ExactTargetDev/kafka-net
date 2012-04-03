@@ -111,7 +111,7 @@ namespace Kafka.Client.ZooKeeperIntegration
         {
             get
             {
-                return this.idleTime.HasValue ? Convert.ToInt32((DateTime.Now - this.idleTime.Value).TotalMilliseconds) : 0;
+                return this.idleTime.HasValue ? Convert.ToInt32((DateTime.Now - this.idleTime.Value).TotalMilliseconds) : (int?)null;
             }
         }
 
@@ -206,7 +206,7 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// </param>
         public void Subscribe(IZooKeeperStateListener listener)
         {
-            Guard.Assert<ArgumentNullException>(() => listener != null);
+            Guard.NotNull(listener, "listener");
 
             this.EnsuresNotDisposed();
             this.StateChanged += listener.HandleStateChanged;
@@ -222,7 +222,7 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// </param>
         public void Unsubscribe(IZooKeeperStateListener listener)
         {
-            Guard.Assert<ArgumentNullException>(() => listener != null);
+            Guard.NotNull(listener, "listener");
 
             this.EnsuresNotDisposed();
             this.StateChanged -= listener.HandleStateChanged;
@@ -241,8 +241,8 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// </param>
         public void Subscribe(string path, IZooKeeperChildListener listener)
         {
-            Guard.Assert<ArgumentException>(() => !string.IsNullOrEmpty(path));
-            Guard.Assert<ArgumentNullException>(() => listener != null);
+            Guard.NotNullNorEmpty(path, "path");
+            Guard.NotNull(listener, "listener");
 
             this.EnsuresNotDisposed();
             this.childChangedHandlers.AddOrUpdate(
@@ -264,8 +264,8 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// </param>
         public void Unsubscribe(string path, IZooKeeperChildListener listener)
         {
-            Guard.Assert<ArgumentException>(() => !string.IsNullOrEmpty(path));
-            Guard.Assert<ArgumentNullException>(() => listener != null);
+            Guard.NotNullNorEmpty(path, "path");
+            Guard.NotNull(listener, "listener");
 
             this.EnsuresNotDisposed();
             this.childChangedHandlers.AddOrUpdate(
@@ -286,8 +286,8 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// </param>
         public void Subscribe(string path, IZooKeeperDataListener listener)
         {
-            Guard.Assert<ArgumentException>(() => !string.IsNullOrEmpty(path));
-            Guard.Assert<ArgumentNullException>(() => listener != null);
+            Guard.NotNullNorEmpty(path, "path");
+            Guard.NotNull(listener, "listener");
 
             this.EnsuresNotDisposed();
             this.dataChangedHandlers.AddOrUpdate(
@@ -314,8 +314,8 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// </param>
         public void Unsubscribe(string path, IZooKeeperDataListener listener)
         {
-            Guard.Assert<ArgumentException>(() => !string.IsNullOrEmpty(path));
-            Guard.Assert<ArgumentNullException>(() => listener != null);
+            Guard.NotNullNorEmpty(path, "path");
+            Guard.NotNull(listener, "listener");
 
             this.EnsuresNotDisposed();
             this.dataChangedHandlers.AddOrUpdate(
@@ -358,7 +358,7 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// </returns>
         public IList<string> WatchForChilds(string path)
         {
-            Guard.Assert<ArgumentException>(() => !string.IsNullOrEmpty(path));
+            Guard.NotNullNorEmpty(path, "path");
 
             this.EnsuresNotDisposed();
             if (this.zooKeeperEventWorker != null && Thread.CurrentThread == this.zooKeeperEventWorker)
@@ -389,7 +389,7 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// </param>
         public void WatchForData(string path)
         {
-            Guard.Assert<ArgumentException>(() => !string.IsNullOrEmpty(path));
+            Guard.NotNullNorEmpty(path, "path");
 
             this.EnsuresNotDisposed();
             this.RetryUntilConnected(
