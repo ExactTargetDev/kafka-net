@@ -68,7 +68,7 @@ namespace Kafka.Client.Producers.Partitioning
         /// <param name="config">The config.</param>
         /// <param name="callback">The callback invoked when new broker is added.</param>
         public ZKBrokerPartitionInfo(ProducerConfiguration config, Action<int, string, int> callback)
-            : this(new ZooKeeperClient(config.ZooKeeper.ZkConnect, config.ZooKeeper.ZkSessionTimeoutMs, ZooKeeperStringSerializer.Serializer))
+            : this(new ZooKeeperClient(config.ZooKeeper.ZkConnect, config.ZooKeeper.ZkSessionTimeoutMs, ZooKeeperStringSerializer.Serializer, config.ZooKeeper.ZkConnectionTimeoutMs))
         {
             this.callback = callback;
         }

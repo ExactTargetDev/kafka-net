@@ -210,7 +210,7 @@ namespace Kafka.Client.Consumers
         private void ConnectZk()
         {
             Logger.InfoFormat(CultureInfo.CurrentCulture, "Connecting to zookeeper instance at {0}", this.config.ZooKeeper.ZkConnect);
-            this.zkClient = new ZooKeeperClient(this.config.ZooKeeper.ZkConnect, this.config.ZooKeeper.ZkSessionTimeoutMs, ZooKeeperStringSerializer.Serializer);
+            this.zkClient = new ZooKeeperClient(this.config.ZooKeeper.ZkConnect, this.config.ZooKeeper.ZkSessionTimeoutMs, ZooKeeperStringSerializer.Serializer, this.config.ZooKeeper.ZkConnectionTimeoutMs);
             this.zkClient.Connect();
         }
 

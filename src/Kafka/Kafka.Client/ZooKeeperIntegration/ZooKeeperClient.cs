@@ -143,7 +143,7 @@ namespace Kafka.Client.ZooKeeperIntegration
                 if (!this.WaitUntilConnected(this.connectionTimeout))
                 {
                     throw new ZooKeeperException(
-                        "Unable to connect to zookeeper server within timeout: " + this.connection.SessionTimeout);
+                        "Unable to connect to zookeeper server within timeout: " + this.connectionTimeout);
                 }
 
                 started = true;
