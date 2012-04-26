@@ -44,16 +44,17 @@ namespace Kafka.Client.IntegrationTests
 
             int totalWaitTimeInMiliseconds = 0;
             int waitSingle = 100;
-            var originalMessage = new Message(Encoding.UTF8.GetBytes("TestData"));
+            var originalMessage = new Message(Encoding.UTF8.GetBytes("TestData2"));
+            var topic = CurrentTestTopic;
 
-            var multipleBrokersHelper = new TestMultipleBrokersHelper(CurrentTestTopic);
+            var multipleBrokersHelper = new TestMultipleBrokersHelper(topic);
             multipleBrokersHelper.GetCurrentOffsets(new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 });
 
             var mockPartitioner = new MockAlwaysZeroPartitioner();
             using (var producer = new Producer<string, Message>(prodConfig, mockPartitioner, new DefaultEncoder()))
             {
                 var producerData = new ProducerData<string, Message>(
-                    CurrentTestTopic, "somekey", new List<Message> { originalMessage });
+                    topic, "somekey", new List<Message> { originalMessage });
                 producer.Send(producerData);
 
                 while (!multipleBrokersHelper.CheckIfAnyBrokerHasChanged(new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 }))
@@ -72,7 +73,7 @@ namespace Kafka.Client.IntegrationTests
                     multipleBrokersHelper.BrokerThatHasChanged.Host,
                     multipleBrokersHelper.BrokerThatHasChanged.Port);
                 IConsumer consumer = new Consumer(consumerConfig);
-                var request = new FetchRequest(CurrentTestTopic, multipleBrokersHelper.PartitionThatHasChanged, multipleBrokersHelper.OffsetFromBeforeTheChange);
+                var request = new FetchRequest(topic, multipleBrokersHelper.PartitionThatHasChanged, multipleBrokersHelper.OffsetFromBeforeTheChange);
 
                 BufferedMessageSet response;
 

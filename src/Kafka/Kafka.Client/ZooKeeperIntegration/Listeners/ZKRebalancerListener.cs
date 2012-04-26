@@ -169,7 +169,7 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
             foreach (var item in relevantTopicThreadIdsMap)
             {
                 this.topicRegistry.Remove(item.Key);
-                this.topicRegistry.Add(item.Key, new Dictionary<Partition, PartitionTopicInfo>());
+                this.topicRegistry.Add(item.Key, new ConcurrentDictionary<Partition, PartitionTopicInfo>());
 
                 var topicDirs = new ZKGroupTopicDirs(config.GroupId, item.Key);
                 var curConsumers = consumersPerTopicMap[item.Key];

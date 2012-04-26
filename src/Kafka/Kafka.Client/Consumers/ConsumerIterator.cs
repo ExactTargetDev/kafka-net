@@ -183,6 +183,7 @@ namespace Kafka.Client.Consumers
         {
             if (current == null || !current.MoveNext())
             {
+                Logger.Debug("Getting new FetchedDataChunk...");
                 if (consumerTimeoutMs < 0)
                 {
                     currentDataChunk = this.channel.Take(cancellationToken);
@@ -206,6 +207,7 @@ namespace Kafka.Client.Consumers
                 }
 
                 currentTopicInfo = currentDataChunk.TopicInfo;
+                Logger.DebugFormat("CurrentTopicInfo: ConsumedOffset({0}), FetchOffset({1})", currentTopicInfo.GetConsumeOffset(), currentTopicInfo.GetFetchOffset());
                 if (currentTopicInfo.GetConsumeOffset() != currentDataChunk.FetchOffset)
                 {
                     Logger.ErrorFormat(

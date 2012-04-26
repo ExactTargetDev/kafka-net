@@ -27,6 +27,11 @@ namespace Kafka.Client.IntegrationTests
     {
         protected string CurrentTestTopic { get; set; }
 
+        public IntegrationFixtureBase()
+        {
+            log4net.Config.XmlConfigurator.Configure();
+        }
+
         protected ProducerConfiguration ConfigBasedSyncProdConfig
         {
             get

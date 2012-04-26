@@ -138,9 +138,11 @@ namespace Kafka.Client.Consumers
             int size = messages.SetSize;
             if (size > 0)
             {
+                Logger.InfoFormat("Updating fetch offset = {0} with size = {1}", this.fetchedOffset, size);
+                this.chunkQueue.Add(new FetchedDataChunk(messages, this, fetchOffset));
                 long newOffset = Interlocked.Add(ref this.fetchedOffset, size);
                 Logger.Debug("Updated fetch offset of " + this + " to " + newOffset);
-                this.chunkQueue.Add(new FetchedDataChunk(messages, this, fetchOffset));
+                Logger.DebugFormat("PartitionTopicInfo: Partition ({0}), ConsumedOffset ({1}), FetchedOffset ({2})", this.Partition, this.consumedOffset, this.fetchedOffset);
             }
 
             return size;

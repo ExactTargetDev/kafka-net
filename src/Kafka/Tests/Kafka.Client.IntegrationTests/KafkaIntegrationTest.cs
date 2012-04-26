@@ -343,13 +343,17 @@ namespace Kafka.Client.IntegrationTests
             var consumerConfig = this.ConsumerConfig1;
 
             var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
+            long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
+
             using (var producer = new AsyncProducer(prodConfig))
             {
                 var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { sourceMessage });
                 producer.Send(producerRequest);
             }
 
-            long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
+            Thread.Sleep(3000);
+
+            
             IConsumer consumer = new Consumer(consumerConfig);
             var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
 
