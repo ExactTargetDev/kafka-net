@@ -489,10 +489,10 @@ namespace Kafka.Client.IntegrationTests
         }
 
         /// <summary>
-        /// Synchronous Producer sends a single simple message and then a consumer consumes it
+        /// Synchronous Producer sends a lots of simple messages and then a simple consumer consumes in several fetches
         /// </summary>
         [Test]
-        public void ProducerSendsAndConsumerReceivesLotsOfMessages()
+        public void ProducerSendsAndConsumerReceivesLotsOfMessagesManyFetchesAndOffsetsShouldBeCorrect()
         {
             var prodConfig = this.SyncProducerConfig1;
             var consumerConfig = this.ConsumerConfig1;
@@ -512,33 +512,45 @@ namespace Kafka.Client.IntegrationTests
             }
 
             IConsumer consumer = new Consumer(consumerConfig);
-            var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
-            BufferedMessageSet response;
-            int totalWaitTimeInMiliseconds = 0;
-            int waitSingle = 100;
-            while (true)
+            int messagesCounter = 0;
+            long totalSizeDownloaded = 0;
+
+            while (messagesCounter < nrOfMessages)
             {
-                Thread.Sleep(waitSingle);
-                response = consumer.Fetch(request);
-                if (response != null && response.Messages.Count() > 0)
+                var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
+                BufferedMessageSet response;
+                int totalWaitTimeInMiliseconds = 0;
+                int waitSingle = 100;
+                while (true)
                 {
-                    break;
+                    Thread.Sleep(waitSingle);
+                    response = consumer.Fetch(request);
+                    if (response != null && response.Messages.Count() > 0)
+                    {
+                        break;
+                    }
+
+                    totalWaitTimeInMiliseconds += waitSingle;
+                    if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
+                    {
+                        break;
+                    }
                 }
 
-                totalWaitTimeInMiliseconds += waitSingle;
-                if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
+                Assert.NotNull(response);
+                long currentCheckOffset = currentOffset + 4 + sourceMessage.Size;
+                while (response.MoveNext())
                 {
-                    break;
+                    Assert.AreEqual(currentCheckOffset, response.Current.Offset);
+                    currentCheckOffset += 4 + response.Current.Message.Size;
+                    messagesCounter++;
+                    currentOffset = response.Current.Offset;
+                    totalSizeDownloaded += response.Current.Message.Size + 4;
                 }
             }
 
-            Assert.NotNull(response);
-            long currentCheckOffset = 4 + sourceMessage.Size;
-            while (response.MoveNext())
-            {
-                Assert.AreEqual(currentCheckOffset, response.Current.Offset);
-                currentCheckOffset += 4 + response.Current.Message.Size;
-            }
+            Assert.AreEqual(nrOfMessages, messagesCounter);
+            Assert.AreEqual(nrOfMessages * (4 + sourceMessage.Size), totalSizeDownloaded);
         }
 
     }
