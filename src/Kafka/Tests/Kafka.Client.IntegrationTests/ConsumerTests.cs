@@ -498,7 +498,12 @@ namespace Kafka.Client.IntegrationTests
             int messagesPerPackage = 5;
             string topic = CurrentTestTopic;
 
+            var multipleBrokersHelper = new TestMultipleBrokersHelper(CurrentTestTopic);
+            multipleBrokersHelper.GetCurrentOffsets(
+                new[] { prodConfig });
+
             int msgNr = 0;
+            long totalSize = 0;
             using (var producer = new SyncProducer(prodConfig))
             {
                 for (int i = 0; i < numberOfMessages; i++)
@@ -513,10 +518,12 @@ namespace Kafka.Client.IntegrationTests
                         msgNr++;
                     }
                     var packageMessage = CompressionUtils.Compress(messagePackageList, CompressionCodecs.GZIPCompressionCodec);
-
+                    totalSize += packageMessage.Size;
                     producer.Send(topic, 0, new List<Message>() { packageMessage });
                 }
             }
+
+            totalSize = totalSize + 4 * numberOfMessages;
 
             // now consuming
             int resultCount = 0;
@@ -542,7 +549,7 @@ namespace Kafka.Client.IntegrationTests
                     // do nothing, this is expected
                 }
             }
-
+            
             Assert.AreEqual(numberOfMessages * messagesPerPackage, resultCount);
         }
 

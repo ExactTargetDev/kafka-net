@@ -41,7 +41,9 @@ namespace Kafka.Client.Messages
         private int topIterPosition;
         private long currValidBytes = 0;
         private IEnumerator<MessageAndOffset> innerIter = null;
+        private bool innerDone = true;
         private long lastMessageSize = 0;
+        private long initialOffset = 0;
         private ConsumerIteratorState state = ConsumerIteratorState.NotReady;
         private MessageAndOffset nextItem;
 
@@ -82,6 +84,7 @@ namespace Kafka.Client.Messages
             this.Messages = messages;
             this.ErrorCode = errorCode;
             this.topIterPosition = 0;
+            this.initialOffset = initialOffset;
             this.currValidBytes = initialOffset;
         }
 
@@ -127,12 +130,11 @@ namespace Kafka.Client.Messages
         {
             get
             {
-                if (!MoveNext())
+                if (state != ConsumerIteratorState.Ready && state != ConsumerIteratorState.Done)
                 {
                     throw new NoSuchElementException();
                 }
 
-                state = ConsumerIteratorState.NotReady;
                 if (nextItem != null)
                 {
                     return nextItem;
@@ -304,11 +306,6 @@ namespace Kafka.Client.Messages
             return GetEnumerator();
         }
 
-        private bool InnerDone()
-        {
-            return innerIter == null || !innerIter.MoveNext();
-        }
-
         private MessageAndOffset MakeNextOuter()
         {
             if (topIterPosition >= this.Messages.Count())
@@ -331,6 +328,7 @@ namespace Kafka.Client.Messages
                     }
 
                     innerIter = null;
+                    innerDone = true;
                     currValidBytes += 4 + newMessage.Size;
                     return new MessageAndOffset(newMessage, currValidBytes);
                 default:
@@ -340,13 +338,13 @@ namespace Kafka.Client.Messages
                     }
 
                     innerIter = CompressionUtils.Decompress(newMessage).GetEnumerator();
+                    innerDone = !innerIter.MoveNext();
                     return MakeNext();
             }
         }
 
         private MessageAndOffset MakeNext()
         {
-            var innerDone = InnerDone();
             if (Logger.IsDebugEnabled)
             {
                 Logger.DebugFormat(CultureInfo.CurrentCulture, "MakeNext() in deepIterator: innerDone = {0}", innerDone);
@@ -358,7 +356,8 @@ namespace Kafka.Client.Messages
                     return MakeNextOuter();
                 default:
                     var messageAndOffset = innerIter.Current;
-                    if (!innerIter.MoveNext())
+                    innerDone = !innerIter.MoveNext();
+                    if (innerDone)
                     {
                         currValidBytes += 4 + lastMessageSize;
                     }
@@ -388,8 +387,6 @@ namespace Kafka.Client.Messages
             {
                 case ConsumerIteratorState.Done:
                     return false;
-                case ConsumerIteratorState.Ready:
-                    return true;
                 default:
                     return MaybeComputeNext();
             }
@@ -413,6 +410,10 @@ namespace Kafka.Client.Messages
         public void Reset()
         {
             this.topIterPosition = 0;
+            this.currValidBytes = initialOffset;
+            this.lastMessageSize = 0;
+            this.innerIter = null;
+            this.innerDone = true;
         }
     }
 }

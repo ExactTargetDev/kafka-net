@@ -368,7 +368,6 @@ namespace Kafka.Client.IntegrationTests
                 {
                     break;
                 }
-
                 totalWaitTimeInMiliseconds += waitSingle;
                 if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
                 {
@@ -488,5 +487,59 @@ namespace Kafka.Client.IntegrationTests
 
             return builder.ToString();
         }
+
+        /// <summary>
+        /// Synchronous Producer sends a single simple message and then a consumer consumes it
+        /// </summary>
+        [Test]
+        public void ProducerSendsAndConsumerReceivesLotsOfMessages()
+        {
+            var prodConfig = this.SyncProducerConfig1;
+            var consumerConfig = this.ConsumerConfig1;
+
+            var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
+            long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
+
+            int nrOfMessages = 1000;
+
+            using (var producer = new SyncProducer(prodConfig))
+            {
+                for (int i = 0; i < nrOfMessages; i++)
+                {
+                    var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> {sourceMessage});
+                    producer.Send(producerRequest);
+                }
+            }
+
+            IConsumer consumer = new Consumer(consumerConfig);
+            var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
+            BufferedMessageSet response;
+            int totalWaitTimeInMiliseconds = 0;
+            int waitSingle = 100;
+            while (true)
+            {
+                Thread.Sleep(waitSingle);
+                response = consumer.Fetch(request);
+                if (response != null && response.Messages.Count() > 0)
+                {
+                    break;
+                }
+
+                totalWaitTimeInMiliseconds += waitSingle;
+                if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
+                {
+                    break;
+                }
+            }
+
+            Assert.NotNull(response);
+            long currentCheckOffset = 4 + sourceMessage.Size;
+            while (response.MoveNext())
+            {
+                Assert.AreEqual(currentCheckOffset, response.Current.Offset);
+                currentCheckOffset += 4 + response.Current.Message.Size;
+            }
+        }
+
     }
 }
