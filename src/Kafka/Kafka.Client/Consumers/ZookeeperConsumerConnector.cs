@@ -103,26 +103,38 @@ namespace Kafka.Client.Consumers
             {
                 return;
             }
-
-            foreach (KeyValuePair<string, IDictionary<Partition, PartitionTopicInfo>> topic in topicRegistry)
+            if (this.zkClient.SlimLock.TryEnterReadLock(2000))
             {
-                var topicDirs = new ZKGroupTopicDirs(this.config.GroupId, topic.Key);
-                foreach (KeyValuePair<Partition, PartitionTopicInfo> partition in topic.Value)
+                try
                 {
-                    var newOffset = partition.Value.GetConsumeOffset();
-                    try
+                    foreach (KeyValuePair<string, IDictionary<Partition, PartitionTopicInfo>> topic in topicRegistry)
                     {
-                        ZkUtils.UpdatePersistentPath(zkClient, topicDirs.ConsumerOffsetDir + "/" + partition.Value.Partition.Name, newOffset.ToString());
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.WarnFormat(CultureInfo.CurrentCulture, "exception during CommitOffsets: {0}", ex);
-                    }
+                        var topicDirs = new ZKGroupTopicDirs(this.config.GroupId, topic.Key);
+                        foreach (KeyValuePair<Partition, PartitionTopicInfo> partition in topic.Value)
+                        {
+                            var newOffset = partition.Value.GetConsumeOffset();
+                            try
+                            {
+                                ZkUtils.UpdatePersistentPath(zkClient,
+                                                             topicDirs.ConsumerOffsetDir + "/" +
+                                                             partition.Value.Partition.Name, newOffset.ToString());
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.WarnFormat(CultureInfo.CurrentCulture, "exception during CommitOffsets: {0}", ex);
+                            }
 
-                    if (Logger.IsDebugEnabled)
-                    {
-                        Logger.DebugFormat(CultureInfo.CurrentCulture, "Commited offset {0} for topic {1}", newOffset, partition);
+                            if (Logger.IsDebugEnabled)
+                            {
+                                Logger.DebugFormat(CultureInfo.CurrentCulture, "Commited offset {0} for topic {1}",
+                                                   newOffset, partition);
+                            }
+                        }
                     }
+                }
+                finally
+                {
+                    this.zkClient.SlimLock.ExitReadLock();
                 }
             }
         }

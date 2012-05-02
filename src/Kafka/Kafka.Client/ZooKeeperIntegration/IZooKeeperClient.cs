@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using System.Threading;
+
 namespace Kafka.Client.ZooKeeperIntegration
 {
     using System;
@@ -35,6 +37,8 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// Used for testing purpose
         /// </remarks>
         int? IdleTime { get; }
+
+        ReaderWriterLockSlim SlimLock { get; }
 
         /// <summary>
         /// Connects to ZooKeeper server within given time period and installs watcher in ZooKeeper

@@ -48,6 +48,12 @@ namespace Kafka.Client.ZooKeeperIntegration
         private volatile bool disposed;
         private readonly int connectionTimeout;
 
+        private readonly ReaderWriterLockSlim slimLock = new ReaderWriterLockSlim();
+        public ReaderWriterLockSlim SlimLock
+        {
+            get { return this.slimLock; }
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ZooKeeperClient"/> class.
         /// </summary>
@@ -629,34 +635,42 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// </summary>
         public void Dispose()
         {
-            if (this.disposed)
-            {
-                return;
-            }
-
-            lock (this.shuttingDownLock)
+            this.slimLock.EnterWriteLock();
+            try
             {
                 if (this.disposed)
                 {
                     return;
                 }
 
-                this.disposed = true;
-            }
+                lock (this.shuttingDownLock)
+                {
+                    if (this.disposed)
+                    {
+                        return;
+                    }
 
-            try
-            {
-                this.Disconnect();
-            }
-            catch (ThreadInterruptedException)
-            {
-            }
-            catch (Exception exc)
-            {
-                Logger.Debug("Ignoring unexpected errors on closing ZooKeeperClient", exc);
-            }
+                    this.disposed = true;
+                }
 
-            Logger.Debug("Closing ZooKeeperClient... done");
+                try
+                {
+                    this.Disconnect();
+                }
+                catch (ThreadInterruptedException)
+                {
+                }
+                catch (Exception exc)
+                {
+                    Logger.Debug("Ignoring unexpected errors on closing ZooKeeperClient", exc);
+                }
+
+                Logger.Debug("Closing ZooKeeperClient... done");
+            }
+            finally
+            {
+                this.slimLock.ExitWriteLock();
+            }
         }
 
         /// <summary>
