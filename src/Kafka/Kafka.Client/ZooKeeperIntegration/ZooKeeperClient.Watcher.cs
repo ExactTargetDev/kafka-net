@@ -126,75 +126,81 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// </remarks>
         public void Process(WatchedEvent e)
         {
-            this.EnsuresNotDisposed();
             Logger.Debug("Received event: " + e);
             this.zooKeeperEventWorker = Thread.CurrentThread;
-            if (this.shutdownTriggered)
+            if (this.shutdownTriggered || !this.slimLock.TryEnterReadLock(2000))
             {
                 Logger.Debug("ignoring event '{" + e.Type + " | " + e.Path + "}' since shutdown triggered");
                 return;
             }
-
-            bool stateChanged = e.Path == null;
-            bool znodeChanged = e.Path != null;
-            bool dataChanged =
-                e.Type == EventType.NodeDataChanged
-                || e.Type == EventType.NodeDeleted
-                || e.Type == EventType.NodeCreated
-                || e.Type == EventType.NodeChildrenChanged;
-
-            lock (this.somethingChanged)
+            try
             {
-                try
-                {
-                    if (stateChanged)
-                    {
-                        this.ProcessStateChange(e);
-                    }
+                this.EnsuresNotDisposed();
+                bool stateChanged = e.Path == null;
+                bool znodeChanged = e.Path != null;
+                bool dataChanged =
+                    e.Type == EventType.NodeDataChanged
+                    || e.Type == EventType.NodeDeleted
+                    || e.Type == EventType.NodeCreated
+                    || e.Type == EventType.NodeChildrenChanged;
 
-                    if (dataChanged)
-                    {
-                        this.ProcessDataOrChildChange(e);
-                    }
-                }
-                finally
+                lock (this.somethingChanged)
                 {
-                    if (stateChanged)
+                    try
                     {
-                        lock (this.stateChangedLock)
+                        if (stateChanged)
                         {
-                            Monitor.PulseAll(this.stateChangedLock);
+                            this.ProcessStateChange(e);
                         }
 
-                        if (e.State == KeeperState.Expired)
+                        if (dataChanged)
+                        {
+                            this.ProcessDataOrChildChange(e);
+                        }
+                    }
+                    finally
+                    {
+                        if (stateChanged)
+                        {
+                            lock (this.stateChangedLock)
+                            {
+                                Monitor.PulseAll(this.stateChangedLock);
+                            }
+
+                            if (e.State == KeeperState.Expired)
+                            {
+                                lock (this.znodeChangedLock)
+                                {
+                                    Monitor.PulseAll(this.znodeChangedLock);
+                                }
+
+                                foreach (string path in this.childChangedHandlers.Keys)
+                                {
+                                    this.Enqueue(new ZooKeeperChildChangedEventArgs(path));
+                                }
+
+                                foreach (string path in this.dataChangedHandlers.Keys)
+                                {
+                                    this.Enqueue(new ZooKeeperDataChangedEventArgs(path));
+                                }
+                            }
+                        }
+
+                        if (znodeChanged)
                         {
                             lock (this.znodeChangedLock)
                             {
                                 Monitor.PulseAll(this.znodeChangedLock);
                             }
-
-                            foreach (string path in this.childChangedHandlers.Keys)
-                            {
-                                this.Enqueue(new ZooKeeperChildChangedEventArgs(path));
-                            }
-
-                            foreach (string path in this.dataChangedHandlers.Keys)
-                            {
-                                this.Enqueue(new ZooKeeperDataChangedEventArgs(path));
-                            }
                         }
                     }
 
-                    if (znodeChanged)
-                    {
-                        lock (this.znodeChangedLock)
-                        {
-                            Monitor.PulseAll(this.znodeChangedLock);
-                        }
-                    }
+                    Monitor.PulseAll(this.somethingChanged);
                 }
-
-                Monitor.PulseAll(this.somethingChanged);
+            }
+            finally
+            {
+                this.slimLock.ExitReadLock();
             }
         }
 

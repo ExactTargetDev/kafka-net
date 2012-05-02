@@ -163,7 +163,7 @@ namespace Kafka.Client.Consumers
             {
                 return;
             }
-
+            this.CommitOffsets();
             lock (this.shuttingDownLock)
             {
                 if (this.disposed)

@@ -488,6 +488,163 @@ namespace Kafka.Client.IntegrationTests
         }
 
         [Test]
+        public void SimpleSyncProducerSendsLotsOfCompressedMessagesAndConsumerConnectorGetsThemBackWithAbreakInTheMiddle()
+        {
+            var prodConfig = this.SyncProducerConfig1;
+            var consumerConfig = this.ZooKeeperBasedConsumerConfig;
+            int numberOfMessages = 500;
+            int messagesPerPackage = 5;
+            int messageSize = 0;
+            int breakAtMessageNr = 1573;
+            int partOfPackedMessagesThatWillBeConsumedTwice = breakAtMessageNr % messagesPerPackage;
+
+            using (var producer = new SyncProducer(prodConfig))
+            {
+                for (int i = 0; i < numberOfMessages; i++)
+                {
+                    var messagePackageList = new List<Message>();
+                    for (int messageInPackageNr = 0; messageInPackageNr < messagesPerPackage; messageInPackageNr++)
+                    {
+                        string payload1 = "kafka 1.";
+                        byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
+                        var msg = new Message(payloadData1);
+                        messagePackageList.Add(msg);
+                        if (i == 0 && messageInPackageNr == 0)
+                        {
+                            messageSize = msg.Size;
+                        }
+                    }
+                    var packageMessage = CompressionUtils.Compress(messagePackageList, CompressionCodecs.GZIPCompressionCodec);
+
+                    producer.Send(CurrentTestTopic, 0, new List<Message>() { packageMessage });
+                }
+            }
+
+            Thread.Sleep(2000);
+
+            // now consuming
+            int resultCount = 0;
+            using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
+            {
+                var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
+                var messages = consumerConnector.CreateMessageStreams(topicCount);
+                var sets = messages[CurrentTestTopic];
+
+                try
+                {
+                    foreach (var set in sets)
+                    {
+                        foreach (var message in set)
+                        {
+                            Assert.AreEqual(messageSize, message.Size);
+                            resultCount++;
+                            if (resultCount == breakAtMessageNr)
+                            {
+                                break;
+                            }
+                        }
+                        if (resultCount == breakAtMessageNr)
+                        {
+                            break;
+                        }
+                    }
+                }
+                catch (ConsumerTimeoutException)
+                {
+                    // do nothing, this is expected
+                }
+            }
+
+            using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
+            {
+                var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
+                var messages = consumerConnector.CreateMessageStreams(topicCount);
+                var sets = messages[CurrentTestTopic];
+
+                try
+                {
+                    foreach (var set in sets)
+                    {
+                        foreach (var message in set)
+                        {
+                            Assert.AreEqual(messageSize, message.Size);
+                            resultCount++;
+                        }
+                    }
+                }
+                catch (ConsumerTimeoutException)
+                {
+                    // do nothing, this is expected
+                }
+            }
+
+            Assert.AreEqual(numberOfMessages * messagesPerPackage + partOfPackedMessagesThatWillBeConsumedTwice, resultCount);
+        }
+
+        [Test]
+        public void SimpleSyncProducerSendsLotsOfTwiceCompressedMessagesAndConsumerConnectorGetsThemBack()
+        {
+            var prodConfig = this.SyncProducerConfig1;
+            var consumerConfig = this.ZooKeeperBasedConsumerConfig;
+            int numberOfMessages = 500;
+            int messagesPerPackage = 5;
+            int messageSize = 0;
+            int messagesPerInnerPackage = 5;
+            
+            using (var producer = new SyncProducer(prodConfig))
+            {
+                for (int i = 0; i < numberOfMessages; i++)
+                {
+                    var messagePackageList = new List<Message>();
+                    for (int messageInPackageNr = 0; messageInPackageNr < messagesPerPackage; messageInPackageNr++)
+                    {
+                        var innerMessagePackageList = new List<Message>();
+                        for (int inner = 0; inner < messagesPerInnerPackage; inner++)
+                        {
+                            string payload1 = "kafka 1.";
+                            byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
+                            var msg = new Message(payloadData1);
+                            innerMessagePackageList.Add(msg);
+                        }
+                        var innerPackageMessage = CompressionUtils.Compress(innerMessagePackageList, CompressionCodecs.GZIPCompressionCodec);
+                        messagePackageList.Add(innerPackageMessage);
+                    }
+                    var packageMessage = CompressionUtils.Compress(messagePackageList, CompressionCodecs.GZIPCompressionCodec);
+
+                    producer.Send(CurrentTestTopic, 0, new List<Message>() { packageMessage });
+                }
+            }
+
+            Thread.Sleep(2000);
+
+            // now consuming
+            int resultCount = 0;
+            using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
+            {
+                var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
+                var messages = consumerConnector.CreateMessageStreams(topicCount);
+                var sets = messages[CurrentTestTopic];
+
+                try
+                {
+                    foreach (var set in sets)
+                    {
+                        foreach (var message in set)
+                        {
+                            resultCount++;
+                        }
+                    }
+                }
+                catch (ConsumerTimeoutException)
+                {
+                    // do nothing, this is expected
+                }
+            }
+
+            Assert.AreEqual(numberOfMessages * messagesPerPackage * messagesPerInnerPackage, resultCount);
+        }
+
+        [Test]
         public void SimpleSyncProducerSendsLotsOfCompressedMessagesWithIncreasedSizeAndConsumerConnectorGetsThemBack()
         {
             var prodConfig = this.SyncProducerConfig1;
@@ -514,19 +671,18 @@ namespace Kafka.Client.IntegrationTests
                         string payload1 = CreatePayloadByNumber(msgNr);
                         byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
                         var msg = new Message(payloadData1);
+                        totalSize += msg.Size;
                         messagePackageList.Add(msg);
                         msgNr++;
                     }
                     var packageMessage = CompressionUtils.Compress(messagePackageList, CompressionCodecs.GZIPCompressionCodec);
-                    totalSize += packageMessage.Size;
                     producer.Send(topic, 0, new List<Message>() { packageMessage });
                 }
             }
 
-            totalSize = totalSize + 4 * numberOfMessages;
-
             // now consuming
             int resultCount = 0;
+            long resultSize = 0;
             using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
             {
                 var topicCount = new Dictionary<string, int> { { topic, 1 } };
@@ -541,6 +697,7 @@ namespace Kafka.Client.IntegrationTests
                         {
                             Assert.AreEqual(CreatePayloadByNumber(resultCount), Encoding.UTF8.GetString(message.Payload));
                             resultCount++;
+                            resultSize += message.Size;
                         }
                     }
                 }
@@ -551,6 +708,7 @@ namespace Kafka.Client.IntegrationTests
             }
             
             Assert.AreEqual(numberOfMessages * messagesPerPackage, resultCount);
+            Assert.AreEqual(totalSize, resultSize);
         }
 
         [Test]
