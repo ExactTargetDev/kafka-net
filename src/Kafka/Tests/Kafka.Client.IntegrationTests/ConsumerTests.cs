@@ -768,5 +768,111 @@ namespace Kafka.Client.IntegrationTests
 
             Assert.AreEqual(numberOfMessages, resultCount);
         }
+
+        [Test]
+        public void MaxFetchSizeBugShouldNotAppearWhenSmallFetchSizeAndSingleMessageSmallerThanFetchSize()
+        {
+            var prodConfig = this.SyncProducerConfig1;
+            var consumerConfig = this.ZooKeeperBasedConsumerConfig;
+            consumerConfig.FetchSize = 256;
+            consumerConfig.NumberOfTries = 1;
+            consumerConfig.AutoCommitInterval = 1000;
+            int numberOfMessagesToSend = 100;
+            string topic = CurrentTestTopic;
+
+            var msgList = new List<Message>();
+            using (var producer = new SyncProducer(prodConfig))
+            {
+                for (int i = 0; i < numberOfMessagesToSend; i++)
+                {
+                    string payload = CreatePayloadByNumber(i + 100);
+                    byte[] payloadData = Encoding.UTF8.GetBytes(payload);
+                    var msg = new Message(payloadData);
+                    msgList.Add(msg);
+                    var producerRequest = new ProducerRequest(topic, 0, new List<Message>() { msg });
+                    producer.Send(producerRequest);
+                }
+            }
+
+            // now consuming
+            int messageNumberCounter = 0;
+            using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
+            {
+                var topicCount = new Dictionary<string, int> { { topic, 1 } };
+                var messages = consumerConnector.CreateMessageStreams(topicCount);
+                var sets = messages[topic];
+
+                try
+                {
+                    foreach (var set in sets)
+                    {
+                        foreach (var message in set)
+                        {
+                            Assert.AreEqual(CreatePayloadByNumber(messageNumberCounter + 100), Encoding.UTF8.GetString(message.Payload));
+                            messageNumberCounter++;
+                        }
+                    }
+                }
+                catch (ConsumerTimeoutException)
+                {
+                    // do nothing, this is expected
+                }
+            }
+
+            Assert.AreEqual(numberOfMessagesToSend, messageNumberCounter);
+        }
+
+        [Test]
+        public void InvalidMessageSizeShouldAppearWhenMessageIsLArgerThanTheFetchSize()
+        {
+            var prodConfig = this.SyncProducerConfig1;
+            var consumerConfig = this.ZooKeeperBasedConsumerConfig;
+            consumerConfig.FetchSize = 256;
+            consumerConfig.NumberOfTries = 1;
+            consumerConfig.AutoCommitInterval = 1000;
+            int numberOfMessagesToSend = 1;
+            string topic = CurrentTestTopic;
+
+            var msgList = new List<Message>();
+            using (var producer = new SyncProducer(prodConfig))
+            {
+                for (int i = 0; i < numberOfMessagesToSend; i++)
+                {
+                    string payload = CreatePayloadByNumber(i + 10000);
+                    byte[] payloadData = Encoding.UTF8.GetBytes(payload);
+                    var msg = new Message(payloadData);
+                    msgList.Add(msg);
+                    var producerRequest = new ProducerRequest(topic, 0, new List<Message>() { msg });
+                    producer.Send(producerRequest);
+                }
+            }
+
+            // now consuming
+            int messageNumberCounter = 0;
+            using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
+            {
+                var topicCount = new Dictionary<string, int> { { topic, 1 } };
+                var messages = consumerConnector.CreateMessageStreams(topicCount);
+                var sets = messages[topic];
+
+                try
+                {
+                    foreach (var set in sets)
+                    {
+                        foreach (var message in set)
+                        {
+                            Assert.AreEqual(CreatePayloadByNumber(messageNumberCounter + 100), Encoding.UTF8.GetString(message.Payload));
+                            messageNumberCounter++;
+                        }
+                    }
+                }
+                catch (ConsumerTimeoutException)
+                {
+                    // do nothing, this is expected
+                }
+            }
+
+            Assert.AreEqual(0, messageNumberCounter);
+        }
     }
 }

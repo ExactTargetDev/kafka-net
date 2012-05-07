@@ -230,9 +230,17 @@ namespace Kafka.Client.Messages
                 int msgSize = reader.ReadInt32();
                 readed += 4;
                 int sizeNotUsed = size - readed;
-                if (msgSize > sizeNotUsed)
+                if (msgSize > sizeNotUsed || msgSize < 0)
                 {
-                    Logger.ErrorFormat("Invalid message size. Read size = {0}, the remaining data size = {1}", msgSize, sizeNotUsed);
+                    if (messages.Count == 0 || msgSize < 0)
+                    {
+                        string errorMessage =
+                            String.Format(
+                                "Invalid message size. Read size = {0}, the remaining data size = {1} (possible causes (1) a single message larger than the fetch size; (2) log corruption)",
+                                msgSize, sizeNotUsed);
+                        throw new InvalidMessageSizeException(errorMessage);
+                    }
+                    return new BufferedMessageSet(messages, initialOffset);
                 }
                 Message msg = Message.ParseFrom(reader, msgSize);
                 readed += msgSize;
@@ -270,11 +278,11 @@ namespace Kafka.Client.Messages
                 var item = ParseFrom(reader, partSize, initialOffsets[i]);
                 readed += partSize;
                 result.Add(item);
-            }
-
-            if (size != readed)
-            {
-                throw new KafkaException(KafkaException.InvalidRetchSizeCode);
+                var totalSetSize = item.SetSize + 2;// 2 is the size of int16 that is the error info
+                if (totalSetSize != partSize)
+                {
+                    break;
+                }
             }
 
             return result;
