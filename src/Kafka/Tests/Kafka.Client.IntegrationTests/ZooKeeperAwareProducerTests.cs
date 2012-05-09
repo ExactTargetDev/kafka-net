@@ -15,6 +15,13 @@
  * limitations under the License.
  */
 
+using System;
+using System.Diagnostics;
+using System.Reflection;
+using Kafka.Client.Exceptions;
+using Kafka.Client.Producers.Partitioning;
+using Kafka.Client.ZooKeeperIntegration;
+
 namespace Kafka.Client.IntegrationTests
 {
     using System.Collections.Generic;
@@ -28,6 +35,9 @@ namespace Kafka.Client.IntegrationTests
     using Kafka.Client.Requests;
     using Kafka.Client.Serialization;
     using NUnit.Framework;
+    using Kafka.Client.Utils;
+    using System.Threading.Tasks;
+    using System.ComponentModel;
 
     [TestFixture]
     public class ZooKeeperAwareProducerTests : IntegrationFixtureBase
@@ -219,6 +229,67 @@ namespace Kafka.Client.IntegrationTests
                 Assert.NotNull(response);
                 Assert.AreEqual(1, response.Messages.Count());
                 Assert.AreEqual(originalMessage, Encoding.UTF8.GetString(response.Messages.First().Payload));
+            }
+        }
+
+        [Test]
+        public void ZkAwareProducerSendsLotsOfMessages()
+        {
+            var prodConfig = this.ZooKeeperBasedAsyncProdConfig;
+            prodConfig.ZooKeeper.ZkSessionTimeoutMs = 2500;
+            prodConfig.ZooKeeper.ZkConnectionTimeoutMs = 2500;
+            prodConfig.ConnectTimeout = 4000;
+            prodConfig.SocketTimeout = 4000;
+            int messagePackagesToSend = 10000;
+            int messagesPerPackage = 3;
+            var originalMessagePayload = Encoding.UTF8.GetBytes("TestData");
+            var originalMessageList = new List<Message>();
+            for (int msgNr = 0; msgNr < messagesPerPackage; msgNr++)
+            {
+                originalMessageList.Add(new Message(originalMessagePayload));
+            }
+
+            var multipleBrokersHelper = new TestMultipleBrokersHelper(CurrentTestTopic);
+            multipleBrokersHelper.GetCurrentOffsets(new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 });
+
+            var mockPartitioner = new MockAlwaysZeroPartitioner();
+            
+            using (var producer = new Producer<string, Message>(prodConfig, mockPartitioner, new DefaultEncoder()))
+            {
+                BackgroundWorker bw = new BackgroundWorker();
+                bw.WorkerSupportsCancellation = true;
+                bw.DoWork += new DoWorkEventHandler(ZkAwareProducerSendsLotsOfMessages_DoBackgroundWork);
+                bw.RunWorkerAsync(producer);
+                Random rnd = new Random((int)DateTime.Now.Ticks);
+                for (int i = 0; i < messagePackagesToSend; i++)
+                {
+                    var producerData = new ProducerData<string, Message>(CurrentTestTopic, "somekey",
+                                                                         originalMessageList);
+                    producer.Send(producerData);
+                }
+
+                bw.CancelAsync();
+            }
+        }
+
+        void ZkAwareProducerSendsLotsOfMessages_DoBackgroundWork(object sender, DoWorkEventArgs e)
+        {
+            BackgroundWorker worker = sender as BackgroundWorker;
+            while(true)
+            {
+                if (worker.CancellationPending)
+                {
+                    e.Cancel = true;
+                    break;
+                }
+                Producer<string, Message> producer = e.Argument as Producer<string, Message>;
+                IBrokerPartitionInfo brokerPartitionInfo =
+                    ReflectionHelper.GetInstanceField<IBrokerPartitionInfo>(
+                        "brokerPartitionInfo", producer);
+                IZooKeeperClient zkclient =
+                    ReflectionHelper.GetInstanceField<IZooKeeperClient>(
+                        "zkclient", brokerPartitionInfo);
+                WaitUntillIdle(zkclient, 3000);
             }
         }
     }

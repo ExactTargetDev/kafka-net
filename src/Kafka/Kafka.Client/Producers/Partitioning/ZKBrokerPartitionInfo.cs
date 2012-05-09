@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using System.Threading;
+
 namespace Kafka.Client.Producers.Partitioning
 {
     using System;
@@ -47,6 +49,7 @@ namespace Kafka.Client.Producers.Partitioning
         private readonly BrokerTopicsListener brokerTopicsListener;
         private volatile bool disposed;
         private readonly object shuttingDownLock = new object();
+        private readonly ReaderWriterLockSlim resetSlimLock = new ReaderWriterLockSlim();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ZKBrokerPartitionInfo"/> class.
@@ -81,8 +84,16 @@ namespace Kafka.Client.Producers.Partitioning
         /// </returns>
         public IDictionary<int, Broker> GetAllBrokerInfo()
         {
-            this.EnsuresNotDisposed();
-            return this.brokers;
+            this.resetSlimLock.EnterReadLock();
+            try
+            {
+                this.EnsuresNotDisposed();
+                return this.brokers;
+            }
+            finally
+            {
+                this.resetSlimLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -94,27 +105,35 @@ namespace Kafka.Client.Producers.Partitioning
         /// </returns>
         public SortedSet<Partition> GetBrokerPartitionInfo(string topic)
         {
-            Guard.NotNullNorEmpty(topic, "topic");
-
-            this.EnsuresNotDisposed();
-            SortedSet<Partition> brokerPartitions = null;
-            if (this.topicBrokerPartitions.ContainsKey(topic))
+            this.resetSlimLock.EnterReadLock();
+            try
             {
-                brokerPartitions = this.topicBrokerPartitions[topic];
-            }
-            else
-            {
-                this.topicBrokerPartitions.Add(topic, null);
-            }
+                Guard.NotNullNorEmpty(topic, "topic");
 
-            if (brokerPartitions == null || brokerPartitions.Count == 0)
-            {
-                var numBrokerPartitions = this.BootstrapWithExistingBrokers(topic);
-                this.topicBrokerPartitions[topic] = numBrokerPartitions;
-                return numBrokerPartitions;
-            }
+                this.EnsuresNotDisposed();
+                SortedSet<Partition> brokerPartitions = null;
+                if (this.topicBrokerPartitions.ContainsKey(topic))
+                {
+                    brokerPartitions = this.topicBrokerPartitions[topic];
+                }
+                else
+                {
+                    this.topicBrokerPartitions.Add(topic, null);
+                }
 
-            return brokerPartitions;
+                if (brokerPartitions == null || brokerPartitions.Count == 0)
+                {
+                    var numBrokerPartitions = this.BootstrapWithExistingBrokers(topic);
+                    this.topicBrokerPartitions[topic] = numBrokerPartitions;
+                    return numBrokerPartitions;
+                }
+
+                return brokerPartitions;
+            }
+            finally
+            {
+                this.resetSlimLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -126,8 +145,16 @@ namespace Kafka.Client.Producers.Partitioning
         /// </returns>
         public Broker GetBrokerInfo(int brokerId)
         {
-            this.EnsuresNotDisposed();
-            return this.brokers.ContainsKey(brokerId) ? this.brokers[brokerId] : null;
+            this.resetSlimLock.EnterReadLock();
+            try
+            {
+                this.EnsuresNotDisposed();
+                return this.brokers.ContainsKey(brokerId) ? this.brokers[brokerId] : null;
+            }
+            finally
+            {
+                this.resetSlimLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -237,19 +264,30 @@ namespace Kafka.Client.Producers.Partitioning
         /// </remarks>
         private SortedSet<Partition> BootstrapWithExistingBrokers(string topic)
         {
-            Logger.Debug("Currently, no brokers are registered under topic: " + topic);
-            Logger.Debug("Bootstrapping topic: " + topic + " with available brokers in the cluster with default "
-                + "number of partitions = 1");
-            var numBrokerPartitions = new SortedSet<Partition>();
-            var allBrokers = this.zkclient.GetChildrenParentMayNotExist(ZooKeeperClient.DefaultBrokerIdsPath);
-            Logger.Debug("List of all brokers currently registered in zookeeper -> " + string.Join(", ", allBrokers));
-            foreach (var broker in allBrokers)
+            this.resetSlimLock.EnterReadLock();
+            try
             {
-                numBrokerPartitions.Add(new Partition(int.Parse(broker, CultureInfo.InvariantCulture), 0));
-            }
+                Logger.Debug("Currently, no brokers are registered under topic: " + topic);
+                Logger.Debug("Bootstrapping topic: " + topic +
+                                " with available brokers in the cluster with default "
+                                + "number of partitions = 1");
+                var numBrokerPartitions = new SortedSet<Partition>();
+                var allBrokers = this.zkclient.GetChildrenParentMayNotExist(ZooKeeperClient.DefaultBrokerIdsPath);
+                Logger.Debug("List of all brokers currently registered in zookeeper -> " +
+                                string.Join(", ", allBrokers));
+                foreach (var broker in allBrokers)
+                {
+                    numBrokerPartitions.Add(new Partition(int.Parse(broker, CultureInfo.InvariantCulture), 0));
+                }
 
-            Logger.Debug("Adding following broker id, partition id for NEW topic: " + topic + " -> " + string.Join(", ", numBrokerPartitions));
-            return numBrokerPartitions;
+                Logger.Debug("Adding following broker id, partition id for NEW topic: " + topic + " -> " +
+                                string.Join(", ", numBrokerPartitions));
+                return numBrokerPartitions;
+            }
+            finally
+            {
+                this.resetSlimLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -264,20 +302,28 @@ namespace Kafka.Client.Producers.Partitioning
         /// </remarks>
         private void RegisterListeners()
         {
-            this.zkclient.Subscribe(ZooKeeperClient.DefaultBrokerTopicsPath, this.brokerTopicsListener);
-            Logger.Debug("Registering listener on path: " + ZooKeeperClient.DefaultBrokerTopicsPath);
-            foreach (string topic in this.topicBrokerPartitions.Keys)
+            this.resetSlimLock.EnterReadLock();
+            try
             {
-                string path = ZooKeeperClient.DefaultBrokerTopicsPath + "/" + topic;
-                this.zkclient.Subscribe(path, this.brokerTopicsListener);
-                Logger.Debug("Registering listener on path: " + path);
+                this.zkclient.Subscribe(ZooKeeperClient.DefaultBrokerTopicsPath, this.brokerTopicsListener);
+                Logger.Debug("Registering listener on path: " + ZooKeeperClient.DefaultBrokerTopicsPath);
+                foreach (string topic in this.topicBrokerPartitions.Keys)
+                {
+                    string path = ZooKeeperClient.DefaultBrokerTopicsPath + "/" + topic;
+                    this.zkclient.Subscribe(path, this.brokerTopicsListener);
+                    Logger.Debug("Registering listener on path: " + path);
+                }
+
+                this.zkclient.Subscribe(ZooKeeperClient.DefaultBrokerIdsPath, this.brokerTopicsListener);
+                Logger.Debug("Registering listener on path: " + ZooKeeperClient.DefaultBrokerIdsPath);
+
+                this.zkclient.Subscribe(this);
+                Logger.Debug("Registering listener on state changed event");
             }
-
-            this.zkclient.Subscribe(ZooKeeperClient.DefaultBrokerIdsPath, this.brokerTopicsListener);
-            Logger.Debug("Registering listener on path: " + ZooKeeperClient.DefaultBrokerIdsPath);
-
-            this.zkclient.Subscribe(this);
-            Logger.Debug("Registering listener on state changed event");
+            finally
+            {
+                this.resetSlimLock.ExitReadLock();
+            }
         }
 
         /// <summary>
@@ -285,10 +331,12 @@ namespace Kafka.Client.Producers.Partitioning
         /// </summary>
         private void Reset()
         {
-            this.topicBrokerPartitions = null;
-            this.brokers = null;
-            this.InitializeBrokers();
-            this.InitializeTopicBrokerPartitions();
+            
+                this.topicBrokerPartitions = null;
+                this.brokers = null;
+                this.InitializeBrokers();
+                this.InitializeTopicBrokerPartitions();
+            
         }
 
         /// <summary>
@@ -328,14 +376,22 @@ namespace Kafka.Client.Producers.Partitioning
         public void HandleSessionCreated(ZooKeeperSessionCreatedEventArgs args)
         {
             Guard.NotNull(args, "args");
-
+        
             this.EnsuresNotDisposed();
-            Logger.Debug("ZK expired; release old list of broker partitions for topics ");
-            this.Reset();
-            this.brokerTopicsListener.ResetState();
-            foreach (var topic in this.topicBrokerPartitions.Keys)
+            this.resetSlimLock.EnterWriteLock();
+            try
             {
-                this.zkclient.Subscribe(ZooKeeperClient.DefaultBrokerTopicsPath + "/" + topic, this.brokerTopicsListener);   
+                Logger.Debug("ZK expired; release old list of broker partitions for topics ");
+                this.Reset();
+                this.brokerTopicsListener.ResetState();
+                foreach (var topic in this.topicBrokerPartitions.Keys)
+                {
+                    this.zkclient.Subscribe(ZooKeeperClient.DefaultBrokerTopicsPath + "/" + topic, this.brokerTopicsListener);
+                }
+            }
+            finally
+            {
+                this.resetSlimLock.ExitWriteLock();
             }
         }
     }
