@@ -87,6 +87,14 @@ namespace Kafka.Client.IntegrationTests
             }
         }
 
+        protected ProducerConfiguration ZooKeeperBasedAsyncProdConfig
+        {
+            get
+            {
+                return ProducerConfiguration.Configure(ProducerConfiguration.DefaultSectionName + 4);
+            }
+        }
+
         protected AsyncProducerConfiguration AsyncProducerConfig1
         {
             get

@@ -15,6 +15,11 @@
  * limitations under the License.
  */
 
+using System.ComponentModel;
+using Kafka.Client.Producers.Partitioning;
+using Kafka.Client.Utils;
+using Kafka.Client.ZooKeeperIntegration;
+
 namespace Kafka.Client.IntegrationTests
 {
     using System.Collections.Generic;
@@ -28,6 +33,7 @@ namespace Kafka.Client.IntegrationTests
     using Kafka.Client.Requests;
     using Kafka.Client.Serialization;
     using NUnit.Framework;
+    using Kafka.Client.ZooKeeperIntegration.Events;
 
     [TestFixture]
     public class ZooKeeperAwareProducerTests : IntegrationFixtureBase
@@ -219,6 +225,58 @@ namespace Kafka.Client.IntegrationTests
                 Assert.NotNull(response);
                 Assert.AreEqual(1, response.Messages.Count());
                 Assert.AreEqual(originalMessage, Encoding.UTF8.GetString(response.Messages.First().Payload));
+            }
+        }
+
+        [Test]
+        public void ZkAwareProducerSendsLotsOfMessagesAndSessionCreatedHandlerInvokedInTheBackgroundShouldNotThrowException()
+        {
+            var prodConfig = this.ZooKeeperBasedAsyncProdConfig;
+            var originalMessage = new Message(Encoding.UTF8.GetBytes("TestData1"));
+            var originalMessageList = new List<Message> { originalMessage };
+            int numberOfPackagesToSend = 500;
+            int runBackgroundWorkerAfterNIterations = 100;
+
+            var mockPartitioner = new MockAlwaysZeroPartitioner();
+            using (var producer = new Producer<string, Message>(prodConfig, mockPartitioner, new DefaultEncoder()))
+            {
+                BackgroundWorker bw = new BackgroundWorker();
+                bw.WorkerSupportsCancellation = true;
+                bw.DoWork += new DoWorkEventHandler(ZkAwareProducerSendsLotsOfMessagesAndSessionCreatedHandlerInvokedInTheBackgroundShouldNotThrowException_DoWork);
+                
+                for (int i = 0; i < numberOfPackagesToSend; i++)
+                {
+                    if (i == runBackgroundWorkerAfterNIterations)
+                    {
+                        bw.RunWorkerAsync(producer);
+                    }
+                    var producerData = new ProducerData<string, Message>(CurrentTestTopic, "somekey",
+                                                                         originalMessageList);
+                    producer.Send(producerData);
+                }
+
+                bw.CancelAsync();
+            }
+        }
+
+        void ZkAwareProducerSendsLotsOfMessagesAndSessionCreatedHandlerInvokedInTheBackgroundShouldNotThrowException_DoWork(object sender, DoWorkEventArgs e)
+        {
+            BackgroundWorker worker = sender as BackgroundWorker;
+            while (true)
+            {
+                if (worker.CancellationPending)
+                {
+                    e.Cancel = true;
+                    break;
+                }
+                Producer<string, Message> producer = e.Argument as Producer<string, Message>;
+                IBrokerPartitionInfo brokerPartitionInfo =
+                    ReflectionHelper.GetInstanceField<IBrokerPartitionInfo>("brokerPartitionInfo", producer);
+                IZooKeeperClient zkclient = ReflectionHelper.GetInstanceField<IZooKeeperClient>(
+                        "zkclient", brokerPartitionInfo);
+                var sessionCreatedHandler = ReflectionHelper.GetInstanceField<ZooKeeperClient.ZooKeeperEventHandler<ZooKeeperSessionCreatedEventArgs>>("sessionCreatedHandlers", zkclient);
+                sessionCreatedHandler.Invoke(ZooKeeperSessionCreatedEventArgs.Empty);
+                Thread.Sleep(1000);
             }
         }
     }
