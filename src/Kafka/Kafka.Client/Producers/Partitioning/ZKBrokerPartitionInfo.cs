@@ -265,19 +265,20 @@ namespace Kafka.Client.Producers.Partitioning
         private SortedSet<Partition> BootstrapWithExistingBrokers(string topic)
         {
             Logger.Debug("Currently, no brokers are registered under topic: " + topic);
-            Logger.Debug("Bootstrapping topic: " + topic + " with available brokers in the cluster with default "
-                         + "number of partitions = 1");
+            Logger.Debug("Bootstrapping topic: " + topic +
+                            " with available brokers in the cluster with default "
+                            + "number of partitions = 1");
             var numBrokerPartitions = new SortedSet<Partition>();
             var allBrokers = this.zkclient.GetChildrenParentMayNotExist(ZooKeeperClient.DefaultBrokerIdsPath);
             Logger.Debug("List of all brokers currently registered in zookeeper -> " +
-                         string.Join(", ", allBrokers));
+                            string.Join(", ", allBrokers));
             foreach (var broker in allBrokers)
             {
                 numBrokerPartitions.Add(new Partition(int.Parse(broker, CultureInfo.InvariantCulture), 0));
             }
 
             Logger.Debug("Adding following broker id, partition id for NEW topic: " + topic + " -> " +
-                         string.Join(", ", numBrokerPartitions));
+                            string.Join(", ", numBrokerPartitions));
             return numBrokerPartitions;
         }
 
@@ -322,10 +323,12 @@ namespace Kafka.Client.Producers.Partitioning
         /// </summary>
         private void Reset()
         {
+
             this.topicBrokerPartitions = null;
             this.brokers = null;
             this.InitializeBrokers();
             this.InitializeTopicBrokerPartitions();
+
         }
 
         /// <summary>
@@ -366,7 +369,7 @@ namespace Kafka.Client.Producers.Partitioning
         {
             Guard.NotNull(args, "args");
             this.resetSlimLock.EnterWriteLock();
-            
+
             try
             {
                 this.EnsuresNotDisposed();
