@@ -26,6 +26,9 @@ namespace Kafka.Client.IntegrationTests
     using Kafka.Client.ZooKeeperIntegration.Listeners;
     using NUnit.Framework;
     using ZooKeeperNet;
+    using System.Threading;
+    using System.ComponentModel;
+    using System;
 
     [TestFixture]
     public class ZkBrokerPartitionInfoTests : IntegrationFixtureBase

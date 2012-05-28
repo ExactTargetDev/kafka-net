@@ -36,25 +36,25 @@ namespace Kafka.Client.Consumers
     public class ZookeeperConsumerConnector : KafkaClientBase, IConsumerConnector
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        
+
         public static readonly int MaxNRetries = 4;
-        
+
         internal static readonly FetchedDataChunk ShutdownCommand = new FetchedDataChunk(null, null, -1);
 
         private readonly ConsumerConfiguration config;
-       
+
         private IZooKeeperClient zkClient;
-       
+
         private readonly object shuttingDownLock = new object();
-       
+
         private readonly bool enableFetcher;
-        
+
         private Fetcher fetcher;
-        
+
         private readonly KafkaScheduler scheduler = new KafkaScheduler();
-        
+
         private readonly IDictionary<string, IDictionary<Partition, PartitionTopicInfo>> topicRegistry = new ConcurrentDictionary<string, IDictionary<Partition, PartitionTopicInfo>>();
-        
+
         private readonly IDictionary<Tuple<string, string>, BlockingCollection<FetchedDataChunk>> queues = new Dictionary<Tuple<string, string>, BlockingCollection<FetchedDataChunk>>();
 
         private readonly object syncLock = new object();
@@ -103,39 +103,37 @@ namespace Kafka.Client.Consumers
             {
                 return;
             }
-            if (this.zkClient.SlimLock.TryEnterReadLock(2000))
+            this.zkClient.SlimLock.EnterReadLock();
+            try
             {
-                try
+                foreach (KeyValuePair<string, IDictionary<Partition, PartitionTopicInfo>> topic in topicRegistry)
                 {
-                    foreach (KeyValuePair<string, IDictionary<Partition, PartitionTopicInfo>> topic in topicRegistry)
+                    var topicDirs = new ZKGroupTopicDirs(this.config.GroupId, topic.Key);
+                    foreach (KeyValuePair<Partition, PartitionTopicInfo> partition in topic.Value)
                     {
-                        var topicDirs = new ZKGroupTopicDirs(this.config.GroupId, topic.Key);
-                        foreach (KeyValuePair<Partition, PartitionTopicInfo> partition in topic.Value)
+                        var newOffset = partition.Value.GetConsumeOffset();
+                        try
                         {
-                            var newOffset = partition.Value.GetConsumeOffset();
-                            try
-                            {
-                                ZkUtils.UpdatePersistentPath(zkClient,
-                                                             topicDirs.ConsumerOffsetDir + "/" +
-                                                             partition.Value.Partition.Name, newOffset.ToString());
-                            }
-                            catch (Exception ex)
-                            {
-                                Logger.WarnFormat(CultureInfo.CurrentCulture, "exception during CommitOffsets: {0}", ex);
-                            }
+                            ZkUtils.UpdatePersistentPath(zkClient,
+                                                         topicDirs.ConsumerOffsetDir + "/" +
+                                                         partition.Value.Partition.Name, newOffset.ToString());
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.WarnFormat(CultureInfo.CurrentCulture, "exception during CommitOffsets: {0}", ex);
+                        }
 
-                            if (Logger.IsDebugEnabled)
-                            {
-                                Logger.DebugFormat(CultureInfo.CurrentCulture, "Commited offset {0} for topic {1}",
-                                                   newOffset, partition);
-                            }
+                        if (Logger.IsDebugEnabled)
+                        {
+                            Logger.DebugFormat(CultureInfo.CurrentCulture, "Commited offset {0} for topic {1}",
+                                               newOffset, partition);
                         }
                     }
                 }
-                finally
-                {
-                    this.zkClient.SlimLock.ExitReadLock();
-                }
+            }
+            finally
+            {
+                this.zkClient.SlimLock.ExitReadLock();
             }
         }
 
@@ -252,14 +250,15 @@ namespace Kafka.Client.Consumers
 
             // listener to consumer and partition changes
             var loadBalancerListener = new ZKRebalancerListener(
-                this.config, 
-                consumerIdString, 
-                this.topicRegistry, 
-                this.zkClient, 
-                this, 
-                queues, 
-                this.fetcher, 
-                this.syncLock);
+                this.config,
+                consumerIdString,
+                this.topicRegistry,
+                this.zkClient,
+                this,
+                queues,
+                this.fetcher,
+                this.syncLock,
+                result);
             this.RegisterConsumerInZk(dirs, consumerIdString, topicCount);
             this.zkClient.Subscribe(dirs.ConsumerRegistryDir, loadBalancerListener);
 
@@ -287,7 +286,7 @@ namespace Kafka.Client.Consumers
             //// register listener for session expired event
             this.zkClient.Subscribe(new ZKSessionExpireListener(dirs, consumerIdString, topicCount, loadBalancerListener, this));
 
-            //// explicitly trigger load balancing for this consumer
+            //// explicitly trigger load balancing for this consumer););
             lock (this.syncLock)
             {
                 loadBalancerListener.SyncedRebalance();
@@ -301,7 +300,7 @@ namespace Kafka.Client.Consumers
             foreach (var queue in this.queues)
             {
                 Logger.Debug("Clearing up queue");
-                //// clear the queue
+                // clear the queue
                 while (queue.Value.Count > 0)
                 {
                     queue.Value.Take();

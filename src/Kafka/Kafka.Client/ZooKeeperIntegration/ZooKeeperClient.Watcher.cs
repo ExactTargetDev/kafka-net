@@ -582,7 +582,7 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// Invokes subscribed handlers for ZooKeeeper state changes event
         /// </summary>
         /// <param name="e">
-        /// The event data.
+        /// The event data
         /// </param>
         private void OnStateChanged(ZooKeeperStateChangedEventArgs e)
         {

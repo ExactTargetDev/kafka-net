@@ -39,7 +39,7 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
 
         private IDictionary<string, IList<string>> oldConsumersPerTopicMap = new Dictionary<string, IList<string>>();
 
-        private readonly IDictionary<string, IDictionary<Partition, PartitionTopicInfo>> topicRegistry;
+        private IDictionary<string, IDictionary<Partition, PartitionTopicInfo>> topicRegistry;
 
         private readonly IDictionary<Tuple<string, string>, BlockingCollection<FetchedDataChunk>> queues;
 
@@ -59,6 +59,8 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
 
         private readonly ZookeeperConsumerConnector zkConsumerConnector;
 
+        private readonly IDictionary<string, IList<KafkaMessageStream>> kafkaMessageStreams;
+
         internal ZKRebalancerListener(
             ConsumerConfiguration config,
             string consumerIdString,
@@ -67,7 +69,8 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
             ZookeeperConsumerConnector zkConsumerConnector,
             IDictionary<Tuple<string, string>, BlockingCollection<FetchedDataChunk>> queues,
             Fetcher fetcher,
-            object syncLock)
+            object syncLock,
+            IDictionary<string, IList<KafkaMessageStream>> kafkaMessageStreams)
         {
             this.syncLock = syncLock;
             this.consumerIdString = consumerIdString;
@@ -78,6 +81,7 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
             this.zkConsumerConnector = zkConsumerConnector;
             this.queues = queues;
             this.fetcher = fetcher;
+            this.kafkaMessageStreams = kafkaMessageStreams;
         }
 
         public void SyncedRebalance()
@@ -88,6 +92,7 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
                 {
                     Logger.InfoFormat(CultureInfo.CurrentCulture, "begin rebalancing consumer {0} try #{1}", consumerIdString, i);
                     bool done = false;
+                    var cluster = new Cluster(zkClient);
                     try
                     {
                         done = this.Rebalance();
@@ -102,10 +107,12 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
                     {
                         return;
                     }
-
-                    //// release all partitions, reset state and retry
-                    this.ReleasePartitionOwnership();
-                    this.ResetState();
+                    else
+                    {
+                        Logger.Info(
+                            "Rebalancing attempt failed. Clearing the cache before the next rebalancing operation is triggered");
+                    }
+                    CloseFetchersForQueues(cluster, queues.Select(q => q.Value), this.kafkaMessageStreams, this.zkConsumerConnector);
                     Thread.Sleep(config.ZooKeeper.ZkSyncTimeMs);
                 }
             }
@@ -136,7 +143,15 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
         /// </summary>
         public void ResetState()
         {
-            this.topicRegistry.Clear();
+            zkClient.SlimLock.EnterWriteLock();
+            try
+            {
+                this.topicRegistry.Clear();
+            }
+            finally
+            {
+                zkClient.SlimLock.ExitWriteLock();
+            }
             this.oldConsumersPerTopicMap.Clear();
             this.oldPartitionsPerTopicMap.Clear();
         }
@@ -159,17 +174,17 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
                 return true;
             }
 
-            Logger.Info("Committing all offsets");
-            this.zkConsumerConnector.CommitOffsets();
+            this.CloseFetchers(cluster, myTopicThresdIdsMap, this.zkConsumerConnector);
 
             Logger.Info("Releasing parittion ownership");
             this.ReleasePartitionOwnership();
+            var currentTopicRegistry = new ConcurrentDictionary<string, IDictionary<Partition, PartitionTopicInfo>>();
 
-            var queuesToBeCleared = new List<BlockingCollection<FetchedDataChunk>>();
-            foreach (var item in relevantTopicThreadIdsMap)
+            var partitionOwnershipDecision = new Dictionary<Tuple<string, string>, string>();
+
+            foreach (var item in myTopicThresdIdsMap)
             {
-                this.topicRegistry.Remove(item.Key);
-                this.topicRegistry.Add(item.Key, new ConcurrentDictionary<Partition, PartitionTopicInfo>());
+                currentTopicRegistry.GetOrAdd(item.Key, new ConcurrentDictionary<Partition, PartitionTopicInfo>());
 
                 var topicDirs = new ZKGroupTopicDirs(config.GroupId, item.Key);
                 var curConsumers = consumersPerTopicMap[item.Key];
@@ -208,24 +223,104 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
                         {
                             var partition = curPartitions[i];
                             Logger.InfoFormat(CultureInfo.CurrentCulture, "{0} attempting to claim partition {1}", consumerThreadId, partition);
-                            if (!this.ProcessPartition(topicDirs, partition, item.Key, consumerThreadId))
-                            {
-                                return false;
-                            }
+                            AddPartitionTopicInfo(currentTopicRegistry, topicDirs, partition, item.Key, consumerThreadId);
+                            partitionOwnershipDecision.Add(new Tuple<string, string>(item.Key, partition), consumerThreadId);
                         }
-
-                        queuesToBeCleared.Add(queues[new Tuple<string, string>(item.Key, consumerThreadId)]);
                     }
                 }
             }
 
-            this.UpdateFetcher(cluster, queuesToBeCleared);
-            this.oldPartitionsPerTopicMap = partitionsPerTopicMap;
-            this.oldConsumersPerTopicMap = consumersPerTopicMap;
+            if (ReflectPartitionOwnership(partitionOwnershipDecision))
+            {
+                zkClient.SlimLock.EnterWriteLock();
+                try
+                {
+                    this.topicRegistry.Clear();
+                    foreach (var item in currentTopicRegistry)
+                    {
+                        this.topicRegistry.Add(item);
+                    }
+                
+                this.UpdateFetcher(cluster);}
+                finally
+                {
+                    zkClient.SlimLock.ExitWriteLock();
+                }
+                this.oldPartitionsPerTopicMap = partitionsPerTopicMap;
+                this.oldConsumersPerTopicMap = consumersPerTopicMap;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private bool ReflectPartitionOwnership(Dictionary<Tuple<string, string>, string> partitionOwnershipDecision)
+        {
+            var successfullyOwnedPartitions = new List<Tuple<string, string>>();
+            var partitionOwnershipSuccessful = new List<bool>();
+            foreach (var partitionOwner in partitionOwnershipDecision)
+            {
+                var topic = partitionOwner.Key.Item1;
+                var partition = partitionOwner.Key.Item2;
+                var consumerThreadId = partitionOwner.Value;
+                var topicDirs = new ZKGroupTopicDirs(config.GroupId, topic);
+                var partitionOwnerPath = topicDirs.ConsumerOwnerDir + "/" + partition;
+                try
+                {
+                    ZkUtils.CreateEphemeralPathExpectConflict(zkClient, partitionOwnerPath, consumerThreadId);
+                    Logger.InfoFormat("{0} successfully owned partition {1} for topic {2}", consumerThreadId, partition, topic);
+                    successfullyOwnedPartitions.Add(new Tuple<string, string>(topic, partition));
+                    partitionOwnershipSuccessful.Add(true);
+                }
+                catch (KeeperException.NodeExistsException)
+                {
+                    Logger.InfoFormat("waiting for the partition owner to be deleted: {0}", partition);
+                    partitionOwnershipSuccessful.Add(false);
+                }
+            }
+            var hasPartitionOwnershipFailed = partitionOwnershipSuccessful.Contains(false);
+            if (hasPartitionOwnershipFailed)
+            {
+                foreach (var topicAndPartition in successfullyOwnedPartitions)
+                {
+                    var topicDirs = new ZKGroupTopicDirs(config.GroupId, topicAndPartition.Item1);
+                    var znode = topicDirs.ConsumerOwnerDir + "/" + topicAndPartition.Item2;
+                    ZkUtils.DeletePath(zkClient, znode);
+                    Logger.DebugFormat("Consumer {0} releasing {1}", consumerIdString, znode);
+                }
+                return false;
+            }
             return true;
         }
 
-        private void UpdateFetcher(Cluster cluster, IEnumerable<BlockingCollection<FetchedDataChunk>> queuesToBeCleared)
+        private void CloseFetchers(Cluster cluster, IDictionary<string, IList<string>> relevantTopicThreadIdsMap, ZookeeperConsumerConnector zkConsumerConnector)
+        {
+            var queuesToBeCleared = queues.Where(q => relevantTopicThreadIdsMap.ContainsKey(q.Key.Item1)).Select(q => q.Value).ToList();
+            CloseFetchersForQueues(cluster, queuesToBeCleared, this.kafkaMessageStreams, zkConsumerConnector);
+        }
+
+        private void CloseFetchersForQueues(Cluster cluster, IEnumerable<BlockingCollection<FetchedDataChunk>> queuesToBeCleared, IDictionary<string, IList<KafkaMessageStream>> kafkaMessageStreams, ZookeeperConsumerConnector zkConsumerConnector)
+        {
+            if (this.fetcher != null)
+            {
+                var allPartitionInfos = new List<PartitionTopicInfo>();
+                foreach (var item in this.topicRegistry.Values)
+                {
+                    foreach (var partitionTopicInfo in item.Values)
+                    {
+                        allPartitionInfos.Add(partitionTopicInfo);
+                    }
+                }
+                fetcher.Shutdown();
+                fetcher.ClearFetcherQueues(allPartitionInfos, cluster, queuesToBeCleared, kafkaMessageStreams);
+                Logger.Info("Committing all offsets after clearing the fetcher queues");
+                zkConsumerConnector.CommitOffsets();
+            }
+        }
+
+        private void UpdateFetcher(Cluster cluster)
         {
             var allPartitionInfos = new List<PartitionTopicInfo>();
             foreach (var item in this.topicRegistry.Values)
@@ -243,32 +338,14 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
                 string.Join(",", allPartitionInfos.OrderBy(x => x.Partition.Name).Select(y => y.Partition.Name)));
             if (this.fetcher != null)
             {
-                this.fetcher.InitConnections(allPartitionInfos, cluster, queuesToBeCleared);
+                this.fetcher.InitConnections(allPartitionInfos, cluster);
             }
         }
 
-        private bool ProcessPartition(ZKGroupTopicDirs topicDirs, string partition, string topic, string consumerThreadId)
-        {
-            var partitionOwnerPath = topicDirs.ConsumerOwnerDir + "/" + partition;
-            try
-            {
-                ZkUtils.CreateEphemeralPathExpectConflict(zkClient, partitionOwnerPath, consumerThreadId);
-            }
-            catch (KeeperException.NodeExistsException)
-            {
-                //// The node hasn't been deleted by the original owner. So wait a bit and retry.
-                Logger.InfoFormat(CultureInfo.CurrentCulture, "waiting for the partition ownership to be deleted: {0}", partition);
-                return false;
-            }
-
-            AddPartitionTopicInfo(topicDirs, partition, topic, consumerThreadId);
-            return true;
-        }
-
-        private void AddPartitionTopicInfo(ZKGroupTopicDirs topicDirs, string partitionString, string topic, string consumerThreadId)
+        private void AddPartitionTopicInfo(IDictionary<string, IDictionary<Partition, PartitionTopicInfo>> currentTopicRegistry, ZKGroupTopicDirs topicDirs, string partitionString, string topic, string consumerThreadId)
         {
             var partition = Partition.ParseFrom(partitionString);
-            var partTopicInfoMap = this.topicRegistry[topic];
+            var partTopicInfoMap = currentTopicRegistry[topic];
             var znode = topicDirs.ConsumerOffsetDir + "/" + partition.Name;
             var offsetString = this.zkClient.ReadData<string>(znode, true);
             long offset = string.IsNullOrEmpty(offsetString) ? 0 : long.Parse(offsetString, CultureInfo.InvariantCulture);
@@ -290,18 +367,28 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
 
         private void ReleasePartitionOwnership()
         {
-            foreach (KeyValuePair<string, IDictionary<Partition, PartitionTopicInfo>> item in topicRegistry)
+            zkClient.SlimLock.EnterWriteLock();
+            try
             {
-                var topicDirs = new ZKGroupTopicDirs(this.config.GroupId, item.Key);
-                foreach (var partition in item.Value.Keys)
+                foreach (KeyValuePair<string, IDictionary<Partition, PartitionTopicInfo>> item in topicRegistry)
                 {
-                    string znode = topicDirs.ConsumerOwnerDir + "/" + partition.Name;
-                    ZkUtils.DeletePath(zkClient, znode);
-                    if (Logger.IsDebugEnabled)
+                    var topicDirs = new ZKGroupTopicDirs(this.config.GroupId, item.Key);
+                    foreach (var partition in item.Value.Keys)
                     {
-                        Logger.DebugFormat(CultureInfo.CurrentCulture, "Consumer {0} releasing {1}", this.consumerIdString, znode);
+                        string znode = topicDirs.ConsumerOwnerDir + "/" + partition.Name;
+                        ZkUtils.DeletePath(zkClient, znode);
+                        if (Logger.IsDebugEnabled)
+                        {
+                            Logger.DebugFormat(CultureInfo.CurrentCulture, "Consumer {0} releasing {1}",
+                                               this.consumerIdString, znode);
+                        }
                     }
+                    topicRegistry.Remove(item.Key);
                 }
+            }
+            finally
+            {
+                zkClient.SlimLock.ExitWriteLock();
             }
         }
 

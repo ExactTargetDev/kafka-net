@@ -28,6 +28,9 @@ namespace Kafka.Client.IntegrationTests
     using Kafka.Client.Producers.Sync;
     using Kafka.Client.Requests;
     using NUnit.Framework;
+    using Kafka.Client.Exceptions;
+    using System.ComponentModel;
+    using System.IO;
 
     /// <summary>
     /// Contains tests that go all the way to Kafka and back.
@@ -39,6 +42,15 @@ namespace Kafka.Client.IntegrationTests
         /// Maximum amount of time to wait trying to get a specific test message from Kafka server (in miliseconds)
         /// </summary>
         private static readonly int MaxTestWaitTimeInMiliseconds = 5000;
+
+        private static int WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsResultCounter = 0;
+        private static int WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsDuplicatesCounter = 0;
+
+        private static List<Message>
+            WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsReceivedMessages
+                = new List<Message>();
+        private static readonly object WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsResultCounterLock = new object();
+        private static int WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsDoneNr = 0;
 
         /// <summary>
         /// Sends a pair of message to Kafka.
@@ -553,5 +565,169 @@ namespace Kafka.Client.IntegrationTests
             Assert.AreEqual(nrOfMessages * (4 + sourceMessage.Size), totalSizeDownloaded);
         }
 
+
+        [Test]
+        public void WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated()
+        {
+            var prodConfig = this.SyncProducerConfig1;
+            var consumerConfig = this.ZooKeeperBasedConsumerConfig;
+            consumerConfig.FetchSize = 256;
+
+            int originalNrOfMessages = 3000;
+
+            using (var producer = new SyncProducer(prodConfig))
+            {
+                for (int i = 0; i < originalNrOfMessages; i++)
+                {
+                    var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message" + i));
+                    var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { sourceMessage });
+                    producer.Send(producerRequest);
+                }
+            }
+
+            BackgroundWorker bw1 = new BackgroundWorker();
+            bw1.WorkerSupportsCancellation = true;
+            bw1.DoWork += new DoWorkEventHandler(WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_DoWork);
+            int runBw1AfterNIterations = 50;
+
+            BackgroundWorker bw2 = new BackgroundWorker();
+            bw2.WorkerSupportsCancellation = true;
+            bw2.DoWork += new DoWorkEventHandler(WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_DoWork);
+            int runBw2AfterNIterations = 150;
+
+            // now consuming
+            int messageNumberCounter = 0;
+            StringBuilder sb = new StringBuilder();
+            var receivedMessages = new List<Message>();
+            using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
+            {
+                var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
+                var messages = consumerConnector.CreateMessageStreams(topicCount);
+                var sets = messages[CurrentTestTopic];
+
+                try
+                {
+                    foreach (var set in sets)
+                    {
+                        foreach (var message in set)
+                        {
+                            receivedMessages.Add(message);
+                            if (messageNumberCounter == runBw1AfterNIterations)
+                            {
+                                bw1.RunWorkerAsync();
+                            }
+                            if (messageNumberCounter == runBw2AfterNIterations)
+                            {
+                                bw2.RunWorkerAsync();
+                            }
+                            var msgString = Encoding.UTF8.GetString(message.Payload);
+                            sb.AppendLine(msgString);
+                            messageNumberCounter++;
+                        }
+                    }
+                }
+                catch (ConsumerTimeoutException)
+                {
+                    // do nothing, this is expected
+                }
+            }
+            int finishedThreads = 0;
+            var receivedFromBackgroundSoFar = new List<Message>();
+            
+            while (WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsDoneNr < 2 && (messageNumberCounter + WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsResultCounter < originalNrOfMessages))
+            {
+                lock (WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsResultCounterLock)
+                {
+                    finishedThreads =
+                        WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsDoneNr;
+                    receivedFromBackgroundSoFar.Clear();
+                    receivedFromBackgroundSoFar.AddRange(WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsReceivedMessages);
+                }
+                if (finishedThreads >= 2 || (receivedMessages.Count + receivedFromBackgroundSoFar.Count) >= originalNrOfMessages)
+                {
+                    break;
+                }
+                Thread.Sleep(1000);
+            }
+            using (StreamWriter outfile = new StreamWriter("ConsumerTestDumpMain.txt"))
+            {
+                outfile.Write(sb.ToString());
+            }
+            receivedMessages.AddRange(WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsReceivedMessages);
+            HashSet<string> resultSet = new HashSet<string>();
+            int nrOfDuplicates = 0;
+            foreach (var receivedMessage in receivedMessages)
+            {
+                var msgString = Encoding.UTF8.GetString(receivedMessage.Payload);
+                if (resultSet.Contains(msgString))
+                {
+                    nrOfDuplicates++;
+                }
+                else
+                {
+                    resultSet.Add(msgString);
+                }
+            }
+
+            int totalMessagesFromAllThreads = receivedMessages.Count;
+            Assert.AreEqual(originalNrOfMessages, totalMessagesFromAllThreads);
+
+            Assert.AreEqual(0, nrOfDuplicates);
+        }
+
+        void WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_DoWork(object sender, DoWorkEventArgs e)
+        {
+            var consumerConfig = this.ZooKeeperBasedConsumerConfig;
+            consumerConfig.FetchSize = 256;
+
+            int resultMessages = 0;
+            HashSet<string> resultSet = new HashSet<string>();
+            int nrOfDuplicates = 0;
+            StringBuilder sb = new StringBuilder();
+            var receivedMessages = new List<Message>();
+            using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
+            {
+                var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
+                var messages = consumerConnector.CreateMessageStreams(topicCount);
+                var sets = messages[CurrentTestTopic];
+
+                try
+                {
+                    foreach (var set in sets)
+                    {
+                        foreach (var message in set)
+                        {
+                            receivedMessages.Add(message);
+                            var msgString = Encoding.UTF8.GetString(message.Payload);
+                            sb.AppendLine(msgString);
+                            if (resultSet.Contains(msgString))
+                            {
+                                nrOfDuplicates++;
+                            }
+                            else
+                            {
+                                resultSet.Add(msgString);
+                            }
+                            resultMessages++;
+                        }
+                    }
+                }
+                catch (ConsumerTimeoutException)
+                {
+                    // do nothing, this is expected
+                }
+            }
+            var threadId = Thread.CurrentThread.ManagedThreadId.ToString();
+            using (StreamWriter outfile = new StreamWriter("ConsumerTestDumpThread-"+threadId+".txt"))
+            {
+                outfile.Write(sb.ToString());
+            }
+            lock (WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsResultCounterLock)
+            {
+                WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsReceivedMessages.AddRange(receivedMessages);
+                WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsDoneNr++;
+            }
+            
+        }
     }
 }

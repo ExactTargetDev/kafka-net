@@ -53,6 +53,10 @@ namespace Kafka.Client.Consumers
             return new KafkaMessageStream(this.queue, this.consumerTimeoutMs, cancellationToken);
         }
 
+        public void Clear()
+        {
+            iterator.ClearIterator();
+        }
 
         public IEnumerator<Message> GetEnumerator()
         {

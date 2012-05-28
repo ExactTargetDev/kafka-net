@@ -36,6 +36,7 @@ namespace Kafka.Client.Consumers
         private readonly ConsumerConfiguration config;
         private readonly IZooKeeperClient zkClient;
         private FetcherRunnable[] fetcherWorkerObjects;
+        private Thread[] fetcherThreads;
         private volatile bool disposed;
         private readonly object shuttingDownLock = new object();
 
@@ -57,7 +58,7 @@ namespace Kafka.Client.Consumers
         /// <summary>
         /// Shuts down all fetch threads
         /// </summary>
-        private void Shutdown()
+        public void Shutdown()
         {
             if (fetcherWorkerObjects != null)
             {
@@ -65,9 +66,48 @@ namespace Kafka.Client.Consumers
                 {
                     fetcherRunnable.Shutdown();
                 }
-
+                int threadsStillRunning = 0;
+                // make sure all fetcher threads stopped
+                do
+                {
+                    Thread.Sleep(500);
+                    threadsStillRunning = 0;
+                    foreach (var fetcherThread in fetcherThreads)
+                    {
+                        if (fetcherThread.IsAlive)
+                        {
+                            threadsStillRunning++;
+                        }
+                    }
+                } while (threadsStillRunning > 0);
+                
                 fetcherWorkerObjects = null;
+                fetcherThreads = null;
             }
+        }
+
+        public void ClearFetcherQueues(IList<PartitionTopicInfo> topicInfos, Cluster cluster, IEnumerable<BlockingCollection<FetchedDataChunk>> queuesToBeCleared, IDictionary<string, IList<KafkaMessageStream>> kafkaMessageStreams)
+        {
+            if (kafkaMessageStreams != null)
+            {
+                foreach (var kafkaMessageStream in kafkaMessageStreams)
+                {
+                    foreach (var stream in kafkaMessageStream.Value)
+                    {
+                        stream.Clear();
+                    }
+                }
+            }
+            Logger.Info("Cleared the data chunks in all the consumer message iterators");
+            // Clear all but the currently iterated upon chunk in the consumer thread's queue
+            foreach (var queueToBeCleared in queuesToBeCleared)
+            {
+                while (queueToBeCleared.Count > 0)
+                {
+                    queueToBeCleared.Take();
+                }
+            }
+            Logger.Info("Cleared all relevant queues for this fetcher");
         }
 
         /// <summary>
@@ -82,7 +122,7 @@ namespace Kafka.Client.Consumers
         /// <param name="queuesToBeCleared">
         /// The queues to be cleared.
         /// </param>
-        public void InitConnections(IEnumerable<PartitionTopicInfo> topicInfos, Cluster cluster, IEnumerable<BlockingCollection<FetchedDataChunk>> queuesToBeCleared)
+        public void InitConnections(IEnumerable<PartitionTopicInfo> topicInfos, Cluster cluster)
         {
             this.EnsuresNotDisposed();
             this.Shutdown();
@@ -90,15 +130,6 @@ namespace Kafka.Client.Consumers
             {
                 return;
             }
-
-            foreach (var queueToBeCleared in queuesToBeCleared)
-            {
-                while (queueToBeCleared.Count > 0)
-                {
-                    queueToBeCleared.Take();
-                }
-            }
-
             var partitionTopicInfoMap = new Dictionary<int, List<PartitionTopicInfo>>();
 
             //// re-arrange by broker id
@@ -116,6 +147,7 @@ namespace Kafka.Client.Consumers
 
             //// open a new fetcher thread for each broker
             fetcherWorkerObjects = new FetcherRunnable[partitionTopicInfoMap.Count];
+            fetcherThreads = new Thread[partitionTopicInfoMap.Count];
             int i = 0;
             foreach (KeyValuePair<int, List<PartitionTopicInfo>> item in partitionTopicInfoMap)
             {
@@ -124,6 +156,7 @@ namespace Kafka.Client.Consumers
                 var threadStart = new ThreadStart(fetcherRunnable.Run);
                 var fetcherThread = new Thread(threadStart);
                 fetcherWorkerObjects[i] = fetcherRunnable;
+                fetcherThreads[i] = fetcherThread;
                 fetcherThread.Start();
                 i++;
             }

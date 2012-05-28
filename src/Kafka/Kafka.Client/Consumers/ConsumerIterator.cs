@@ -47,6 +47,7 @@ namespace Kafka.Client.Consumers
         private FetchedDataChunk currentDataChunk = null;
         private Message nextItem;
         private long consumedOffset = -1;
+        private SemaphoreSlim makeNextSemaphore = new SemaphoreSlim(1, 1);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ConsumerIterator"/> class.
@@ -157,9 +158,31 @@ namespace Kafka.Client.Consumers
         {
         }
 
+        public void ClearIterator()
+        {
+            var semaphoreTaken = makeNextSemaphore.Wait(1000);
+            try
+            {
+                while (this.channel.Count > 0)
+                {
+                    this.channel.Take();
+                }
+                Logger.Info("Clearing the current data chunk for this consumer iterator");
+                current = null;
+            }
+            finally
+            {
+                if(semaphoreTaken)
+                {
+                    makeNextSemaphore.Release();
+                }
+            }
+        }
+
         private bool MaybeComputeNext()
         {
             state = ConsumerIteratorState.Failed;
+            makeNextSemaphore.Wait();
             try
             {
                 nextItem = this.MakeNext();
@@ -168,6 +191,10 @@ namespace Kafka.Client.Consumers
             {
                 state = ConsumerIteratorState.Done;
                 return false;
+            }
+            finally
+            {
+                makeNextSemaphore.Release();
             }
 
             if (state == ConsumerIteratorState.Done)
@@ -207,7 +234,8 @@ namespace Kafka.Client.Consumers
                 }
 
                 currentTopicInfo = currentDataChunk.TopicInfo;
-                Logger.DebugFormat("CurrentTopicInfo: ConsumedOffset({0}), FetchOffset({1})", currentTopicInfo.GetConsumeOffset(), currentTopicInfo.GetFetchOffset());
+                Logger.DebugFormat("CurrentTopicInfo: ConsumedOffset({0}), FetchOffset({1})",
+                                    currentTopicInfo.GetConsumeOffset(), currentTopicInfo.GetFetchOffset());
                 if (currentTopicInfo.GetConsumeOffset() != currentDataChunk.FetchOffset)
                 {
                     Logger.ErrorFormat(

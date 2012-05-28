@@ -33,7 +33,7 @@ namespace Kafka.Client.IntegrationTests
                         this.CurrentTestTopic, x.BrokerId, new Partition(x.BrokerId, 0), queue, 0, 0, 0));
 
             var fetcher = new Fetcher(this.ConsumerConfig1, null);
-            fetcher.InitConnections(topicInfos, cluster, new List<BlockingCollection<FetchedDataChunk>>());
+            fetcher.InitConnections(topicInfos, cluster);
 
             var perNode = 2;
             var countExpected = SendMessages(perNode, configs);
