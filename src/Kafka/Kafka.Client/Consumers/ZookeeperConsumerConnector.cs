@@ -21,6 +21,7 @@ namespace Kafka.Client.Consumers
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.Net;
     using System.Reflection;
     using Kafka.Client.Cfg;
     using Kafka.Client.Cluster;
@@ -244,7 +245,8 @@ namespace Kafka.Client.Consumers
             var dirs = new ZKGroupDirs(this.config.GroupId);
             var result = new Dictionary<string, IList<KafkaMessageStream>>();
 
-            string consumerUuid = Environment.MachineName + "-" + DateTime.Now.Millisecond;
+            var guid = Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 8);
+            string consumerUuid = string.Format("{0}-{1}-{2}", Dns.GetHostName(), DateTime.Now.Ticks, guid);
             string consumerIdString = this.config.GroupId + "_" + consumerUuid;
             var topicCount = new TopicCount(consumerIdString, topicCountDict);
 
