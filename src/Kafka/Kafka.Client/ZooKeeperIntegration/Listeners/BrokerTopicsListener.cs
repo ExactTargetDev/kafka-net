@@ -163,7 +163,7 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
         /// <param name="childs">The list of changed brokers.</param>
         private void ProcessNewBrokerInExistingTopic(string topic, IEnumerable<string> childs)
         {
-            if (this.actualBrokerTopicsPartitionsMap.ContainsKey(topic))
+            if (this.oldBrokerTopicsPartitionsMap.ContainsKey(topic))
             {
                 Logger.Debug("Old list of brokers -> " + this.oldBrokerTopicsPartitionsMap[topic].ToMultiString(x => x.BrokerId.ToString(), ","));
             }

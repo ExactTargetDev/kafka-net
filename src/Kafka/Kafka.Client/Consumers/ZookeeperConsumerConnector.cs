@@ -162,24 +162,20 @@ namespace Kafka.Client.Consumers
             {
                 return;
             }
-            this.CommitOffsets();
-            lock (this.shuttingDownLock)
-            {
-                if (this.disposed)
-                {
-                    return;
-                }
-
-                Logger.Info("ZookeeperConsumerConnector shutting down");
-                this.disposed = true;
-            }
+            //this.CommitOffsets();
+            Logger.Info("ZookeeperConsumerConnector shutting down");
+            
 
             try
             {
+                this.zkClient.UnsubscribeAll();
+
                 if (this.scheduler != null)
                 {
                     this.scheduler.Dispose();
                 }
+
+                System.Threading.Thread.Sleep(4000);
 
                 if (this.fetcher != null)
                 {
@@ -187,6 +183,20 @@ namespace Kafka.Client.Consumers
                 }
 
                 this.SendShutdownToAllQueues();
+                if (this.config.AutoCommit)
+                {
+                    this.CommitOffsets();
+                }
+                lock (this.shuttingDownLock)
+                {
+                    if (this.disposed)
+                    {
+                        return;
+                    }
+
+
+                    this.disposed = true;
+                }
                 if (this.zkClient != null)
                 {
                     this.zkClient.Dispose();

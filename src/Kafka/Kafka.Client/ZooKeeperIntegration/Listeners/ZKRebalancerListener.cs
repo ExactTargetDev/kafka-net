@@ -134,7 +134,6 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
             Guard.NotNull(args, "args");
             Guard.NotNullNorEmpty(args.Path, "args.Path");
             Guard.NotNull(args.Children, "args.Children");
-
             SyncedRebalance();
         }
 

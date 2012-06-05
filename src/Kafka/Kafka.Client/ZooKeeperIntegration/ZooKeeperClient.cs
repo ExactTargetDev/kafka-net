@@ -180,7 +180,7 @@ namespace Kafka.Client.ZooKeeperIntegration
             Logger.Debug("Closing ZooKeeperClient...");
             this.shutdownTriggered = true;
             this.eventWorker.Interrupt();
-            this.eventWorker.Join(2000);
+            this.eventWorker.Join(5000);
             this.connection.Dispose();
             this.connection = null;
         }
