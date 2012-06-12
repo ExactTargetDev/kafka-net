@@ -28,6 +28,7 @@ namespace Kafka.Client.IntegrationTests
     using Kafka.Client.Requests;
     using Kafka.Client.Serialization;
     using NUnit.Framework;
+    using Kafka.Client.Producers.Sync;
 
     [TestFixture]
     public class ProducerTests : IntegrationFixtureBase
@@ -38,6 +39,42 @@ namespace Kafka.Client.IntegrationTests
         private readonly int maxTestWaitTimeInMiliseconds = 5000;
 
         [Test]
+        public void SyncProducerSends1MessageV8()
+        {
+            var prodConfig = this.SyncProducerConfig1;
+            int waitSingle = 100;
+            int totalWaitTimeInMiliseconds = 0;
+
+            var multipleBrokersHelper = new TestMultipleBrokersHelper(CurrentTestTopic);
+            multipleBrokersHelper.GetCurrentOffsets(
+                new[] { this.SyncProducerConfig1 });
+
+            // first producing
+            string payload1 = "SyncProducerSends1MessageV8 Test";
+            byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
+            var msg1 = new Message(payloadData1);
+
+            var bufferedMessageSet = new BufferedMessageSet(new List<Message>() {msg1});
+
+            using (var producer = new SyncProducer(prodConfig))
+            {
+                producer.Send(CurrentTestTopic, bufferedMessageSet);
+            }
+
+            while (
+                !multipleBrokersHelper.CheckIfAnyBrokerHasChanged(
+                    new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 }))
+            {
+                totalWaitTimeInMiliseconds += waitSingle;
+                Thread.Sleep(waitSingle);
+                if (totalWaitTimeInMiliseconds > this.maxTestWaitTimeInMiliseconds)
+                {
+                    Assert.Fail("Broker did not changed its offset after sending a message");
+                }
+            }
+        }
+
+        [Test]
         public void ProducerSends1Message()
         {
             var prodConfig = this.ConfigBasedSyncProdConfig;
@@ -46,13 +83,15 @@ namespace Kafka.Client.IntegrationTests
             int waitSingle = 100;
             var originalMessage = new Message(Encoding.UTF8.GetBytes("TestData"));
 
-            var multipleBrokersHelper = new TestMultipleBrokersHelper(CurrentTestTopic);
+            var topic = "topic1";
+
+            var multipleBrokersHelper = new TestMultipleBrokersHelper(topic);//CurrentTestTopic);
             multipleBrokersHelper.GetCurrentOffsets(
                 new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 });
             using (var producer = new Producer(prodConfig))
             {
                 var producerData = new ProducerData<string, Message>(
-                    CurrentTestTopic, new List<Message> { originalMessage });
+                    topic, new List<Message> { originalMessage });
                 producer.Send(producerData);
                 Thread.Sleep(waitSingle);
             }

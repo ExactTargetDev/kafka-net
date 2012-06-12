@@ -68,6 +68,7 @@ namespace Kafka.Client.Producers.Sync
         /// <param name="messages">
         /// The list of messages messages.
         /// </param>
+        [Obsolete]
         public void Send(string topic, int partition, IEnumerable<Message> messages)
         {
             Guard.NotNullNorEmpty(topic, "topic");
@@ -90,6 +91,14 @@ namespace Kafka.Client.Producers.Sync
         {
             this.EnsuresNotDisposed();
             this.connection.Write(request);
+        }
+
+        public void Send(string topic, BufferedMessageSet messages)
+        {
+            var partitionData = new PartitionData[] {new PartitionData(ProducerRequest.RandomPartition, messages)};
+            var data = new TopicData[] {new TopicData(topic, partitionData)};
+            var producerRequest = new ProducerRequest(ProducerRequest.RandomPartition, string.Empty, 0, 0, data);
+            this.Send(producerRequest);
         }
 
         /// <summary>

@@ -48,6 +48,6 @@ namespace Kafka.Client.Requests
         /// <summary>
         /// Gets offsets.
         /// </summary>
-        Offsets = 4
+        Offsets = 2
     }
 }

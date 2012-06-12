@@ -29,6 +29,7 @@ namespace Kafka.Client.IntegrationTests
     using Kafka.Client.Producers.Sync;
     using Kafka.Client.Requests;
     using NUnit.Framework;
+    using Kafka.Client.Cfg;
 
     [TestFixture]
     public class ConsumerTests : IntegrationFixtureBase
@@ -40,6 +41,20 @@ namespace Kafka.Client.IntegrationTests
             using (new ZookeeperConsumerConnector(config, true))
             {
             }
+        }
+
+        [Test]
+        public void GetCurrentKafkaOffset()
+        {
+            var config = this.ZooKeeperBasedConsumerConfig;
+            var topic = "topic1";
+            var partition = 0;
+            var time = -2;
+            var maxNemOffsets = 1;
+            var request = new OffsetRequest(topic, partition, time, maxNemOffsets);
+            IConsumer consumer = new Consumer(config, "192.168.1.39", 9092);
+            IList<long> list = consumer.GetOffsetsBefore(request);
+            int a = 5;
         }
 
         [Test]

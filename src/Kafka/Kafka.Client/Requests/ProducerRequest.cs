@@ -24,6 +24,7 @@ namespace Kafka.Client.Requests
     using Kafka.Client.Messages;
     using Kafka.Client.Serialization;
     using Kafka.Client.Utils;
+    using Kafka.Client.Producers;
 
     /// <summary>
     /// Constructs a request to send to Kafka.
@@ -31,10 +32,18 @@ namespace Kafka.Client.Requests
     public class ProducerRequest : AbstractRequest, IWritable
     {
         public const int RandomPartition = -1;
+        public const short CurrentVersion = 0;
         public const byte DefaultTopicSizeSize = 2;
         public const byte DefaultPartitionSize = 4;
         public const byte DefaultSetSizeSize = 4;
         public const byte DefaultHeaderSize = DefaultRequestSizeSize + DefaultTopicSizeSize + DefaultPartitionSize + DefaultRequestIdSize + DefaultSetSizeSize;
+
+        public short VersionId { get; set; }
+        public int CorrelationId { get; set; }
+        public string ClientId { get; set; }
+        public short RequiredAcks { get; set; }
+        public int AckTimeout { get; set; }
+        public IEnumerable<TopicData> Data { get; set; }
 
         public static int GetRequestLength(string topic, int messegesSize, string encoding = DefaultEncoding)
         {
@@ -42,6 +51,22 @@ namespace Kafka.Client.Requests
             return topicLength + DefaultHeaderSize + messegesSize;
         }
 
+        public ProducerRequest(short versionId, int correlationId, string clientId, short requiredAcks, int ackTimeout, IEnumerable<TopicData> data)
+        {
+            this.VersionId = versionId;
+            this.CorrelationId = correlationId;
+            this.ClientId = clientId;
+            this.RequiredAcks = requiredAcks;
+            this.AckTimeout = ackTimeout;
+            this.Data = data;
+        }
+
+        public ProducerRequest(int correlationId, string clientId, short requiredAcks, int ackTimeout, IEnumerable<TopicData> data)
+            : this(CurrentVersion, correlationId, clientId, requiredAcks, ackTimeout, data)
+        { 
+        }
+
+        [Obsolete]
         public ProducerRequest(string topic, int partition, BufferedMessageSet messages)
         {
             Guard.NotNull(messages, "messages");
@@ -60,6 +85,7 @@ namespace Kafka.Client.Requests
         /// <param name="topic">The topic to publish to.</param>
         /// <param name="partition">The partition to publish to.</param>
         /// <param name="messages">The list of messages to send.</param>
+        [Obsolete]
         public ProducerRequest(string topic, int partition, IEnumerable<Message> messages)
             : this(topic, partition, new BufferedMessageSet(messages))
         {
