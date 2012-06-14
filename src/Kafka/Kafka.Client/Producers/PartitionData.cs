@@ -29,7 +29,8 @@ namespace Kafka.Client.Producers
     /// </summary>
     public class PartitionData
     {
-        public const byte DefaultPartitionSize = 4;
+        public const byte DefaultPartitionNrSize = 4;
+        public const byte DefaultMessagesSizeSize = 4;
 
         public PartitionData(int partition, int error, MessageSet messages)
         {
@@ -51,7 +52,7 @@ namespace Kafka.Client.Producers
 
         public int SizeInBytes
         {
-            get { return DefaultPartitionSize + this.Messages.SetSize; }
+            get { return DefaultPartitionNrSize + DefaultMessagesSizeSize + this.Messages.SetSize; }
         }
     }
 }

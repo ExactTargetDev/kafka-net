@@ -21,6 +21,7 @@ namespace Kafka.Client.Requests
     using System.Collections.Generic;
     using System.IO;
     using System.Text;
+    using System.Linq;
     using Kafka.Client.Messages;
     using Kafka.Client.Serialization;
     using Kafka.Client.Utils;
@@ -38,6 +39,14 @@ namespace Kafka.Client.Requests
         public const byte DefaultSetSizeSize = 4;
         public const byte DefaultHeaderSize = DefaultRequestSizeSize + DefaultTopicSizeSize + DefaultPartitionSize + DefaultRequestIdSize + DefaultSetSizeSize;
 
+        public const byte VersionIdSize = 2;
+        public const byte CorrelationIdSize = 4;
+        public const byte ClientIdSize = 2;
+        public const byte RequiredAcksSize = 2;
+        public const byte AckTimeoutSize = 4;
+        public const byte NumberOfTopicsSize = 4;
+        public const byte DefaultHeaderSize8 = DefaultRequestSizeSize + DefaultRequestIdSize + VersionIdSize + CorrelationIdSize + ClientIdSize + RequiredAcksSize + AckTimeoutSize + NumberOfTopicsSize;
+
         public short VersionId { get; set; }
         public int CorrelationId { get; set; }
         public string ClientId { get; set; }
@@ -45,10 +54,22 @@ namespace Kafka.Client.Requests
         public int AckTimeout { get; set; }
         public IEnumerable<TopicData> Data { get; set; }
 
-        public static int GetRequestLength(string topic, int messegesSize, string encoding = DefaultEncoding)
+        public int GetRequestLength()
         {
-            short topicLength = GetTopicLength(topic, encoding);
-            return topicLength + DefaultHeaderSize + messegesSize;
+            return DefaultHeaderSize8 + GetShortStringLength(this.ClientId) + this.Data.Sum(item => item.SizeInBytes);
+        }
+
+        protected short GetShortStringLength(string text, string encoding = AbstractRequest.DefaultEncoding)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return (short)0;
+            }
+            else
+            {
+                Encoding encoder = Encoding.GetEncoding(encoding);
+                return (short) encoder.GetByteCount(text);
+            }
         }
 
         public ProducerRequest(short versionId, int correlationId, string clientId, short requiredAcks, int ackTimeout, IEnumerable<TopicData> data)
@@ -59,6 +80,9 @@ namespace Kafka.Client.Requests
             this.RequiredAcks = requiredAcks;
             this.AckTimeout = ackTimeout;
             this.Data = data;
+            int length = GetRequestLength();
+            this.RequestBuffer = new BoundedBuffer(length);
+            this.WriteTo(this.RequestBuffer);
         }
 
         public ProducerRequest(int correlationId, string clientId, short requiredAcks, int ackTimeout, IEnumerable<TopicData> data)
@@ -70,12 +94,11 @@ namespace Kafka.Client.Requests
         public ProducerRequest(string topic, int partition, BufferedMessageSet messages)
         {
             Guard.NotNull(messages, "messages");
-
-            int length = GetRequestLength(topic, messages.SetSize);
-            this.RequestBuffer = new BoundedBuffer(length);
             this.Topic = topic;
             this.Partition = partition;
             this.MessageSet = messages;
+            int length = GetRequestLength();
+            this.RequestBuffer = new BoundedBuffer(length);
             this.WriteTo(this.RequestBuffer);
         }
 
@@ -137,10 +160,28 @@ namespace Kafka.Client.Requests
         {
             Guard.NotNull(writer, "writer");
 
-            writer.WriteTopic(this.Topic, DefaultEncoding);
-            writer.Write(this.Partition);
-            writer.Write(this.MessageSet.SetSize);
-            this.MessageSet.WriteTo(writer);
+            writer.Write(this.VersionId);
+            writer.Write(this.CorrelationId);
+            writer.WriteShortString(this.ClientId, DefaultEncoding);
+            writer.Write(this.RequiredAcks);
+            writer.Write(this.AckTimeout);
+            writer.Write(this.Data.Count());
+            foreach (var topicData in this.Data)
+            {
+                writer.WriteShortString(topicData.Topic, DefaultEncoding);
+                writer.Write(topicData.PartitionData.Count());
+                foreach (var partitionData in topicData.PartitionData)
+                {
+                    writer.Write(partitionData.Partition);
+                    writer.Write(partitionData.Messages.SetSize);
+                    partitionData.Messages.WriteTo(writer);
+                }
+            }
+
+            //writer.WriteShortString(this.Topic, DefaultEncoding);
+            //writer.Write(this.Partition);
+            //writer.Write(this.MessageSet.SetSize);
+            //this.MessageSet.WriteTo(writer);
         }
 
         public override string ToString()

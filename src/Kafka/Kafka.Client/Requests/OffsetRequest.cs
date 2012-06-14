@@ -127,7 +127,7 @@ namespace Kafka.Client.Requests
         {
             Guard.NotNull(writer, "writer");
 
-            writer.WriteTopic(this.Topic, DefaultEncoding);
+            writer.WriteShortString(this.Topic, DefaultEncoding);
             writer.Write(this.Partition);
             writer.Write(this.Time);
             writer.Write(this.MaxOffsets);

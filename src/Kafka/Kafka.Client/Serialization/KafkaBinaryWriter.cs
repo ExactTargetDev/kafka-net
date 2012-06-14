@@ -107,19 +107,19 @@ namespace Kafka.Client.Serialization
         /// <param name="encoding">
         /// The encoding to use.
         /// </param>
-        public void WriteTopic(string topic, string encoding)
+        public void WriteShortString(string text, string encoding)
         {
-            if (string.IsNullOrEmpty(topic))
+            if (string.IsNullOrEmpty(text))
             {
                 short defaultTopic = -1;
                 this.Write(defaultTopic);
             }
             else
             {
-                var length = (short)topic.Length;
+                var length = (short)text.Length;
                 this.Write(length);
                 Encoding encoder = Encoding.GetEncoding(encoding);
-                byte[] encodedTopic = encoder.GetBytes(topic);
+                byte[] encodedTopic = encoder.GetBytes(text);
                 this.Write(encodedTopic);
             }
         }
