@@ -87,5 +87,7 @@ namespace Kafka.Client.Messages
         /// The writer.
         /// </param>
         public abstract void WriteTo(KafkaBinaryWriter writer);
+
+        public abstract IEnumerable<Message> Messages { get; protected set; }
     }
 }

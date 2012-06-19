@@ -15,6 +15,9 @@
  * limitations under the License.
  */
 
+using System.Reflection;
+using log4net;
+
 namespace Kafka.Client.Producers.Sync
 {
     using System;
@@ -24,13 +27,17 @@ namespace Kafka.Client.Producers.Sync
     using Kafka.Client.Messages;
     using Kafka.Client.Requests;
     using Kafka.Client.Utils;
+    using Kafka.Client.Exceptions;
+    using Kafka.Client.Responses;
 
     /// <summary>
     /// Sends messages encapsulated in request to Kafka server synchronously
     /// </summary>
     public class SyncProducer : ISyncProducer
     {
+        private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private readonly KafkaConnection connection;
+        private static object SendLock = new object();
 
         private volatile bool disposed;
 
@@ -87,18 +94,38 @@ namespace Kafka.Client.Producers.Sync
         /// <param name="request">
         /// The request.
         /// </param>
-        public void Send(ProducerRequest request)
+        public ProducerResponse Send(ProducerRequest request)
         {
             this.EnsuresNotDisposed();
-            this.connection.Write(request);
+            foreach (var topicData in request.Data)
+            {
+                foreach (var partitionData in topicData.PartitionData)
+                {
+                    VerifyMessageSize(partitionData.Messages.Messages);
+                }
+            }
+            lock (SendLock)
+            {
+                this.connection.Write(request);
+                return ProducerResponse.ParseFrom(this.connection.Reader);
+            }
         }
 
-        public void Send(string topic, BufferedMessageSet messages)
+        public ProducerResponse Send(string topic, BufferedMessageSet messages)
         {
-            var partitionData = new PartitionData[] {new PartitionData(ProducerRequest.RandomPartition, messages)};
+            var partitionData = new PartitionData[] { new PartitionData(ProducerRequest.RandomPartition, messages) };
             var data = new TopicData[] {new TopicData(topic, partitionData)};
             var producerRequest = new ProducerRequest(ProducerRequest.RandomPartition, string.Empty, 0, 0, data);
-            this.Send(producerRequest);
+            return this.Send(producerRequest);
+        }
+
+        public IEnumerable<TopicMetadata> Send(TopicMetadataRequest request)
+        {
+            lock (SendLock)
+            {
+                this.connection.Write(request);
+                return TopicMetadataRequest.DeserializeTopicsMetadataResponse(this.connection.Reader);
+            }
         }
 
         /// <summary>
@@ -158,6 +185,17 @@ namespace Kafka.Client.Producers.Sync
             if (this.disposed)
             {
                 throw new ObjectDisposedException(this.GetType().Name);
+            }
+        }
+
+        private void VerifyMessageSize(IEnumerable<Message> messages)
+        {
+            foreach (var message in messages)
+            {
+                if (message.PayloadSize > Config.MaxMessageSize)
+                {
+                    throw new MessageSizeTooLargeException();
+                }
             }
         }
     }

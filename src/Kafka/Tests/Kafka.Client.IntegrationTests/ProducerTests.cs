@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Responses;
+
 namespace Kafka.Client.IntegrationTests
 {
     using System.Collections.Generic;
@@ -39,103 +41,102 @@ namespace Kafka.Client.IntegrationTests
         private readonly int maxTestWaitTimeInMiliseconds = 5000;
 
         [Test]
-        public void SyncProducerSends1MessageV8()
+        public void SyncProducerSendsTopicMetadataRequestWithOneTopic()
         {
             var prodConfig = this.SyncProducerConfig1;
             int waitSingle = 100;
             int totalWaitTimeInMiliseconds = 0;
 
-            var topic = "topic1"; //CurrentTestTopic
+            var topic = CurrentTestTopic;
 
-            //var multipleBrokersHelper = new TestMultipleBrokersHelper(topic);
-            //multipleBrokersHelper.GetCurrentOffsets(
-            //    new[] { this.SyncProducerConfig1 });
+            TopicMetadataRequest request = new TopicMetadataRequest(new List<string>() { topic });
+
+            using (var producer = new SyncProducer(prodConfig))
+            {
+                var response = producer.Send(request);
+                Assert.NotNull(response);
+                Assert.AreEqual(1, response.Count());
+                var responseItem = response.ToArray()[0];
+                Assert.AreEqual(CurrentTestTopic, responseItem.Topic);
+                Assert.NotNull(responseItem.PartitionsMetadata);
+            }
+        }
+
+        [Test]
+        public void SyncProducerSendsTopicMetadataRequestWithTwoTopics()
+        {
+            var prodConfig = this.SyncProducerConfig1;
+            int waitSingle = 100;
+            int totalWaitTimeInMiliseconds = 0;
+
+            var topic1 = CurrentTestTopic + "_1";
+            var topic2 = CurrentTestTopic + "_2";
+
+            TopicMetadataRequest request = new TopicMetadataRequest(new List<string>() { topic1, topic2 });
+
+            using (var producer = new SyncProducer(prodConfig))
+            {
+                var response = producer.Send(request);
+                Assert.NotNull(response);
+                Assert.AreEqual(2, response.Count());
+                var responseItem1 = response.ToArray()[0];
+                var responseItem2 = response.ToArray()[1];
+                Assert.AreEqual(topic1, responseItem1.Topic);
+                Assert.NotNull(responseItem1.PartitionsMetadata);
+                Assert.AreEqual(topic2, responseItem2.Topic);
+                Assert.NotNull(responseItem2.PartitionsMetadata);
+            }
+        }
+
+        [Test]
+        public void SyncProducerGetsTopicMetadataAndSends1Message()
+        {
+            var prodConfig = this.SyncProducerConfig1;
+            int waitSingle = 100;
+            int totalWaitTimeInMiliseconds = 0;
+
+            var topic = CurrentTestTopic;
 
             // first producing
             string payload1 = "TestData.";
             byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
             var msg1 = new Message(payloadData1);
 
-            var bufferedMessageSet = new BufferedMessageSet(new List<Message>() {msg1});
+            TopicMetadataRequest topicMetadataRequest = new TopicMetadataRequest(new List<string>() { topic });
+            IEnumerable<TopicMetadata> topicMetadata = null;
 
             using (var producer = new SyncProducer(prodConfig))
             {
-                producer.Send(topic, bufferedMessageSet);
+                topicMetadata = producer.Send(topicMetadataRequest);
+                Assert.NotNull(topicMetadata);
             }
 
-            //while (
-            //    !multipleBrokersHelper.CheckIfAnyBrokerHasChanged(
-            //        new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 }))
-            //{
-            //    totalWaitTimeInMiliseconds += waitSingle;
-            //    Thread.Sleep(waitSingle);
-            //    if (totalWaitTimeInMiliseconds > this.maxTestWaitTimeInMiliseconds)
-            //    {
-            //        Assert.Fail("Broker did not changed its offset after sending a message");
-            //    }
-            //}
-        }
+            var topicMetadataItem = topicMetadata.ToArray()[0];
+            var partitionMetadata = topicMetadataItem.PartitionsMetadata.ToArray()[0];
+            var broker = partitionMetadata.Replicas.ToArray()[0];
+            prodConfig.BrokerId = broker.Id;
+            prodConfig.Host = broker.Host;
+            prodConfig.Port = broker.Port;
 
-        [Test]
-        public void ProducerSends1Message()
-        {
-            var prodConfig = this.ConfigBasedSyncProdConfig;
-
-            int totalWaitTimeInMiliseconds = 0;
-            int waitSingle = 100;
-            var originalMessage = new Message(Encoding.UTF8.GetBytes("TestData"));
-
-            var topic = "topic1";
-
-            var multipleBrokersHelper = new TestMultipleBrokersHelper(topic);//CurrentTestTopic);
-            multipleBrokersHelper.GetCurrentOffsets(
-                new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 });
-            using (var producer = new Producer(prodConfig))
+            using (var producer = new SyncProducer(prodConfig))
             {
-                var producerData = new ProducerData<string, Message>(
-                    topic, new List<Message> { originalMessage });
-                producer.Send(producerData);
-                Thread.Sleep(waitSingle);
+                var bufferedMessageSet = new BufferedMessageSet(new List<Message>() { msg1 });
+                var req = new ProducerRequest(-1, "", 0, 0,
+                                              new List<TopicData>()
+                                                  {
+                                                      new TopicData(CurrentTestTopic,
+                                                                    new List<PartitionData>()
+                                                                        {
+                                                                            new PartitionData(
+                                                                                partitionMetadata.PartitionId,
+                                                                                bufferedMessageSet)
+                                                                        })
+                                                  });
+                var producerResponse = producer.Send(req);
+                Assert.NotNull(producerResponse);
+                Assert.AreEqual(1, producerResponse.Offsets.Count());
+                Assert.Greater(producerResponse.Offsets.ToArray()[0], 0);
             }
-
-            while (
-                !multipleBrokersHelper.CheckIfAnyBrokerHasChanged(
-                    new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 }))
-            {
-                totalWaitTimeInMiliseconds += waitSingle;
-                Thread.Sleep(waitSingle);
-                if (totalWaitTimeInMiliseconds > this.maxTestWaitTimeInMiliseconds)
-                {
-                    Assert.Fail("None of the brokers changed their offset after sending a message");
-                }
-            }
-
-            totalWaitTimeInMiliseconds = 0;
-
-            var consumerConfig = new ConsumerConfiguration(
-                multipleBrokersHelper.BrokerThatHasChanged.Host, multipleBrokersHelper.BrokerThatHasChanged.Port);
-            IConsumer consumer = new Consumer(consumerConfig);
-            var request1 = new FetchRequest(CurrentTestTopic, multipleBrokersHelper.PartitionThatHasChanged, multipleBrokersHelper.OffsetFromBeforeTheChange);
-            BufferedMessageSet response;
-            while (true)
-            {
-                Thread.Sleep(waitSingle);
-                response = consumer.Fetch(request1);
-                if (response != null && response.Messages.Count() > 0)
-                {
-                    break;
-                }
-
-                totalWaitTimeInMiliseconds += waitSingle;
-                if (totalWaitTimeInMiliseconds >= this.maxTestWaitTimeInMiliseconds)
-                {
-                    break;
-                }
-            }
-
-            Assert.NotNull(response);
-            Assert.AreEqual(1, response.Messages.Count());
-            Assert.AreEqual(originalMessage.ToString(), response.Messages.First().ToString());
         }
 
         [Test]

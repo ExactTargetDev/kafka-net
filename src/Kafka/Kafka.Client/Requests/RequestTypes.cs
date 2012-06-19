@@ -36,18 +36,17 @@ namespace Kafka.Client.Requests
         Fetch = 1,
 
         /// <summary>
-        /// Multi-fetch messages.
-        /// </summary>
-        MultiFetch = 2,
-        
-        /// <summary>
-        /// Multi-produce messages.
-        /// </summary>
-        MultiProduce = 3,
-
-        /// <summary>
         /// Gets offsets.
         /// </summary>
-        Offsets = 2
+        Offsets = 2,
+
+        /// <summary>
+        /// Gets topic metadata
+        /// </summary>
+        TopicMetadataRequest = 3,
+
+        // both to be deleted
+        MultiFetch = 10 ,
+        MultiProduce = 11 
     }
 }

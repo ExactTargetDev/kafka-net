@@ -127,6 +127,20 @@ namespace Kafka.Client
         }
 
         /// <summary>
+        /// Writes a topic metadata request to the server.
+        /// </summary>
+        /// <remarks>
+        /// Write timeout is defaulted to infitite.
+        /// </remarks>
+        /// <param name="request">The <see cref="TopicMetadataRequest"/> to send to the server.</param>
+        public void Write(TopicMetadataRequest request)
+        {
+            this.EnsuresNotDisposed();
+            Guard.NotNull(request, "request");
+            this.Write(request.RequestBuffer.GetBuffer());
+        }
+
+        /// <summary>
         /// Writes a multi-producer request to the server.
         /// </summary>
         /// <remarks>

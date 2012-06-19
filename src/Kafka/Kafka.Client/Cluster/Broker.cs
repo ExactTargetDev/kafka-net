@@ -15,13 +15,19 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Requests;
+using Kafka.Client.Utils;
+using Kafka.Client.Serialization;
 namespace Kafka.Client.Cluster
 {
     /// <summary>
     /// Represents Kafka broker
     /// </summary>
-    internal class Broker
+    internal class Broker : IWritable
     {
+        public const byte DefaultPortSize = 4;
+        public const byte DefaultBrokerIdSize = 4;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Broker"/> class.
         /// </summary>
@@ -64,5 +70,44 @@ namespace Kafka.Client.Cluster
         /// Gets the broker port.
         /// </summary>
         public int Port { get; private set; }
+
+        public int SizeInBytes
+        {
+            get
+            {
+                return BitWorks.GetShortStringLength(this.CreatorId, AbstractRequest.DefaultEncoding) +
+                    BitWorks.GetShortStringLength(this.Host, AbstractRequest.DefaultEncoding) +
+                    DefaultPortSize + DefaultBrokerIdSize;
+            }
+        }
+
+        public void WriteTo(System.IO.MemoryStream output)
+        {
+            Guard.NotNull(output, "output");
+
+            using (var writer = new KafkaBinaryWriter(output))
+            {
+                this.WriteTo(writer);
+            }
+        }
+
+        public void WriteTo(KafkaBinaryWriter writer)
+        {
+            Guard.NotNull(writer, "writer");
+
+            writer.Write(this.Id);
+            writer.WriteShortString(this.CreatorId, AbstractRequest.DefaultEncoding);
+            writer.WriteShortString(this.Host, AbstractRequest.DefaultEncoding);
+            writer.Write(this.Port);
+        }
+
+        internal static Broker ParseFrom(KafkaBinaryReader reader)
+        {
+            var id = reader.ReadInt32();
+            var creatorId = BitWorks.ReadShortString(reader, AbstractRequest.DefaultEncoding);
+            var host = BitWorks.ReadShortString(reader, AbstractRequest.DefaultEncoding);
+            var port = reader.ReadInt32();
+            return new Broker(id, creatorId, host, port);
+        }
     }
 }

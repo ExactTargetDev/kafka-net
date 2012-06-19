@@ -116,7 +116,7 @@ namespace Kafka.Client.Messages
         /// <summary>
         /// Gets the list of messages.
         /// </summary>
-        public IEnumerable<Message> Messages { get; private set; }
+        public override IEnumerable<Message> Messages { get; protected set; }
 
         /// <summary>
         /// Gets the total set size.

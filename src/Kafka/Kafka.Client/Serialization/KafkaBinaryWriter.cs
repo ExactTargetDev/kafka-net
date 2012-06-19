@@ -111,8 +111,8 @@ namespace Kafka.Client.Serialization
         {
             if (string.IsNullOrEmpty(text))
             {
-                short defaultTopic = -1;
-                this.Write(defaultTopic);
+                short defaultValue = -1;
+                this.Write(defaultValue);
             }
             else
             {

@@ -164,11 +164,17 @@
     <Compile Include="Messages\MessageAndOffset.cs" />
     <Compile Include="Producers\Async\AsyncProducerPool.cs" />
     <Compile Include="Producers\Async\MessageSent.cs" />
+    <Compile Include="Producers\LogMetadata.cs" />
+    <Compile Include="Producers\LogSegmentMetadata.cs" />
     <Compile Include="Producers\PartitionData.cs" />
     <Compile Include="Producers\Partitioning\DefaultStringPartitioner.cs" />
+    <Compile Include="Producers\PartitionMetadata.cs" />
     <Compile Include="Producers\Producer.StrMsg.cs" />
     <Compile Include="Producers\Sync\SyncProducerPool.cs" />
     <Compile Include="Producers\TopicData.cs" />
+    <Compile Include="Producers\TopicMetadata.cs" />
+    <Compile Include="Requests\TopicMetadataRequest.cs" />
+    <Compile Include="Responses\ProducerResponse.cs" />
     <Compile Include="Serialization\StringEncoder.cs" />
     <Compile Include="Serialization\IWritable.cs" />
     <Compile Include="Producers\ProducerTypes.cs" />

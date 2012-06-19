@@ -15,9 +15,12 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Serialization;
+
 namespace Kafka.Client.Utils
 {
     using System;
+    using System.Text;
 
     /// <summary>
     /// Utilty class for managing bits and bytes.
@@ -78,6 +81,38 @@ namespace Kafka.Client.Utils
             }
 
             return inArray;
+        }
+
+        /// <summary>
+        /// Return size of a size prefixed string where the size is stored as a 2 byte short
+        /// </summary>
+        /// <param name="text">The string to write</param>
+        /// <param name="encoding">The encoding in which to write the string</param>
+        /// <returns></returns>
+        public static short GetShortStringLength(string text, string encoding)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return (short)2;
+            }
+            else
+            {
+                Encoding encoder = Encoding.GetEncoding(encoding);
+                var result = (short)2 + (short) encoder.GetByteCount(text);
+                return (short)result;
+            }
+        }
+
+        public static string ReadShortString(KafkaBinaryReader reader, string encoding)
+        {
+            var size = reader.ReadInt16();
+            if (size < 0)
+            {
+                return null;
+            }
+            var bytes = reader.ReadBytes(size);
+            Encoding encoder = Encoding.GetEncoding(encoding);
+            return encoder.GetString(bytes);
         }
     }
 }

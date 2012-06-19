@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Responses;
+
 namespace Kafka.Client.Producers.Sync
 {
     using System;
@@ -47,7 +49,7 @@ namespace Kafka.Client.Producers.Sync
         /// <param name="request">
         /// The request.
         /// </param>
-        void Send(ProducerRequest request);
+        ProducerResponse Send(ProducerRequest request);
 
         /// <summary>
         /// Sends the data to a multiple topics on Kafka server synchronously
