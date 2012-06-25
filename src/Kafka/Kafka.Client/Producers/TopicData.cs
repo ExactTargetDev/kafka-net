@@ -16,6 +16,7 @@
  */
 
 using Kafka.Client.Requests;
+using Kafka.Client.Serialization;
 
 namespace Kafka.Client.Producers
 {
@@ -55,6 +56,47 @@ namespace Kafka.Client.Producers
         {
             Encoding encoder = Encoding.GetEncoding(encoding);
             return string.IsNullOrEmpty(topic) ? AbstractRequest.DefaultTopicLengthIfNonePresent : (short)encoder.GetByteCount(topic);
+        }
+
+        internal static TopicData ParseFrom(KafkaBinaryReader reader)
+        {
+            var topic = reader.ReadShortString(AbstractRequest.DefaultEncoding);
+            var partitionCount = reader.ReadInt32();
+            var partitions = new PartitionData[partitionCount];
+            for (int i = 0; i < partitionCount; i++)
+            {
+                partitions[i] = Producers.PartitionData.ParseFrom(reader);
+            }
+            return new TopicData(topic, partitions.OrderBy(x => x.Partition));
+        }
+
+        internal static PartitionData FindPartition(IEnumerable<PartitionData> data, int partition)
+        {
+            if (data == null || data.Count() == 0)
+            {
+                return null;
+            }
+
+            var low = 0;
+            var high = data.Count() - 1;
+            while (low <= high)
+            {
+                var mid = (low + high)/2;
+                var found = data.ElementAt(mid);
+                if (found.Partition == partition)
+                {
+                    return found;
+                }
+                else if (partition < found.Partition)
+                {
+                    high = mid - 1;
+                }
+                else
+                {
+                    low = mid + 1;
+                }
+            }
+            return null;
         }
     }
 }

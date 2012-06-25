@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Serialization;
+
 namespace Kafka.Client.Producers
 {
     using System;
@@ -53,6 +55,16 @@ namespace Kafka.Client.Producers
         public int SizeInBytes
         {
             get { return DefaultPartitionNrSize + DefaultMessagesSizeSize + this.Messages.SetSize; }
+        }
+
+        internal static PartitionData ParseFrom(KafkaBinaryReader reader)
+        {
+            var partition = reader.ReadInt32();
+            var error = reader.ReadInt32();
+            var initialOffset = reader.ReadInt64();
+            var messageSetSize = reader.ReadInt32();
+            var bufferedMessageSet = BufferedMessageSet.ParseFrom(reader, messageSetSize, initialOffset);
+            return new PartitionData(partition, error, bufferedMessageSet);
         }
     }
 }

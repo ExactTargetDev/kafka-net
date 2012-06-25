@@ -111,15 +111,15 @@ namespace Kafka.Client.Serialization
         }
 
         /// <summary>
-        /// Reads fixed-length topic from underlying stream using given encoding.
+        /// Reads fixed-length short string from underlying stream using given encoding.
         /// </summary>
         /// <param name="encoding">
         /// The encoding to use.
         /// </param>
         /// <returns>
-        /// The read topic.
+        /// The read string.
         /// </returns>
-        public string ReadTopic(string encoding)
+        public string ReadShortString(string encoding)
         {
             short length = this.ReadInt16();
             if (length == -1)

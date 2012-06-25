@@ -16,6 +16,8 @@
  */
 
 using Kafka.Client.Exceptions;
+using Kafka.Client.Messages;
+using Kafka.Client.Producers;
 using Kafka.Client.Serialization;
 
 namespace Kafka.Client.Responses
@@ -25,22 +27,41 @@ namespace Kafka.Client.Responses
     using System.Linq;
     using System.Text;
 
-    public class ProducerResponse
+    /// <summary>
+    /// TODO: Update summary.
+    /// </summary>
+    public class FetchResponse
     {
         public short VersionId { get; set; }
         public int CorrelationId { get; set; }
-        public IEnumerable<short> Errors { get; set; }
-        public IEnumerable<long> Offsets { get; set; }
+        public IEnumerable<TopicData> Data { get; set; }
 
-        ProducerResponse(short versionId, int correlationId, IEnumerable<short> errors, IEnumerable<long> offsets)
+        public FetchResponse(short versionId, int correlationId, IEnumerable<TopicData> data)
         {
             this.VersionId = versionId;
             this.CorrelationId = correlationId;
-            this.Errors = errors;
-            this.Offsets = offsets;
+            this.Data = data;
         }
 
-        public static ProducerResponse ParseFrom(KafkaBinaryReader reader)
+        public BufferedMessageSet MessageSet(string topic, int partition)
+        {
+            var topicMap = this.Data.GroupBy(x => x.Topic, x => x)
+                .ToDictionary(x => x.Key, x => x.ToList().FirstOrDefault());
+
+            var messageSet = new BufferedMessageSet(Enumerable.Empty<Message>());
+            if (topicMap.ContainsKey(topic))
+            {
+                var topicData = topicMap[topic];
+                if (topicData != null)
+                {
+                    var messages = TopicData.FindPartition(topicData.PartitionData, partition).Messages;
+                    messageSet = new BufferedMessageSet(messages.Messages);
+                }
+            }
+            return messageSet;
+        }
+
+        public static FetchResponse ParseFrom(KafkaBinaryReader reader)
         {
             //should I do anything withi this:
             int length = reader.ReadInt32();
@@ -50,21 +71,16 @@ namespace Kafka.Client.Responses
             {
                 //ignore the error
             }
+
             var versionId = reader.ReadInt16();
             var correlationId = reader.ReadInt32();
-            var numberOfErrors = reader.ReadInt32();
-            var errors = new short[numberOfErrors];
-            for (int i = 0; i < numberOfErrors; i++)
+            var dataCount = reader.ReadInt32();
+            var data = new TopicData[dataCount];
+            for (int i = 0; i < dataCount; i++)
             {
-                errors[i] = reader.ReadInt16();
+                data[i] = TopicData.ParseFrom(reader);
             }
-            var numberOfOffsets = reader.ReadInt32();
-            var offsets = new long[numberOfOffsets];
-            for (int i = 0; i < numberOfOffsets; i++)
-            {
-                offsets[i] = reader.ReadInt64();
-            }
-            return new ProducerResponse(versionId, correlationId, errors, offsets);
+            return new FetchResponse(versionId, correlationId, data);
         }
     }
 }

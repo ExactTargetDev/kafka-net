@@ -139,130 +139,130 @@ namespace Kafka.Client.IntegrationTests
             }
         }
 
-        [Test]
-        public void ProducerSends3Messages()
-        {
-            var prodConfig = this.ConfigBasedSyncProdConfig;
+        //[Test]
+        //public void ProducerSends3Messages()
+        //{
+        //    var prodConfig = this.ConfigBasedSyncProdConfig;
 
-            int totalWaitTimeInMiliseconds = 0;
-            int waitSingle = 100;
-            var originalMessage1 = new Message(Encoding.UTF8.GetBytes("TestData1"));
-            var originalMessage2 = new Message(Encoding.UTF8.GetBytes("TestData2"));
-            var originalMessage3 = new Message(Encoding.UTF8.GetBytes("TestData3"));
-            var originalMessageList = new List<Message> { originalMessage1, originalMessage2, originalMessage3 };
+        //    int totalWaitTimeInMiliseconds = 0;
+        //    int waitSingle = 100;
+        //    var originalMessage1 = new Message(Encoding.UTF8.GetBytes("TestData1"));
+        //    var originalMessage2 = new Message(Encoding.UTF8.GetBytes("TestData2"));
+        //    var originalMessage3 = new Message(Encoding.UTF8.GetBytes("TestData3"));
+        //    var originalMessageList = new List<Message> { originalMessage1, originalMessage2, originalMessage3 };
 
-            var multipleBrokersHelper = new TestMultipleBrokersHelper(CurrentTestTopic);
-            multipleBrokersHelper.GetCurrentOffsets(
-                new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 });
-            using (var producer = new Producer(prodConfig))
-            {
-                var producerData = new ProducerData<string, Message>(CurrentTestTopic, originalMessageList);
-                producer.Send(producerData);
-            }
+        //    var multipleBrokersHelper = new TestMultipleBrokersHelper(CurrentTestTopic);
+        //    multipleBrokersHelper.GetCurrentOffsets(
+        //        new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 });
+        //    using (var producer = new Producer(prodConfig))
+        //    {
+        //        var producerData = new ProducerData<string, Message>(CurrentTestTopic, originalMessageList);
+        //        producer.Send(producerData);
+        //    }
 
-            Thread.Sleep(waitSingle);
-            while (
-                !multipleBrokersHelper.CheckIfAnyBrokerHasChanged(
-                    new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 }))
-            {
-                totalWaitTimeInMiliseconds += waitSingle;
-                Thread.Sleep(waitSingle);
-                if (totalWaitTimeInMiliseconds > this.maxTestWaitTimeInMiliseconds)
-                {
-                    Assert.Fail("None of the brokers changed their offset after sending a message");
-                }
-            }
+        //    Thread.Sleep(waitSingle);
+        //    while (
+        //        !multipleBrokersHelper.CheckIfAnyBrokerHasChanged(
+        //            new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 }))
+        //    {
+        //        totalWaitTimeInMiliseconds += waitSingle;
+        //        Thread.Sleep(waitSingle);
+        //        if (totalWaitTimeInMiliseconds > this.maxTestWaitTimeInMiliseconds)
+        //        {
+        //            Assert.Fail("None of the brokers changed their offset after sending a message");
+        //        }
+        //    }
 
-            totalWaitTimeInMiliseconds = 0;
+        //    totalWaitTimeInMiliseconds = 0;
 
-            var consumerConfig = new ConsumerConfiguration(
-                multipleBrokersHelper.BrokerThatHasChanged.Host, multipleBrokersHelper.BrokerThatHasChanged.Port);
-            IConsumer consumer = new Consumer(consumerConfig);
-            var request = new FetchRequest(CurrentTestTopic, multipleBrokersHelper.PartitionThatHasChanged, multipleBrokersHelper.OffsetFromBeforeTheChange);
+        //    var consumerConfig = new ConsumerConfiguration(
+        //        multipleBrokersHelper.BrokerThatHasChanged.Host, multipleBrokersHelper.BrokerThatHasChanged.Port);
+        //    IConsumer consumer = new Consumer(consumerConfig);
+        //    var request = new FetchRequest(CurrentTestTopic, multipleBrokersHelper.PartitionThatHasChanged, multipleBrokersHelper.OffsetFromBeforeTheChange);
 
-            BufferedMessageSet response;
-            while (true)
-            {
-                Thread.Sleep(waitSingle);
-                response = consumer.Fetch(request);
-                if (response != null && response.Messages.Count() > 2)
-                {
-                    break;
-                }
+        //    BufferedMessageSet response;
+        //    while (true)
+        //    {
+        //        Thread.Sleep(waitSingle);
+        //        response = consumer.Fetch(request);
+        //        if (response != null && response.Messages.Count() > 2)
+        //        {
+        //            break;
+        //        }
 
-                totalWaitTimeInMiliseconds += waitSingle;
-                if (totalWaitTimeInMiliseconds >= this.maxTestWaitTimeInMiliseconds)
-                {
-                    break;
-                }
-            }
+        //        totalWaitTimeInMiliseconds += waitSingle;
+        //        if (totalWaitTimeInMiliseconds >= this.maxTestWaitTimeInMiliseconds)
+        //        {
+        //            break;
+        //        }
+        //    }
 
-            Assert.NotNull(response);
-            Assert.AreEqual(3, response.Messages.Count());
-            Assert.AreEqual(originalMessage1.ToString(), response.Messages.First().ToString());
-            Assert.AreEqual(originalMessage2.ToString(), response.Messages.Skip(1).First().ToString());
-            Assert.AreEqual(originalMessage3.ToString(), response.Messages.Skip(2).First().ToString());
-        }
+        //    Assert.NotNull(response);
+        //    Assert.AreEqual(3, response.Messages.Count());
+        //    Assert.AreEqual(originalMessage1.ToString(), response.Messages.First().ToString());
+        //    Assert.AreEqual(originalMessage2.ToString(), response.Messages.Skip(1).First().ToString());
+        //    Assert.AreEqual(originalMessage3.ToString(), response.Messages.Skip(2).First().ToString());
+        //}
 
-        [Test]
-        public void ProducerSends1MessageUsingNotDefaultEncoder()
-        {
-            var prodConfig = this.ConfigBasedSyncProdConfig;
+        //[Test]
+        //public void ProducerSends1MessageUsingNotDefaultEncoder()
+        //{
+        //    var prodConfig = this.ConfigBasedSyncProdConfig;
 
-            int totalWaitTimeInMiliseconds = 0;
-            int waitSingle = 100;
-            string originalMessage = "TestData";
+        //    int totalWaitTimeInMiliseconds = 0;
+        //    int waitSingle = 100;
+        //    string originalMessage = "TestData";
 
-            var multipleBrokersHelper = new TestMultipleBrokersHelper(CurrentTestTopic);
-            multipleBrokersHelper.GetCurrentOffsets(new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 });
-            using (var producer = new Producer<string, string>(prodConfig, null, new StringEncoder(), null))
-            {
-                var producerData = new ProducerData<string, string>(
-                    CurrentTestTopic, new List<string> { originalMessage });
+        //    var multipleBrokersHelper = new TestMultipleBrokersHelper(CurrentTestTopic);
+        //    multipleBrokersHelper.GetCurrentOffsets(new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 });
+        //    using (var producer = new Producer<string, string>(prodConfig, null, new StringEncoder(), null))
+        //    {
+        //        var producerData = new ProducerData<string, string>(
+        //            CurrentTestTopic, new List<string> { originalMessage });
 
-                producer.Send(producerData);
-            }
+        //        producer.Send(producerData);
+        //    }
 
-            Thread.Sleep(waitSingle);
+        //    Thread.Sleep(waitSingle);
 
-            while (!multipleBrokersHelper.CheckIfAnyBrokerHasChanged(new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 }))
-            {
-                totalWaitTimeInMiliseconds += waitSingle;
-                Thread.Sleep(waitSingle);
-                if (totalWaitTimeInMiliseconds > this.maxTestWaitTimeInMiliseconds)
-                {
-                    Assert.Fail("None of the brokers changed their offset after sending a message");
-                }
-            }
+        //    while (!multipleBrokersHelper.CheckIfAnyBrokerHasChanged(new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 }))
+        //    {
+        //        totalWaitTimeInMiliseconds += waitSingle;
+        //        Thread.Sleep(waitSingle);
+        //        if (totalWaitTimeInMiliseconds > this.maxTestWaitTimeInMiliseconds)
+        //        {
+        //            Assert.Fail("None of the brokers changed their offset after sending a message");
+        //        }
+        //    }
 
-            totalWaitTimeInMiliseconds = 0;
+        //    totalWaitTimeInMiliseconds = 0;
 
-            var consumerConfig = new ConsumerConfiguration(
-                multipleBrokersHelper.BrokerThatHasChanged.Host,
-                    multipleBrokersHelper.BrokerThatHasChanged.Port);
-            IConsumer consumer = new Consumer(consumerConfig);
-            var request = new FetchRequest(CurrentTestTopic, multipleBrokersHelper.PartitionThatHasChanged, multipleBrokersHelper.OffsetFromBeforeTheChange);
+        //    var consumerConfig = new ConsumerConfiguration(
+        //        multipleBrokersHelper.BrokerThatHasChanged.Host,
+        //            multipleBrokersHelper.BrokerThatHasChanged.Port);
+        //    IConsumer consumer = new Consumer(consumerConfig);
+        //    var request = new FetchRequest(CurrentTestTopic, multipleBrokersHelper.PartitionThatHasChanged, multipleBrokersHelper.OffsetFromBeforeTheChange);
 
-            BufferedMessageSet response;
-            while (true)
-            {
-                Thread.Sleep(waitSingle);
-                response = consumer.Fetch(request);
-                if (response != null && response.Messages.Count() > 0)
-                {
-                    break;
-                }
+        //    BufferedMessageSet response;
+        //    while (true)
+        //    {
+        //        Thread.Sleep(waitSingle);
+        //        response = consumer.Fetch(request);
+        //        if (response != null && response.Messages.Count() > 0)
+        //        {
+        //            break;
+        //        }
 
-                totalWaitTimeInMiliseconds += waitSingle;
-                if (totalWaitTimeInMiliseconds >= this.maxTestWaitTimeInMiliseconds)
-                {
-                    break;
-                }
-            }
+        //        totalWaitTimeInMiliseconds += waitSingle;
+        //        if (totalWaitTimeInMiliseconds >= this.maxTestWaitTimeInMiliseconds)
+        //        {
+        //            break;
+        //        }
+        //    }
 
-            Assert.NotNull(response);
-            Assert.AreEqual(1, response.Messages.Count());
-            Assert.AreEqual(originalMessage, Encoding.UTF8.GetString(response.Messages.First().Payload));
-        }
+        //    Assert.NotNull(response);
+        //    Assert.AreEqual(1, response.Messages.Count());
+        //    Assert.AreEqual(originalMessage, Encoding.UTF8.GetString(response.Messages.First().Payload));
+        //}
     }
 }

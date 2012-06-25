@@ -212,13 +212,13 @@ namespace Kafka.Client.Messages
                 return new BufferedMessageSet(Enumerable.Empty<Message>(), initialOffset);
             }
 
-            short errorCode = reader.ReadInt16();
-            if (errorCode != KafkaException.NoError)
-            {
-                throw new KafkaException(errorCode);
-            }
+            //short errorCode = reader.ReadInt16();
+            //if (errorCode != KafkaException.NoError)
+            //{
+            //    throw new KafkaException(errorCode);
+            //}
 
-            int readed = 2;
+            int readed = 0;//2;
             if (readed == size)
             {
                 return new BufferedMessageSet(Enumerable.Empty<Message>(), initialOffset);

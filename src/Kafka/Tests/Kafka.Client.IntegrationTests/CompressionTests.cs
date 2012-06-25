@@ -221,49 +221,49 @@ namespace Kafka.Client.IntegrationTests
             Assert.AreEqual(msg2.ToString(), resultMessages2[0].ToString());
         }
 
-        [Test]
-        public void AsyncProducerSendsCompressedAndConsumerReceivesSingleSimpleMessage()
-        {
-            var prodConfig = this.AsyncProducerConfig1;
-            var consumerConfig = this.ConsumerConfig1;
+        //[Test]
+        //public void AsyncProducerSendsCompressedAndConsumerReceivesSingleSimpleMessage()
+        //{
+        //    var prodConfig = this.AsyncProducerConfig1;
+        //    var consumerConfig = this.ConsumerConfig1;
 
-            var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
-            var compressedMessage = CompressionUtils.Compress(new List<Message> { sourceMessage }, CompressionCodecs.GZIPCompressionCodec);
+        //    var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
+        //    var compressedMessage = CompressionUtils.Compress(new List<Message> { sourceMessage }, CompressionCodecs.GZIPCompressionCodec);
 
-            long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
-            using (var producer = new AsyncProducer(prodConfig))
-            {
-                var producerRequest = new ProducerRequest(
-                    CurrentTestTopic, 0, new List<Message> { compressedMessage });
-                producer.Send(producerRequest);
-            }
+        //    long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
+        //    using (var producer = new AsyncProducer(prodConfig))
+        //    {
+        //        var producerRequest = new ProducerRequest(
+        //            CurrentTestTopic, 0, new List<Message> { compressedMessage });
+        //        producer.Send(producerRequest);
+        //    }
 
-            IConsumer consumer = new Consumer(consumerConfig);
-            var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
+        //    IConsumer consumer = new Consumer(consumerConfig);
+        //    var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
 
-            BufferedMessageSet response;
-            int totalWaitTimeInMiliseconds = 0;
-            int waitSingle = 100;
-            while (true)
-            {
-                Thread.Sleep(waitSingle);
-                response = consumer.Fetch(request);
-                if (response != null && response.Messages.Count() > 0)
-                {
-                    break;
-                }
+        //    BufferedMessageSet response;
+        //    int totalWaitTimeInMiliseconds = 0;
+        //    int waitSingle = 100;
+        //    while (true)
+        //    {
+        //        Thread.Sleep(waitSingle);
+        //        response = consumer.Fetch(request);
+        //        if (response != null && response.Messages.Count() > 0)
+        //        {
+        //            break;
+        //        }
 
-                totalWaitTimeInMiliseconds += waitSingle;
-                if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
-                {
-                    break;
-                }
-            }
+        //        totalWaitTimeInMiliseconds += waitSingle;
+        //        if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
+        //        {
+        //            break;
+        //        }
+        //    }
 
-            Assert.NotNull(response);
-            Assert.AreEqual(1, response.Messages.Count());
-            Message resultMessage = response.Messages.First();
-            Assert.AreEqual(compressedMessage.ToString(), resultMessage.ToString());
-        }
+        //    Assert.NotNull(response);
+        //    Assert.AreEqual(1, response.Messages.Count());
+        //    Message resultMessage = response.Messages.First();
+        //    Assert.AreEqual(compressedMessage.ToString(), resultMessage.ToString());
+        //}
     }
 }

@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Responses;
+
 namespace Kafka.Client.Consumers
 {
     using System;
@@ -40,6 +42,8 @@ namespace Kafka.Client.Consumers
     public class Consumer : IConsumer
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+        private static object SendLock = new object();
 
         private readonly ConsumerConfiguration config;
         private readonly string host;
@@ -77,20 +81,7 @@ namespace Kafka.Client.Consumers
             this.port = port;
         }
 
-        /// <summary>
-        /// Fetch a set of messages from a topic.
-        /// </summary>
-        /// <param name="request">
-        /// Specifies the topic name, topic partition, starting byte offset, maximum bytes to be fetched.
-        /// </param>
-        /// <returns>
-        /// A set of fetched messages.
-        /// </returns>
-        /// <remarks>
-        /// Offset is passed in on every request, allowing the user to maintain this metadata
-        /// however they choose.
-        /// </remarks>
-        public BufferedMessageSet Fetch(FetchRequest request)
+        public FetchResponse Fetch(FetchRequest request)
         {
             short tryCounter = 1;
             while (tryCounter <= this.config.NumberOfTries)
@@ -103,9 +94,12 @@ namespace Kafka.Client.Consumers
                         this.config.BufferSize,
                         this.config.SocketTimeout))
                     {
-                        conn.Write(request);
-                        int size = conn.Reader.ReadInt32();
-                        return BufferedMessageSet.ParseFrom(conn.Reader, size, request.Offset);
+                        lock (SendLock)
+                        {
+                            conn.Write(request);
+                            return FetchResponse.ParseFrom(conn.Reader);
+                        }
+                        
                     }
                 }
                 catch (Exception ex)
@@ -123,6 +117,54 @@ namespace Kafka.Client.Consumers
 
             return null;
         }
+
+        /// <summary>
+        /// Fetch a set of messages from a topic.
+        /// </summary>
+        /// <param name="request">
+        /// Specifies the topic name, topic partition, starting byte offset, maximum bytes to be fetched.
+        /// </param>
+        /// <returns>
+        /// A set of fetched messages.
+        /// </returns>
+        /// <remarks>
+        /// Offset is passed in on every request, allowing the user to maintain this metadata
+        /// however they choose.
+        /// </remarks>
+        //[Obsolete]
+        //public BufferedMessageSet Fetch(FetchRequest request)
+        //{
+        //    short tryCounter = 1;
+        //    while (tryCounter <= this.config.NumberOfTries)
+        //    {
+        //        try
+        //        {
+        //            using (var conn = new KafkaConnection(
+        //                this.host,
+        //                this.port,
+        //                this.config.BufferSize,
+        //                this.config.SocketTimeout))
+        //            {
+        //                conn.Write(request);
+        //                int size = conn.Reader.ReadInt32();
+        //                return BufferedMessageSet.ParseFrom(conn.Reader, size, request.Offset);
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            //// if maximum number of tries reached
+        //            if (tryCounter == this.config.NumberOfTries)
+        //            {
+        //                throw;
+        //            }
+
+        //            tryCounter++;
+        //            Logger.InfoFormat(CultureInfo.CurrentCulture, "Fetch reconnect due to {0}", ex);
+        //        }
+        //    }
+
+        //    return null;
+        //}
 
         /// <summary>
         /// Combine multiple fetch requests in one call.

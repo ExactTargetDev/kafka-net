@@ -100,6 +100,7 @@
     <Compile Include="IntegrationFixtureBase.cs" />
     <Compile Include="KafkaIntegrationTest.cs" />
     <Compile Include="MockAlwaysZeroPartitioner.cs" />
+    <Compile Include="ProducerHelper.cs" />
     <Compile Include="ProducerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestHelper.cs" />

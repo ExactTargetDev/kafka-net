@@ -231,25 +231,25 @@ namespace Kafka.Client.IntegrationTests
         /// <summary>
         /// Generates messages for Kafka then gets them back.
         /// </summary>
-        [Test]
-        public void ConsumerFetchMessage()
-        {
-            var consumerConfig = this.ConsumerConfig1;
-            ProducerSendsMessage();
-            Thread.Sleep(1000);
-            IConsumer consumer = new Consumer(consumerConfig);
-            var request = new FetchRequest(CurrentTestTopic, 0, 0);
-            BufferedMessageSet response = consumer.Fetch(request);
-            Assert.NotNull(response);
-            int count = 0;
-            foreach (var message in response)
-            {
-                count++;
-                Console.WriteLine(message.Message);
-            }
+        //[Test]
+        //public void ConsumerFetchMessage()
+        //{
+        //    var consumerConfig = this.ConsumerConfig1;
+        //    ProducerSendsMessage();
+        //    Thread.Sleep(1000);
+        //    IConsumer consumer = new Consumer(consumerConfig);
+        //    var request = new FetchRequest(CurrentTestTopic, 0, 0);
+        //    BufferedMessageSet response = consumer.Fetch(request);
+        //    Assert.NotNull(response);
+        //    int count = 0;
+        //    foreach (var message in response)
+        //    {
+        //        count++;
+        //        Console.WriteLine(message.Message);
+        //    }
 
-            Assert.AreEqual(2, count);
-        }
+        //    Assert.AreEqual(2, count);
+        //}
 
         /// <summary>
         /// Generates multiple messages for Kafka then gets them back.
@@ -304,94 +304,94 @@ namespace Kafka.Client.IntegrationTests
         /// <summary>
         /// Synchronous Producer sends a single simple message and then a consumer consumes it
         /// </summary>
-        [Test]
-        public void ProducerSendsAndConsumerReceivesSingleSimpleMessage()
-        {
-            var prodConfig = this.SyncProducerConfig1;
-            var consumerConfig = this.ConsumerConfig1;
+        //[Test]
+        //public void ProducerSendsAndConsumerReceivesSingleSimpleMessage()
+        //{
+        //    var prodConfig = this.SyncProducerConfig1;
+        //    var consumerConfig = this.ConsumerConfig1;
 
-            var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
-            long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
-            using (var producer = new SyncProducer(prodConfig))
-            {
-                var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { sourceMessage });
-                producer.Send(producerRequest);
-            }
+        //    var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
+        //    long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
+        //    using (var producer = new SyncProducer(prodConfig))
+        //    {
+        //        var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { sourceMessage });
+        //        producer.Send(producerRequest);
+        //    }
 
-            IConsumer consumer = new Consumer(consumerConfig);
-            var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
-            BufferedMessageSet response;
-            int totalWaitTimeInMiliseconds = 0;
-            int waitSingle = 100;
-            while (true)
-            {
-                Thread.Sleep(waitSingle);
-                response = consumer.Fetch(request);
-                if (response != null && response.Messages.Count() > 0)
-                {
-                    break;
-                }
+        //    IConsumer consumer = new Consumer(consumerConfig);
+        //    var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
+        //    BufferedMessageSet response;
+        //    int totalWaitTimeInMiliseconds = 0;
+        //    int waitSingle = 100;
+        //    while (true)
+        //    {
+        //        Thread.Sleep(waitSingle);
+        //        response = consumer.Fetch(request);
+        //        if (response != null && response.Messages.Count() > 0)
+        //        {
+        //            break;
+        //        }
 
-                totalWaitTimeInMiliseconds += waitSingle;
-                if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
-                {
-                    break;
-                }
-            }
+        //        totalWaitTimeInMiliseconds += waitSingle;
+        //        if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
+        //        {
+        //            break;
+        //        }
+        //    }
 
-            Assert.NotNull(response);
-            Assert.AreEqual(1, response.Messages.Count());
-            Message resultMessage = response.Messages.First();
-            Assert.AreEqual(sourceMessage.ToString(), resultMessage.ToString());
-        }
+        //    Assert.NotNull(response);
+        //    Assert.AreEqual(1, response.Messages.Count());
+        //    Message resultMessage = response.Messages.First();
+        //    Assert.AreEqual(sourceMessage.ToString(), resultMessage.ToString());
+        //}
 
         /// <summary>
         /// Asynchronous Producer sends a single simple message and then a consumer consumes it
         /// </summary>
-        [Test]
-        public void AsyncProducerSendsAndConsumerReceivesSingleSimpleMessage()
-        {
-            var prodConfig = this.AsyncProducerConfig1;
-            var consumerConfig = this.ConsumerConfig1;
+        //[Test]
+        //public void AsyncProducerSendsAndConsumerReceivesSingleSimpleMessage()
+        //{
+        //    var prodConfig = this.AsyncProducerConfig1;
+        //    var consumerConfig = this.ConsumerConfig1;
 
-            var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
-            long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
+        //    var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
+        //    long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
 
-            using (var producer = new AsyncProducer(prodConfig))
-            {
-                var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { sourceMessage });
-                producer.Send(producerRequest);
-            }
+        //    using (var producer = new AsyncProducer(prodConfig))
+        //    {
+        //        var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { sourceMessage });
+        //        producer.Send(producerRequest);
+        //    }
 
-            Thread.Sleep(3000);
+        //    Thread.Sleep(3000);
 
             
-            IConsumer consumer = new Consumer(consumerConfig);
-            var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
+        //    IConsumer consumer = new Consumer(consumerConfig);
+        //    var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
 
-            BufferedMessageSet response;
-            int totalWaitTimeInMiliseconds = 0;
-            int waitSingle = 100;
-            while (true)
-            {
-                Thread.Sleep(waitSingle);
-                response = consumer.Fetch(request);
-                if (response != null && response.Messages.Count() > 0)
-                {
-                    break;
-                }
-                totalWaitTimeInMiliseconds += waitSingle;
-                if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
-                {
-                    break;
-                }
-            }
+        //    BufferedMessageSet response;
+        //    int totalWaitTimeInMiliseconds = 0;
+        //    int waitSingle = 100;
+        //    while (true)
+        //    {
+        //        Thread.Sleep(waitSingle);
+        //        response = consumer.Fetch(request);
+        //        if (response != null && response.Messages.Count() > 0)
+        //        {
+        //            break;
+        //        }
+        //        totalWaitTimeInMiliseconds += waitSingle;
+        //        if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
+        //        {
+        //            break;
+        //        }
+        //    }
 
-            Assert.NotNull(response);
-            Assert.AreEqual(1, response.Messages.Count());
-            Message resultMessage = response.Messages.First();
-            Assert.AreEqual(sourceMessage.ToString(), resultMessage.ToString());
-        }
+        //    Assert.NotNull(response);
+        //    Assert.AreEqual(1, response.Messages.Count());
+        //    Message resultMessage = response.Messages.First();
+        //    Assert.AreEqual(sourceMessage.ToString(), resultMessage.ToString());
+        //}
 
         /// <summary>
         /// Synchronous producer sends a multi request and a consumer receives it from to Kafka.
@@ -503,67 +503,67 @@ namespace Kafka.Client.IntegrationTests
         /// <summary>
         /// Synchronous Producer sends a lots of simple messages and then a simple consumer consumes in several fetches
         /// </summary>
-        [Test]
-        public void ProducerSendsAndConsumerReceivesLotsOfMessagesManyFetchesAndOffsetsShouldBeCorrect()
-        {
-            var prodConfig = this.SyncProducerConfig1;
-            var consumerConfig = this.ConsumerConfig1;
+        //[Test]
+        //public void ProducerSendsAndConsumerReceivesLotsOfMessagesManyFetchesAndOffsetsShouldBeCorrect()
+        //{
+        //    var prodConfig = this.SyncProducerConfig1;
+        //    var consumerConfig = this.ConsumerConfig1;
 
-            var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
-            long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
+        //    var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
+        //    long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
 
-            int nrOfMessages = 1000;
+        //    int nrOfMessages = 1000;
 
-            using (var producer = new SyncProducer(prodConfig))
-            {
-                for (int i = 0; i < nrOfMessages; i++)
-                {
-                    var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> {sourceMessage});
-                    producer.Send(producerRequest);
-                }
-            }
+        //    using (var producer = new SyncProducer(prodConfig))
+        //    {
+        //        for (int i = 0; i < nrOfMessages; i++)
+        //        {
+        //            var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> {sourceMessage});
+        //            producer.Send(producerRequest);
+        //        }
+        //    }
 
-            IConsumer consumer = new Consumer(consumerConfig);
-            int messagesCounter = 0;
-            long totalSizeDownloaded = 0;
+        //    IConsumer consumer = new Consumer(consumerConfig);
+        //    int messagesCounter = 0;
+        //    long totalSizeDownloaded = 0;
 
-            while (messagesCounter < nrOfMessages)
-            {
-                var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
-                BufferedMessageSet response;
-                int totalWaitTimeInMiliseconds = 0;
-                int waitSingle = 100;
-                while (true)
-                {
-                    Thread.Sleep(waitSingle);
-                    response = consumer.Fetch(request);
-                    if (response != null && response.Messages.Count() > 0)
-                    {
-                        break;
-                    }
+        //    while (messagesCounter < nrOfMessages)
+        //    {
+        //        var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
+        //        BufferedMessageSet response;
+        //        int totalWaitTimeInMiliseconds = 0;
+        //        int waitSingle = 100;
+        //        while (true)
+        //        {
+        //            Thread.Sleep(waitSingle);
+        //            response = consumer.Fetch(request);
+        //            if (response != null && response.Messages.Count() > 0)
+        //            {
+        //                break;
+        //            }
 
-                    totalWaitTimeInMiliseconds += waitSingle;
-                    if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
-                    {
-                        break;
-                    }
-                }
+        //            totalWaitTimeInMiliseconds += waitSingle;
+        //            if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
+        //            {
+        //                break;
+        //            }
+        //        }
 
-                Assert.NotNull(response);
-                long currentCheckOffset = currentOffset + 4 + sourceMessage.Size;
-                while (response.MoveNext())
-                {
-                    Assert.AreEqual(currentCheckOffset, response.Current.Offset);
-                    currentCheckOffset += 4 + response.Current.Message.Size;
-                    messagesCounter++;
-                    currentOffset = response.Current.Offset;
-                    totalSizeDownloaded += response.Current.Message.Size + 4;
-                }
-            }
+        //        Assert.NotNull(response);
+        //        long currentCheckOffset = currentOffset + 4 + sourceMessage.Size;
+        //        while (response.MoveNext())
+        //        {
+        //            Assert.AreEqual(currentCheckOffset, response.Current.Offset);
+        //            currentCheckOffset += 4 + response.Current.Message.Size;
+        //            messagesCounter++;
+        //            currentOffset = response.Current.Offset;
+        //            totalSizeDownloaded += response.Current.Message.Size + 4;
+        //        }
+        //    }
 
-            Assert.AreEqual(nrOfMessages, messagesCounter);
-            Assert.AreEqual(nrOfMessages * (4 + sourceMessage.Size), totalSizeDownloaded);
-        }
+        //    Assert.AreEqual(nrOfMessages, messagesCounter);
+        //    Assert.AreEqual(nrOfMessages * (4 + sourceMessage.Size), totalSizeDownloaded);
+        //}
 
 
         [Test]

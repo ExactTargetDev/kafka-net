@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using System.Linq;
+
 namespace Kafka.Client.IntegrationTests
 {
     using System;
@@ -58,63 +60,135 @@ namespace Kafka.Client.IntegrationTests
         }
 
         [Test]
-        public void SimpleSyncProducerSends2MessagesAndConsumerConnectorGetsThemBack()
+        public void SimpleSyncProducerSends1MessageAndConsumerGetsItBack()
         {
+            ProducerHelper ph = new ProducerHelper();
+            var topic = CurrentTestTopic;
             var prodConfig = this.SyncProducerConfig1;
-            var consumerConfig = this.ZooKeeperBasedConsumerConfig;
-            var consConf = this.ConsumerConfig1;
-
-            // first producing
-            string payload1 = "kafka 1.";
+            string payload1 = "TestData.";
             byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
             var msg1 = new Message(payloadData1);
+            var producerResult = ph.SendMessagesToTopicSynchronously(topic, new List<Message>() { msg1 }, prodConfig);
+            var producerResponse = producerResult.Item1;
+            var partitionMetadata = producerResult.Item2;
 
-            string payload2 = "kafka 2.";
+            var broker = partitionMetadata.Replicas.ToArray()[0];
+
+            var consumerConfig = this.ConsumerConfig1;
+            consumerConfig.Broker.BrokerId = broker.Id;
+            consumerConfig.Broker.Host = broker.Host;
+            consumerConfig.Broker.Port = broker.Port;
+ 
+            var consumer = new Consumer(consumerConfig);
+            var fetchRequest = new FetchRequest(-1, "", broker.Id, -1, -1, new List<OffsetDetail>() { new OffsetDetail(topic, new List<int>() {partitionMetadata.PartitionId}, new List<long>() { 0 }, new List<int>() { 256 }) });
+
+            // giving the kafka server some time to process the message
+            Thread.Sleep(5000);
+
+            var fetchResponse = consumer.Fetch(fetchRequest);
+
+            var messageSet = fetchResponse.MessageSet(topic, partitionMetadata.PartitionId);
+            var messages = messageSet.ToList();
+            Assert.AreEqual(1, messages.Count);
+            Assert.AreEqual(payloadData1, messages[0].Message.Payload);
+        }
+
+        [Test]
+        public void SimpleSyncProducerSends2MessagesAndConsumerGetsThemBack()
+        {
+            ProducerHelper ph = new ProducerHelper();
+            var topic = CurrentTestTopic;
+            var prodConfig = this.SyncProducerConfig1;
+            string payload1 = "TestData.";
+            byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
+            var msg1 = new Message(payloadData1);
+            string payload2 = "TestData2.";
             byte[] payloadData2 = Encoding.UTF8.GetBytes(payload2);
             var msg2 = new Message(payloadData2);
+            var producerResult = ph.SendMessagesToTopicSynchronously(topic, new List<Message>() { msg1, msg2 }, prodConfig);
+            var producerResponse = producerResult.Item1;
+            var partitionMetadata = producerResult.Item2;
 
-            var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { msg1, msg2 });
-            using (var producer = new SyncProducer(prodConfig))
-            {
-                producer.Send(producerRequest);
-            }
+            var broker = partitionMetadata.Replicas.ToArray()[0];
 
-            var consumer = new Consumer(consConf);
-            long offset = 0;
-            var result = consumer.Fetch(
-                new FetchRequest(CurrentTestTopic, 0, offset, 400));
-            foreach (var resultItem in result)
-            {
-                offset += resultItem.Offset;
-            }
+            var consumerConfig = this.ConsumerConfig1;
+            consumerConfig.Broker.BrokerId = broker.Id;
+            consumerConfig.Broker.Host = broker.Host;
+            consumerConfig.Broker.Port = broker.Port;
 
-            // now consuming
-            var resultMessages = new List<Message>();
-            using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
-            {
-                var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
-                var messages = consumerConnector.CreateMessageStreams(topicCount);
-                var sets = messages[CurrentTestTopic];
-                try
-                {
-                    foreach (var set in sets)
-                    {
-                        foreach (var message in set)
-                        {
-                            resultMessages.Add(message);
-                        }
-                    }
-                }
-                catch (ConsumerTimeoutException)
-                {
-                    // do nothing, this is expected
-                }
-            }
+            var consumer = new Consumer(consumerConfig);
+            var fetchRequest = new FetchRequest(-1, "", broker.Id, -1, -1, new List<OffsetDetail>() { new OffsetDetail(topic, new List<int>() {partitionMetadata.PartitionId}, new List<long>() { 0 }, new List<int>() { 256 }) });
 
-            Assert.AreEqual(2, resultMessages.Count);
-            Assert.AreEqual(msg1.ToString(), resultMessages[0].ToString());
-            Assert.AreEqual(msg2.ToString(), resultMessages[1].ToString());
+            // giving the kafka server some time to process the message
+            Thread.Sleep(10000);
+
+            var fetchResponse = consumer.Fetch(fetchRequest);
+
+            var messageSet = fetchResponse.MessageSet(topic, partitionMetadata.PartitionId);
+            var messages = messageSet.ToList();
+            Assert.AreEqual(2, messages.Count);
+            Assert.AreEqual(payloadData1, messages[0].Message.Payload);
+            Assert.AreEqual(payloadData2, messages[1].Message.Payload);
         }
+
+        //[Test]
+        //public void SimpleSyncProducerSends2MessagesAndConsumerConnectorGetsThemBack()
+        //{
+        //    var prodConfig = this.SyncProducerConfig1;
+        //    var consumerConfig = this.ZooKeeperBasedConsumerConfig;
+        //    var consConf = this.ConsumerConfig1;
+
+        //    // first producing
+        //    string payload1 = "kafka 1.";
+        //    byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
+        //    var msg1 = new Message(payloadData1);
+
+        //    string payload2 = "kafka 2.";
+        //    byte[] payloadData2 = Encoding.UTF8.GetBytes(payload2);
+        //    var msg2 = new Message(payloadData2);
+
+        //    var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { msg1, msg2 });
+        //    using (var producer = new SyncProducer(prodConfig))
+        //    {
+        //        producer.Send(producerRequest);
+        //    }
+
+        //    var consumer = new Consumer(consConf);
+        //    long offset = 0;
+        //    var result = consumer.Fetch(
+        //        new FetchRequest(CurrentTestTopic, 0, offset, 400));
+        //    foreach (var resultItem in result)
+        //    {
+        //        offset += resultItem.Offset;
+        //    }
+
+        //    // now consuming
+        //    var resultMessages = new List<Message>();
+        //    using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
+        //    {
+        //        var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
+        //        var messages = consumerConnector.CreateMessageStreams(topicCount);
+        //        var sets = messages[CurrentTestTopic];
+        //        try
+        //        {
+        //            foreach (var set in sets)
+        //            {
+        //                foreach (var message in set)
+        //                {
+        //                    resultMessages.Add(message);
+        //                }
+        //            }
+        //        }
+        //        catch (ConsumerTimeoutException)
+        //        {
+        //            // do nothing, this is expected
+        //        }
+        //    }
+
+        //    Assert.AreEqual(2, resultMessages.Count);
+        //    Assert.AreEqual(msg1.ToString(), resultMessages[0].ToString());
+        //    Assert.AreEqual(msg2.ToString(), resultMessages[1].ToString());
+        //}
 
         [Test]
         public void SimpleSyncProducerSendsLotsOfMessagesAndConsumerConnectorGetsThemBack()
@@ -126,7 +200,7 @@ namespace Kafka.Client.IntegrationTests
             int messageSize = 0;
 
             List<Message> messagesToSend = new List<Message>();
-            
+
             using (var producer = new SyncProducer(prodConfig))
             {
                 for (int i = 0; i < numberOfMessages; i++)
@@ -415,14 +489,14 @@ namespace Kafka.Client.IntegrationTests
                 var topicCount = new Dictionary<string, int> { { topic, 1 } };
                 var messages = consumerConnector.CreateMessageStreams(topicCount);
                 var sets = messages[topic];
-                
+
                 try
                 {
                     foreach (var set in sets)
                     {
                         foreach (var message in set)
                         {
-                            Assert.AreEqual(CreatePayloadByNumber(messageNumberCounter), Encoding.UTF8.GetString(message.Payload)); 
+                            Assert.AreEqual(CreatePayloadByNumber(messageNumberCounter), Encoding.UTF8.GetString(message.Payload));
                             messageNumberCounter++;
                         }
                     }
@@ -467,7 +541,7 @@ namespace Kafka.Client.IntegrationTests
                         }
                     }
                     var packageMessage = CompressionUtils.Compress(messagePackageList, CompressionCodecs.GZIPCompressionCodec);
-                    
+
                     producer.Send(CurrentTestTopic, 0, new List<Message>() { packageMessage });
                 }
             }
@@ -605,7 +679,7 @@ namespace Kafka.Client.IntegrationTests
             int messagesPerPackage = 5;
             int messageSize = 0;
             int messagesPerInnerPackage = 5;
-            
+
             using (var producer = new SyncProducer(prodConfig))
             {
                 for (int i = 0; i < numberOfMessages; i++)
@@ -721,7 +795,7 @@ namespace Kafka.Client.IntegrationTests
                     // do nothing, this is expected
                 }
             }
-            
+
             Assert.AreEqual(numberOfMessages * messagesPerPackage, resultCount);
             Assert.AreEqual(totalSize, resultSize);
         }

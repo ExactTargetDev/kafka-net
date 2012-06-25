@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Responses;
+
 namespace Kafka.Client.Consumers
 {
     using System.Collections.Generic;
@@ -43,7 +45,7 @@ namespace Kafka.Client.Consumers
         /// Offset is passed in on every request, allowing the user to maintain this metadata 
         /// however they choose.
         /// </remarks>
-        BufferedMessageSet Fetch(FetchRequest request);
+        FetchResponse Fetch(FetchRequest request);
 
         /// <summary>
         /// Combine multiple fetch requests in one call.

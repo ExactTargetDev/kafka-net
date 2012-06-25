@@ -138,6 +138,7 @@
     <Compile Include="Consumers\IConsumer.cs" />
     <Compile Include="Consumers\IConsumerConnector.cs" />
     <Compile Include="Consumers\KafkaMessageStream.cs" />
+    <Compile Include="Consumers\OffsetDetail.cs" />
     <Compile Include="Consumers\PartitionTopicInfo.cs" />
     <Compile Include="Consumers\TopicCount.cs" />
     <Compile Include="Consumers\ZookeeperConsumerConnector.cs" />
@@ -174,6 +175,7 @@
     <Compile Include="Producers\TopicData.cs" />
     <Compile Include="Producers\TopicMetadata.cs" />
     <Compile Include="Requests\TopicMetadataRequest.cs" />
+    <Compile Include="Responses\FetchResponse.cs" />
     <Compile Include="Responses\ProducerResponse.cs" />
     <Compile Include="Serialization\StringEncoder.cs" />
     <Compile Include="Serialization\IWritable.cs" />

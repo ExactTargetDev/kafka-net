@@ -15,6 +15,9 @@
  * limitations under the License.
  */
 
+using System.Collections.Generic;
+using Kafka.Client.Consumers;
+
 namespace Kafka.Client.Requests
 {
     using System;
@@ -24,6 +27,7 @@ namespace Kafka.Client.Requests
     using Kafka.Client.Messages;
     using Kafka.Client.Serialization;
     using Kafka.Client.Utils;
+    using System.Linq;
 
     /// <summary>
     /// Constructs a request to send to Kafka.
@@ -41,21 +45,68 @@ namespace Kafka.Client.Requests
         public const byte DefaultHeaderSize = DefaultRequestSizeSize + DefaultTopicSizeSize + DefaultPartitionSize + DefaultRequestIdSize + DefaultOffsetSize + DefaultMaxSizeSize;
         public const byte DefaultHeaderAsPartOfMultirequestSize = DefaultTopicSizeSize + DefaultPartitionSize + DefaultOffsetSize + DefaultMaxSizeSize;
 
-        public static int GetRequestLength(string topic, string encoding = DefaultEncoding)
+        public const byte DefaultVersionIdSize = 2;
+        public const byte DefaultCorrelationIdSize = 4;
+        public const byte DefaultReplicaIdSize = 4;
+        public const byte DefaultMaxWaitSize = 4;
+        public const byte DefaultMinBytesSize = 4;
+        public const byte DefaultOffsetInfoSizeSize = 4;
+
+        public const short CurrentVersion = (short)1;
+
+        public short VersionId { get; set; }
+        public int CorrelationId { get; set; }
+        public string ClientId { get; set; }
+        public int ReplicaId { get; set; }
+        public int MaxWait { get; set; }
+        public int MinBytes { get; set; }
+        public IEnumerable<OffsetDetail> OffsetInfo { get; set; }
+
+        public int GetRequestLength()
         {
-            short topicLength = GetTopicLength(topic, encoding);
-            return topicLength + DefaultHeaderSize;
+            return DefaultRequestSizeSize + 
+                   DefaultRequestIdSize +
+                   DefaultVersionIdSize +
+                   DefaultCorrelationIdSize +
+                   BitWorks.GetShortStringLength(this.ClientId, AbstractRequest.DefaultEncoding) +
+                   DefaultReplicaIdSize +
+                   DefaultMaxWaitSize +
+                   DefaultMinBytesSize +
+                   DefaultOffsetInfoSizeSize + this.OffsetInfo.Sum(x => x.SizeInBytes);
         }
 
+        [Obsolete]
         public static int GetRequestAsPartOfMultirequestLength(string topic, string encoding = DefaultEncoding)
         {
             short topicLength = GetTopicLength(topic, encoding);
             return topicLength + DefaultHeaderAsPartOfMultirequestSize;
         }
 
+        public FetchRequest(int correlationId, string clientId, int replicaId, int maxWait, int minBytes,
+                            IEnumerable<OffsetDetail> offsetInfo)
+            : this(CurrentVersion, correlationId, clientId, replicaId, maxWait, minBytes, offsetInfo)
+        {
+        }
+
+        public FetchRequest(short versionId, int correlationId, string clientId, int replicaId, int maxWait, int minBytes, IEnumerable<OffsetDetail> offsetInfo)
+        {
+            this.VersionId = versionId;
+            this.CorrelationId = correlationId;
+            this.ClientId = clientId;
+            this.ReplicaId = replicaId;
+            this.MaxWait = maxWait;
+            this.MinBytes = minBytes;
+            this.OffsetInfo = offsetInfo;
+
+            int length = GetRequestLength();
+            this.RequestBuffer = new BoundedBuffer(length);
+            this.WriteTo(this.RequestBuffer);
+        }
+
         /// <summary>
         /// Initializes a new instance of the FetchRequest class.
         /// </summary>
+        [Obsolete]
         public FetchRequest()
         {
         }
@@ -66,6 +117,7 @@ namespace Kafka.Client.Requests
         /// <param name="topic">The topic to publish to.</param>
         /// <param name="partition">The partition to publish to.</param>
         /// <param name="offset">The offset in the topic/partition to retrieve from.</param>
+        [Obsolete]
         public FetchRequest(string topic, int partition, long offset)
             : this(topic, partition, offset, DefaultMaxSize)
         {
@@ -78,6 +130,7 @@ namespace Kafka.Client.Requests
         /// <param name="partition">The partition to publish to.</param>
         /// <param name="offset">The offset in the topic/partition to retrieve from.</param>
         /// <param name="maxSize">The maximum size.</param>
+        [Obsolete]
         public FetchRequest(string topic, int partition, long offset, int maxSize)
         {
             Topic = topic;
@@ -85,7 +138,7 @@ namespace Kafka.Client.Requests
             Offset = offset;
             MaxSize = maxSize;
 
-            int length = GetRequestLength(topic, DefaultEncoding);
+            int length = this.GetRequestLength();
             this.RequestBuffer = new BoundedBuffer(length);
             this.WriteTo(this.RequestBuffer);
         }
@@ -136,21 +189,30 @@ namespace Kafka.Client.Requests
         {
             Guard.NotNull(writer, "writer");
 
-            writer.WriteShortString(this.Topic, DefaultEncoding);
-            writer.Write(this.Partition);
-            writer.Write(this.Offset);
-            writer.Write(this.MaxSize);
+            writer.Write(this.VersionId);
+            writer.Write(this.CorrelationId);
+            writer.WriteShortString(this.ClientId, AbstractRequest.DefaultEncoding);
+            writer.Write(this.ReplicaId);
+            writer.Write(this.MaxWait);
+            writer.Write(this.MinBytes);
+            writer.Write(this.OffsetInfo.Count());
+            foreach (var offsetInfo in this.OffsetInfo)
+            {
+                offsetInfo.WriteTo(writer);
+            }
         }
 
         public override string ToString()
         {
             return String.Format(
                 CultureInfo.CurrentCulture,
-                "topic: {0}, part: {1}, offset: {2}, maxSize: {3}",
-                this.Topic,
-                this.Partition,
-                this.Offset,
-                this.MaxSize);
+                "varsionId: {0}, correlationId: {1}, clientId: {2}, replicaId: {3}, maxWait: {4}, minBytes: {5}",
+                this.VersionId,
+                this.CorrelationId,
+                this.ClientId,
+                this.ReplicaId,
+                this.MaxWait,
+                this.MinBytes);
         }
     }
 }
