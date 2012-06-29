@@ -23,6 +23,7 @@ namespace Kafka.Client.Requests
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Text;
     using Kafka.Client.Serialization;
@@ -34,29 +35,61 @@ namespace Kafka.Client.Requests
     /// </summary>
     public class TopicMetadataRequest : AbstractRequest, IWritable
     {
-        public const int DefaultNumberOfTopicsSize = 4;
-        public const int DefaultDetailedMetadataSize = 2;
-        public const int DefaultTimestampSize = 8;
-        public const int DefaultCountSize = 4;
-        public const byte DefaultHeaderSize8 = DefaultRequestSizeSize + DefaultRequestIdSize;
+        private const int DefaultNumberOfTopicsSize = 4;
+        private const int DefaultDetailedMetadataSize = 2;
+        private const int DefaultTimestampSize = 8;
+        private const int DefaultCountSize = 4;
+        private const byte DefaultHeaderSize8 = DefaultRequestSizeSize + DefaultRequestIdSize;
 
-        public IEnumerable<string> Topics { get; private set; }
+        public ReadOnlyCollection<string> Topics { get; private set; }
 
-        public short DetailedMetadata { get; private set; }
+        public DetailedMetadataRequest DetailedMetadata { get; private set; }
 
         public long? Timestamp { get; private set; }
 
         public int? Count { get; private set; }
 
-        public TopicMetadataRequest(IEnumerable<string> topics, short detailedMetadata = DetailedMetadataRequest.NoSegmentMetadata, long? timestamp = null, int? count = null)
+        private TopicMetadataRequest(IList<string> topics, DetailedMetadataRequest detailedMetadata, long timestamp, int count)
         {
-            this.Topics = topics;
+            if(topics == null)
+            {
+                throw new ArgumentNullException("topics", "List of topics cannot be null.");
+            }
+
+            if(topics.Count == 0)
+            {
+                throw new ArgumentException("List of topics cannot be empty.");
+            }
+
+            this.Topics = new ReadOnlyCollection<string>(topics);
             this.DetailedMetadata = detailedMetadata;
             this.Timestamp = timestamp;
             this.Count = count;
             int length = GetRequestLength();
             this.RequestBuffer = new BoundedBuffer(length);
             this.WriteTo(this.RequestBuffer);
+        }
+
+        /// <summary>
+        /// Creates simple request with no segment metadata information
+        /// </summary>
+        /// <param name="topics">list of topics</param>
+        /// <returns>request</returns>
+        public static TopicMetadataRequest Create(IList<string> topics)
+        {
+            return new TopicMetadataRequest(topics, DetailedMetadataRequest.NoSegmentMetadata, 0, 0);
+        }
+
+        /// <summary>
+        /// Creates request with segment metadata information
+        /// </summary>
+        /// <param name="topics">list of topics</param>
+        /// <param name="timestamp"></param>
+        /// <param name="count"></param>
+        /// <returns>request</returns>
+        public static TopicMetadataRequest CreateWithMetadata(IList<string> topics, long timestamp = 0, int count = 0)
+        {
+            return new TopicMetadataRequest(topics, DetailedMetadataRequest.SegmentMetadata, timestamp, count);
         }
 
         public override RequestTypes RequestType
@@ -85,7 +118,7 @@ namespace Kafka.Client.Requests
             {
                 writer.WriteShortString(topic, AbstractRequest.DefaultEncoding);
             }
-            writer.Write(this.DetailedMetadata);
+            writer.Write((short)this.DetailedMetadata);
             if (this.DetailedMetadata == DetailedMetadataRequest.SegmentMetadata)
             {
                 writer.Write(this.Timestamp ?? 0);
@@ -124,10 +157,9 @@ namespace Kafka.Client.Requests
         }
     }
 
-    public static class DetailedMetadataRequest
+    public enum DetailedMetadataRequest : short
     {
-        public const short SegmentMetadata = (short)1;
-
-        public const short NoSegmentMetadata = (short)0;
+        SegmentMetadata = (short)1,
+        NoSegmentMetadata = (short)0,
     }
 }

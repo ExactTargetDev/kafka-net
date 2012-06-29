@@ -15,22 +15,18 @@
  * limitations under the License.
  */
 
-using Kafka.Client.Responses;
-
 namespace Kafka.Client.IntegrationTests
 {
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
-    using System.Threading;
-    using Kafka.Client.Cfg;
-    using Kafka.Client.Consumers;
+
     using Kafka.Client.Messages;
     using Kafka.Client.Producers;
-    using Kafka.Client.Requests;
-    using Kafka.Client.Serialization;
-    using NUnit.Framework;
     using Kafka.Client.Producers.Sync;
+    using Kafka.Client.Requests;
+
+    using NUnit.Framework;
 
     [TestFixture]
     public class ProducerTests : IntegrationFixtureBase
@@ -49,7 +45,7 @@ namespace Kafka.Client.IntegrationTests
 
             var topic = CurrentTestTopic;
 
-            TopicMetadataRequest request = new TopicMetadataRequest(new List<string>() { topic });
+            TopicMetadataRequest request = TopicMetadataRequest.Create(new List<string> { topic });
 
             using (var producer = new SyncProducer(prodConfig))
             {
@@ -72,7 +68,9 @@ namespace Kafka.Client.IntegrationTests
             var topic1 = CurrentTestTopic + "_1";
             var topic2 = CurrentTestTopic + "_2";
 
-            TopicMetadataRequest request = new TopicMetadataRequest(new List<string>() { topic1, topic2 });
+            var request = TopicMetadataRequest.Create(new List<string>() { topic1, topic2 });
+
+            //TopicMetadataRequest request = new TopicMetadataRequest(new List<string>() { topic1, topic2 });
 
             using (var producer = new SyncProducer(prodConfig))
             {
@@ -101,8 +99,8 @@ namespace Kafka.Client.IntegrationTests
             string payload1 = "TestData.";
             byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
             var msg1 = new Message(payloadData1);
-
-            TopicMetadataRequest topicMetadataRequest = new TopicMetadataRequest(new List<string>() { topic });
+            
+            TopicMetadataRequest topicMetadataRequest = TopicMetadataRequest.Create(new List<string> { topic });
             IEnumerable<TopicMetadata> topicMetadata = null;
 
             using (var producer = new SyncProducer(prodConfig))

@@ -26,8 +26,8 @@ namespace Kafka.Client.Requests
     public abstract class AbstractRequest
     {
         public const string DefaultEncoding = "UTF-8";
-        public const byte DefaultRequestSizeSize = 4;
-        public const byte DefaultRequestIdSize = 2;
+        protected const byte DefaultRequestSizeSize = 4;
+        protected const byte DefaultRequestIdSize = 2;
         public const short DefaultTopicLengthIfNonePresent = 2;
 
         /// <summary>
