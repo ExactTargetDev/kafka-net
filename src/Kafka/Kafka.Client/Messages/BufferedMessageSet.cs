@@ -51,13 +51,11 @@ namespace Kafka.Client.Messages
         /// Gets the error code
         /// </summary>
         public int ErrorCode { get; private set; }
-
         
+        /// <summary>
         /// Initializes a new instance of the <see cref="BufferedMessageSet"/> class.
         /// </summary>
-        /// <param name="messages">
-        /// The list of messages.
-        /// </param>
+        /// <param name="messages">The list of messages.</param>
         public BufferedMessageSet(IEnumerable<Message> messages)
             : this(messages, ErrorMapping.NoError)
         {

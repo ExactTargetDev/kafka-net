@@ -31,7 +31,6 @@ namespace Kafka.Client.IntegrationTests
     using Kafka.Client.Producers.Sync;
     using Kafka.Client.Requests;
     using NUnit.Framework;
-    using Kafka.Client.Cfg;
 
     [TestFixture]
     public class ConsumerTests : IntegrationFixtureBase
@@ -62,73 +61,71 @@ namespace Kafka.Client.IntegrationTests
         [Test]
         public void SimpleSyncProducerSends1MessageAndConsumerGetsItBack()
         {
-            ProducerHelper ph = new ProducerHelper();
-            var topic = CurrentTestTopic;
-            var prodConfig = this.SyncProducerConfig1;
-            string payload1 = "TestData.";
-            byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
-            var msg1 = new Message(payloadData1);
-            var producerResult = ph.SendMessagesToTopicSynchronously(topic, new List<Message>() { msg1 }, prodConfig);
-            var producerResponse = producerResult.Item1;
-            var partitionMetadata = producerResult.Item2;
-
-            var broker = partitionMetadata.Replicas.ToArray()[0];
-
-            var consumerConfig = this.ConsumerConfig1;
-            consumerConfig.Broker.BrokerId = broker.Id;
-            consumerConfig.Broker.Host = broker.Host;
-            consumerConfig.Broker.Port = broker.Port;
- 
-            var consumer = new Consumer(consumerConfig);
-            var fetchRequest = new FetchRequest(-1, "", broker.Id, -1, -1, new List<OffsetDetail>() { new OffsetDetail(topic, new List<int>() {partitionMetadata.PartitionId}, new List<long>() { 0 }, new List<int>() { 256 }) });
-
-            // giving the kafka server some time to process the message
-            Thread.Sleep(5000);
-
-            var fetchResponse = consumer.Fetch(fetchRequest);
-
-            var messageSet = fetchResponse.MessageSet(topic, partitionMetadata.PartitionId);
-            var messages = messageSet.ToList();
-            Assert.AreEqual(1, messages.Count);
-            Assert.AreEqual(payloadData1, messages[0].Message.Payload);
+            this.SimpleSyncProducerSendsMessagesAndConsumerGetsThemBack(1);
         }
 
         [Test]
         public void SimpleSyncProducerSends2MessagesAndConsumerGetsThemBack()
         {
-            ProducerHelper ph = new ProducerHelper();
-            var topic = CurrentTestTopic;
-            var prodConfig = this.SyncProducerConfig1;
-            string payload1 = "TestData.";
-            byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
-            var msg1 = new Message(payloadData1);
-            string payload2 = "TestData2.";
-            byte[] payloadData2 = Encoding.UTF8.GetBytes(payload2);
-            var msg2 = new Message(payloadData2);
-            var producerResult = ph.SendMessagesToTopicSynchronously(topic, new List<Message>() { msg1, msg2 }, prodConfig);
+            this.SimpleSyncProducerSendsMessagesAndConsumerGetsThemBack(2);
+        }
+
+        [Test]
+        public void SimpleSyncProducerSends10MessagesAndConsumerGetsThemBack()
+        {
+            this.SimpleSyncProducerSendsMessagesAndConsumerGetsThemBack(10);
+        }
+
+        [Test]
+        public void SimpleSyncProducerSends20MessagesAndConsumerGetsThemBack()
+        {
+            this.SimpleSyncProducerSendsMessagesAndConsumerGetsThemBack(20);
+        }
+
+        private void SimpleSyncProducerSendsMessagesAndConsumerGetsThemBack(int numberOfMessages)
+        {
+            var producerHelper = new ProducerHelper();
+            var topic = this.CurrentTestTopic;
+            var producerConfiguration = this.SyncProducerConfig1;
+
+            var messages = new List<Message>();
+            for (var i = 0; i < numberOfMessages; i++)
+            {
+                messages.Add(new Message(Encoding.UTF8.GetBytes(string.Format("TestMessage.{0}", i))));
+            }
+
+            var producerResult = producerHelper.SendMessagesToTopicSynchronously(topic, messages, producerConfiguration);
+
             var producerResponse = producerResult.Item1;
             var partitionMetadata = producerResult.Item2;
 
             var broker = partitionMetadata.Replicas.ToArray()[0];
 
-            var consumerConfig = this.ConsumerConfig1;
-            consumerConfig.Broker.BrokerId = broker.Id;
-            consumerConfig.Broker.Host = broker.Host;
-            consumerConfig.Broker.Port = broker.Port;
+            var consumerConfiguration = this.ConsumerConfig1;
+            consumerConfiguration.Broker.BrokerId = broker.Id;
+            consumerConfiguration.Broker.Host = broker.Host;
+            consumerConfiguration.Broker.Port = broker.Port;
 
-            var consumer = new Consumer(consumerConfig);
-            var fetchRequest = new FetchRequest(-1, "", broker.Id, -1, -1, new List<OffsetDetail>() { new OffsetDetail(topic, new List<int>() {partitionMetadata.PartitionId}, new List<long>() { 0 }, new List<int>() { 256 }) });
+            var consumer = new Consumer(consumerConfiguration);
+            var offsetInfo = new List<OffsetDetail> { new OffsetDetail(topic, new List<int>() { partitionMetadata.PartitionId }, new List<long> { 0 }, new List<int> { 256 }) };
+            var fetchRequest = FetchRequest.Create(offsetInfo, options => options.SetReplicaId(broker.Id));
 
             // giving the kafka server some time to process the message
-            Thread.Sleep(10000);
+            Thread.Sleep(750 * numberOfMessages);
 
             var fetchResponse = consumer.Fetch(fetchRequest);
+            var fetchedMessageSet = fetchResponse.MessageSet(topic, partitionMetadata.PartitionId);
+            var fetchedMessages = fetchedMessageSet.ToList();
+            Assert.AreEqual(numberOfMessages, messages.Count);
 
-            var messageSet = fetchResponse.MessageSet(topic, partitionMetadata.PartitionId);
-            var messages = messageSet.ToList();
-            Assert.AreEqual(2, messages.Count);
-            Assert.AreEqual(payloadData1, messages[0].Message.Payload);
-            Assert.AreEqual(payloadData2, messages[1].Message.Payload);
+            for (var i = 0; i < fetchedMessages.Count; i++)
+            {
+                var message = fetchedMessages[i];
+                var expectedPayload = Encoding.UTF8.GetBytes(string.Format("TestMessage.{0}", i));
+                var actualPayload = message.Message.Payload;
+
+                Assert.AreEqual(expectedPayload, actualPayload);
+            }
         }
 
         //[Test]
