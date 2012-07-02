@@ -41,7 +41,7 @@ namespace Kafka.Client.Requests
         private const int DefaultCountSize = 4;
         private const byte DefaultHeaderSize8 = DefaultRequestSizeSize + DefaultRequestIdSize;
 
-        public ReadOnlyCollection<string> Topics { get; private set; }
+        public IEnumerable<string> Topics { get; private set; }
 
         public DetailedMetadataRequest DetailedMetadata { get; private set; }
 
@@ -49,19 +49,19 @@ namespace Kafka.Client.Requests
 
         public int? Count { get; private set; }
 
-        private TopicMetadataRequest(IList<string> topics, DetailedMetadataRequest detailedMetadata, long timestamp, int count)
+        private TopicMetadataRequest(IEnumerable<string> topics, DetailedMetadataRequest detailedMetadata, long timestamp, int count)
         {
             if(topics == null)
             {
                 throw new ArgumentNullException("topics", "List of topics cannot be null.");
             }
 
-            if(topics.Count == 0)
+            if(topics.Count() == 0)
             {
                 throw new ArgumentException("List of topics cannot be empty.");
             }
 
-            this.Topics = new ReadOnlyCollection<string>(topics);
+            this.Topics = new List<string>(topics);
             this.DetailedMetadata = detailedMetadata;
             this.Timestamp = timestamp;
             this.Count = count;
@@ -75,7 +75,7 @@ namespace Kafka.Client.Requests
         /// </summary>
         /// <param name="topics">list of topics</param>
         /// <returns>request</returns>
-        public static TopicMetadataRequest Create(IList<string> topics)
+        public static TopicMetadataRequest Create(IEnumerable<string> topics)
         {
             return new TopicMetadataRequest(topics, DetailedMetadataRequest.NoSegmentMetadata, 0, 0);
         }
@@ -87,7 +87,7 @@ namespace Kafka.Client.Requests
         /// <param name="timestamp"></param>
         /// <param name="count"></param>
         /// <returns>request</returns>
-        public static TopicMetadataRequest CreateWithMetadata(IList<string> topics, long timestamp = 0, int count = 0)
+        public static TopicMetadataRequest CreateWithMetadata(IEnumerable<string> topics, long timestamp = 0, int count = 0)
         {
             return new TopicMetadataRequest(topics, DetailedMetadataRequest.SegmentMetadata, timestamp, count);
         }

@@ -75,7 +75,7 @@ namespace Kafka.Client.Producers.Partitioning
             var producer = this.producerPool.GetAnyProducer();
             if (topic != null)
             {
-                var topicMetadataRequest = new TopicMetadataRequest(new List<string>() { topic });
+                var topicMetadataRequest = TopicMetadataRequest.Create(new List<string>() { topic });
                 var topicMetadataList = producer.Send(topicMetadataRequest);
                 var topicMetadata = topicMetadataList.Count() > 0 ? topicMetadataList.First() : null;
                 if (topicMetadata != null)
@@ -88,7 +88,7 @@ namespace Kafka.Client.Producers.Partitioning
             {
                 //refresh cache for all topics
                 var topics = topicPartitionInfo.Select(x => x.Key);
-                var topicMetadata = producer.Send(new TopicMetadataRequest(topics));
+                var topicMetadata = producer.Send(TopicMetadataRequest.Create(topics));
                 topicMetadata.ForEach(metadata => this.topicPartitionInfo[metadata.Topic] = metadata);
             }
         }

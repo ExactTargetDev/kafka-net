@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace Kafka.Client.Tests.Request
 {
     using System;
@@ -18,12 +20,12 @@ namespace Kafka.Client.Tests.Request
             var request = TopicMetadataRequest.Create(topics);
 
             Assert.IsNotNull(request);
-            Assert.AreEqual(topics.Count, request.Topics.Count);
+            Assert.AreEqual(topics.Count, request.Topics.Count());
 
             for (int i = 0; i < topics.Count; i++)
             {
                 var expectedTopic = topics[i];
-                var actualTopic = request.Topics[i];
+                var actualTopic = request.Topics.ElementAt(i);
 
                 Assert.AreEqual(expectedTopic, actualTopic);
             }
@@ -41,12 +43,12 @@ namespace Kafka.Client.Tests.Request
             var request = TopicMetadataRequest.CreateWithMetadata(topics, 10, 20);
 
             Assert.IsNotNull(request);
-            Assert.AreEqual(topics.Count, request.Topics.Count);
+            Assert.AreEqual(topics.Count, request.Topics.Count());
 
             for (int i = 0; i < topics.Count; i++)
             {
                 var expectedTopic = topics[i];
-                var actualTopic = request.Topics[i];
+                var actualTopic = request.Topics.ElementAt(i);
 
                 Assert.AreEqual(expectedTopic, actualTopic);
             }
