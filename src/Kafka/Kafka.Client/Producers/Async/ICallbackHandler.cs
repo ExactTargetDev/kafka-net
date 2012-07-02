@@ -15,21 +15,25 @@
  * limitations under the License.
  */
 
+
+using System;
+
 namespace Kafka.Client.Producers.Async
 {
     using Kafka.Client.Requests;
+    using System.Collections.Generic;
 
     /// <summary>
     /// Performs action when a producer request is finished being sent asynchronously.
     /// </summary>
-    public interface ICallbackHandler
+    public interface ICallbackHandler<K,V> : IDisposable
     {
         /// <summary>
         /// Performs action when a producer request is finished being sent asynchronously.
         /// </summary>
-        /// <param name="context">
-        /// The sent request context.
+        /// <param name="events">
+        /// The sent request events.
         /// </param>
-        void Handle(RequestContext<ProducerRequest> context);
+        void Handle(IEnumerable<ProducerData<K,V>> events);
     }
 }

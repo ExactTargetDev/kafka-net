@@ -22,7 +22,6 @@ namespace Kafka.Client.Producers.Partitioning
     /// </summary>
     /// <typeparam name="TKey">The type of the key.</typeparam>
     public interface IPartitioner<TKey>
-        where TKey : class 
     {
         /// <summary>
         /// Uses the key to calculate a partition bucket id for routing

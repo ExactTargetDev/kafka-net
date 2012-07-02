@@ -117,7 +117,7 @@ namespace Kafka.Client.Consumers
                         {
                             ZkUtils.UpdatePersistentPath(zkClient,
                                                          topicDirs.ConsumerOffsetDir + "/" +
-                                                         partition.Value.Partition.Name, newOffset.ToString());
+                                                         partition.Value.Partition.PartId, newOffset.ToString());
                         }
                         catch (Exception ex)
                         {

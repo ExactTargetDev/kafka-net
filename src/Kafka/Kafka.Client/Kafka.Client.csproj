@@ -129,6 +129,7 @@
     <Compile Include="Cfg\ZooKeeperServerConfigurationElementCollection.cs" />
     <Compile Include="Cluster\Cluster.cs" />
     <Compile Include="Cluster\Partition.cs" />
+    <Compile Include="Cluster\Replica.cs" />
     <Compile Include="Consumers\Consumer.cs" />
     <Compile Include="Consumers\ConsumerIterator.cs" />
     <Compile Include="Consumers\ConsumerIteratorState.cs" />
@@ -145,8 +146,12 @@
     <Compile Include="Exceptions\ConsumerTimeoutException.cs" />
     <Compile Include="Exceptions\IllegalStateException.cs" />
     <Compile Include="Exceptions\InvalidMessageSizeException.cs" />
+    <Compile Include="Exceptions\InvalidPartitionException.cs" />
     <Compile Include="Exceptions\MessageSizeTooLargeException.cs" />
+    <Compile Include="Exceptions\NoBrokersForPartitionException.cs" />
+    <Compile Include="Exceptions\NoLoaderForPartitionException.cs" />
     <Compile Include="Exceptions\NoSuchElementException.cs" />
+    <Compile Include="Exceptions\UnavailableProducerException.cs" />
     <Compile Include="Exceptions\UnknownCodecException.cs" />
     <Compile Include="Exceptions\ZKRebalancerException.cs" />
     <Compile Include="Exceptions\ZooKeeperException.cs" />
@@ -164,10 +169,12 @@
     <Compile Include="Messages\CompressionUtils.cs" />
     <Compile Include="Messages\MessageAndOffset.cs" />
     <Compile Include="Producers\Async\AsyncProducerPool.cs" />
+    <Compile Include="Producers\Async\DefaultCallbackHandler.cs" />
     <Compile Include="Producers\Async\MessageSent.cs" />
     <Compile Include="Producers\LogMetadata.cs" />
     <Compile Include="Producers\LogSegmentMetadata.cs" />
     <Compile Include="Producers\PartitionData.cs" />
+    <Compile Include="Producers\Partitioning\BrokerPartitionInfo.cs" />
     <Compile Include="Producers\Partitioning\DefaultStringPartitioner.cs" />
     <Compile Include="Producers\PartitionMetadata.cs" />
     <Compile Include="Producers\Producer.StrMsg.cs" />

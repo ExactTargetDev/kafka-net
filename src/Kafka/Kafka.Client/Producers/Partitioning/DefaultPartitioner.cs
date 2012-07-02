@@ -25,7 +25,6 @@ namespace Kafka.Client.Producers.Partitioning
     /// </summary>
     /// <typeparam name="TKey">The type of the key.</typeparam>
     public class DefaultPartitioner<TKey> : IPartitioner<TKey>
-        where TKey : class 
     {
         private static readonly Random Randomizer = new Random();
 

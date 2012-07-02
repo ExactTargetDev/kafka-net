@@ -71,7 +71,7 @@ namespace Kafka.Client.Producers.Partitioning
             var partitions = new SortedSet<Partition>();
             foreach (var item in this.brokers)
             {
-                partitions.Add(new Partition(item.Key, 0));
+                //partitions.Add(new Partition(item.Key, 0));
             }
 
             return partitions;

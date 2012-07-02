@@ -78,43 +78,43 @@ namespace Kafka.Client.IntegrationTests
             }
         }
 
-        [Test]
-        public void ConsumerPorformsRebalancingWhenNewBrokerIsAddedToTopic()
-        {
-            var config = this.ZooKeeperBasedConsumerConfig;
-            string brokerPath = ZooKeeperClient.DefaultBrokerIdsPath + "/" + 2345;
-            string brokerTopicPath = ZooKeeperClient.DefaultBrokerTopicsPath + "/test/" + 2345;
-            using (var consumerConnector = new ZookeeperConsumerConnector(config, true))
-            {
-                var client = ReflectionHelper.GetInstanceField<ZooKeeperClient>(
-                    "zkClient", consumerConnector);
-                Assert.IsNotNull(client);
-                client.DeleteRecursive("/consumers/group1");
-                var topicCount = new Dictionary<string, int> { { "test", 1 } };
-                consumerConnector.CreateMessageStreams(topicCount);
-                WaitUntillIdle(client, 1000);
-                IList<string> children = client.GetChildren("/consumers/group1/ids", false);
-                string consumerId = children[0];
-                client.CreateEphemeral(brokerPath, "192.168.1.39-1310449279123:192.168.1.39:9102");
-                client.CreateEphemeral(brokerTopicPath, 1);
-                WaitUntillIdle(client, 500);
-                children = client.GetChildren("/consumers/group1/owners/test", false);
-                Assert.That(children.Count, Is.EqualTo(3));
-                Assert.That(children, Contains.Item("2345-0"));
-                var data = client.ReadData<string>("/consumers/group1/owners/test/2345-0");
-                Assert.That(data, Is.Not.Null);
-                Assert.That(data, Contains.Substring(consumerId));
-                var topicRegistry =
-                    ReflectionHelper.GetInstanceField<IDictionary<string, IDictionary<Partition, PartitionTopicInfo>>>(
-                        "topicRegistry", consumerConnector);
-                Assert.That(topicRegistry, Is.Not.Null.And.Not.Empty);
-                Assert.That(topicRegistry.Count, Is.EqualTo(1));
-                var item = topicRegistry["test"];
-                Assert.That(item.Count, Is.EqualTo(3));
-                var broker = topicRegistry["test"].SingleOrDefault(x => x.Key.BrokerId == 2345);
-                Assert.That(broker, Is.Not.Null);
-            }
-        }
+        //[Test]
+        //public void ConsumerPorformsRebalancingWhenNewBrokerIsAddedToTopic()
+        //{
+        //    var config = this.ZooKeeperBasedConsumerConfig;
+        //    string brokerPath = ZooKeeperClient.DefaultBrokerIdsPath + "/" + 2345;
+        //    string brokerTopicPath = ZooKeeperClient.DefaultBrokerTopicsPath + "/test/" + 2345;
+        //    using (var consumerConnector = new ZookeeperConsumerConnector(config, true))
+        //    {
+        //        var client = ReflectionHelper.GetInstanceField<ZooKeeperClient>(
+        //            "zkClient", consumerConnector);
+        //        Assert.IsNotNull(client);
+        //        client.DeleteRecursive("/consumers/group1");
+        //        var topicCount = new Dictionary<string, int> { { "test", 1 } };
+        //        consumerConnector.CreateMessageStreams(topicCount);
+        //        WaitUntillIdle(client, 1000);
+        //        IList<string> children = client.GetChildren("/consumers/group1/ids", false);
+        //        string consumerId = children[0];
+        //        client.CreateEphemeral(brokerPath, "192.168.1.39-1310449279123:192.168.1.39:9102");
+        //        client.CreateEphemeral(brokerTopicPath, 1);
+        //        WaitUntillIdle(client, 500);
+        //        children = client.GetChildren("/consumers/group1/owners/test", false);
+        //        Assert.That(children.Count, Is.EqualTo(3));
+        //        Assert.That(children, Contains.Item("2345-0"));
+        //        var data = client.ReadData<string>("/consumers/group1/owners/test/2345-0");
+        //        Assert.That(data, Is.Not.Null);
+        //        Assert.That(data, Contains.Substring(consumerId));
+        //        var topicRegistry =
+        //            ReflectionHelper.GetInstanceField<IDictionary<string, IDictionary<Partition, PartitionTopicInfo>>>(
+        //                "topicRegistry", consumerConnector);
+        //        Assert.That(topicRegistry, Is.Not.Null.And.Not.Empty);
+        //        Assert.That(topicRegistry.Count, Is.EqualTo(1));
+        //        var item = topicRegistry["test"];
+        //        Assert.That(item.Count, Is.EqualTo(3));
+        //        var broker = topicRegistry["test"].SingleOrDefault(x => x.Key.BrokerId == 2345);
+        //        Assert.That(broker, Is.Not.Null);
+        //    }
+        //}
 
         [Test]
         public void ConsumerPorformsRebalancingWhenBrokerIsRemovedFromTopic()

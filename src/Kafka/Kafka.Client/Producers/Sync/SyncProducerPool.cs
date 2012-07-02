@@ -35,7 +35,7 @@ namespace Kafka.Client.Producers.Sync
     /// Pool of synchronous producers used by high-level API
     /// </summary>
     /// <typeparam name="TData">The type of the data.</typeparam>
-    internal class SyncProducerPool<TData> : ProducerPool<TData>
+    internal class SyncProducerPool<TData> //: ProducerPool<TData>
         where TData : class 
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -54,10 +54,10 @@ namespace Kafka.Client.Producers.Sync
         /// <returns>
         /// Instantiated synchronous producer pool
         /// </returns>
-        public static SyncProducerPool<TData> CreateSyncPool(ProducerConfiguration config, IEncoder<TData> serializer)
-        {
-            return new SyncProducerPool<TData>(config, serializer);
-        }
+        //public static SyncProducerPool<TData> CreateSyncPool(ProducerConfiguration config, IEncoder<TData> serializer)
+        //{
+        //    return new SyncProducerPool<TData>(config, serializer);
+        //}
 
         /// <summary>
         /// Factory method used to instantiating synchronous producer pool
@@ -74,10 +74,10 @@ namespace Kafka.Client.Producers.Sync
         /// <returns>
         /// Instantiated synchronous producer pool
         /// </returns>
-        public static SyncProducerPool<TData> CreateSyncPool(ProducerConfiguration config, IEncoder<TData> serializer, ICallbackHandler callbackHandler)
-        {
-            return new SyncProducerPool<TData>(config, serializer, callbackHandler);
-        }
+        //public static SyncProducerPool<TData> CreateSyncPool(ProducerConfiguration config, IEncoder<TData> serializer, ICallbackHandler callbackHandler)
+        //{
+        //    return new SyncProducerPool<TData>(config, serializer, callbackHandler);
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SyncProducerPool{TData}"/> class. 
@@ -97,15 +97,15 @@ namespace Kafka.Client.Producers.Sync
         /// <remarks>
         /// Should be used for testing purpose only
         /// </remarks>
-        private SyncProducerPool(
-            ProducerConfiguration config, 
-            IEncoder<TData> serializer,
-            IDictionary<int, ISyncProducer> syncProducers,
-            ICallbackHandler cbkHandler)
-            : base(config, serializer, cbkHandler)
-        {
-            this.syncProducers = syncProducers;
-        }
+        //private SyncProducerPool(
+        //    ProducerConfiguration config, 
+        //    IEncoder<TData> serializer,
+        //    IDictionary<int, ISyncProducer> syncProducers,
+        //    ICallbackHandler cbkHandler)
+        //    : base(config, serializer, cbkHandler)
+        //{
+        //    this.syncProducers = syncProducers;
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SyncProducerPool{TData}"/> class. 
@@ -122,13 +122,13 @@ namespace Kafka.Client.Producers.Sync
         /// <remarks>
         /// Should be used for testing purpose only
         /// </remarks>
-        private SyncProducerPool(
-            ProducerConfiguration config,
-            IEncoder<TData> serializer,
-            ICallbackHandler cbkHandler)
-            : this(config, serializer, new Dictionary<int, ISyncProducer>(), cbkHandler)
-        {
-        }
+        //private SyncProducerPool(
+        //    ProducerConfiguration config,
+        //    IEncoder<TData> serializer,
+        //    ICallbackHandler cbkHandler)
+        //    : this(config, serializer, new Dictionary<int, ISyncProducer>(), cbkHandler)
+        //{
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SyncProducerPool{TData}"/> class. 
@@ -139,14 +139,14 @@ namespace Kafka.Client.Producers.Sync
         /// <param name="serializer">
         /// The serializer.
         /// </param>
-        private SyncProducerPool(ProducerConfiguration config, IEncoder<TData> serializer)
-            : this(
-                config,
-                serializer,
-                new Dictionary<int, ISyncProducer>(),
-                ReflectionHelper.Instantiate<ICallbackHandler>(config.CallbackHandlerClass))
-        {
-        }
+        //private SyncProducerPool(ProducerConfiguration config, IEncoder<TData> serializer)
+        //    : this(
+        //        config,
+        //        serializer,
+        //        new Dictionary<int, ISyncProducer>(),
+        //        ReflectionHelper.Instantiate<ICallbackHandler>(config.CallbackHandlerClass))
+        //{
+        //}
 
         /// <summary>
         /// Selects a synchronous producer, for
@@ -157,70 +157,70 @@ namespace Kafka.Client.Producers.Sync
         /// <remarks>
         /// Used for multi-topic request
         /// </remarks>
-        public override void Send(IEnumerable<ProducerPoolData<TData>> poolData)
-        {
-            this.EnsuresNotDisposed();
-            Guard.NotNull(poolData, "poolData");
-            Dictionary<int, List<ProducerPoolData<TData>>> distinctBrokers = poolData.GroupBy(
-                x => x.BidPid.BrokerId, x => x)
-                .ToDictionary(x => x.Key, x => x.ToList());
-            foreach (var broker in distinctBrokers)
-            {
-                Logger.DebugFormat(CultureInfo.CurrentCulture, "Fetching sync producer for broker id: {0}", broker.Key);
-                ISyncProducer producer = this.syncProducers[broker.Key];
-                IEnumerable<ProducerRequest> requests = broker.Value.Select(x => new ProducerRequest(
-                    x.Topic,
-                    x.BidPid.PartId,
-                    new BufferedMessageSet(x.Data.Select(y => this.Serializer.ToMessage(y)))));
-                Logger.DebugFormat(CultureInfo.CurrentCulture, "Sending message to broker {0}", broker.Key);
-                if (requests.Count() > 1)
-                {
-                    producer.MultiSend(requests);
-                }
-                else
-                {
-                    producer.Send(requests.First());
-                }
-            }
-        }
+        //public override void Send(IEnumerable<ProducerPoolData<TData>> poolData)
+        //{
+        //    this.EnsuresNotDisposed();
+        //    Guard.NotNull(poolData, "poolData");
+        //    Dictionary<int, List<ProducerPoolData<TData>>> distinctBrokers = poolData.GroupBy(
+        //        x => x.BidPid.BrokerId, x => x)
+        //        .ToDictionary(x => x.Key, x => x.ToList());
+        //    foreach (var broker in distinctBrokers)
+        //    {
+        //        Logger.DebugFormat(CultureInfo.CurrentCulture, "Fetching sync producer for broker id: {0}", broker.Key);
+        //        ISyncProducer producer = this.syncProducers[broker.Key];
+        //        IEnumerable<ProducerRequest> requests = broker.Value.Select(x => new ProducerRequest(
+        //            x.Topic,
+        //            x.BidPid.PartId,
+        //            new BufferedMessageSet(x.Data.Select(y => this.Serializer.ToMessage(y)))));
+        //        Logger.DebugFormat(CultureInfo.CurrentCulture, "Sending message to broker {0}", broker.Key);
+        //        if (requests.Count() > 1)
+        //        {
+        //            producer.MultiSend(requests);
+        //        }
+        //        else
+        //        {
+        //            producer.Send(requests.First());
+        //        }
+        //    }
+        //}
 
         /// <summary>
         /// Add a new synchronous producer to the pool
         /// </summary>
         /// <param name="broker">The broker informations.</param>
-        public override void AddProducer(Broker broker)
-        {
-            this.EnsuresNotDisposed();
-            Guard.NotNull(broker, "broker");
+        //public override void AddProducer(Broker broker)
+        //{
+        //    this.EnsuresNotDisposed();
+        //    Guard.NotNull(broker, "broker");
 
-            var syncConfig = new SyncProducerConfiguration(this.Config, broker.Id, broker.Host, broker.Port);
-            var syncProducer = new SyncProducer(syncConfig);
-            Logger.InfoFormat(
-                CultureInfo.CurrentCulture,
-                "Creating sync producer for broker id = {0} at {1}:{2}",
-                broker.Id,
-                broker.Host,
-                broker.Port);
-            this.syncProducers.Add(broker.Id, syncProducer);
-        }
+        //    var syncConfig = new SyncProducerConfiguration(this.Config, broker.Id, broker.Host, broker.Port);
+        //    var syncProducer = new SyncProducer(syncConfig);
+        //    Logger.InfoFormat(
+        //        CultureInfo.CurrentCulture,
+        //        "Creating sync producer for broker id = {0} at {1}:{2}",
+        //        broker.Id,
+        //        broker.Host,
+        //        broker.Port);
+        //    this.syncProducers.Add(broker.Id, syncProducer);
+        //}
 
-        protected override void Dispose(bool disposing)
-        {
-            if (!disposing)
-            {
-                return;
-            }
+        //protected override void Dispose(bool disposing)
+        //{
+        //    if (!disposing)
+        //    {
+        //        return;
+        //    }
 
-            if (this.disposed)
-            {
-                return;
-            }
+        //    if (this.disposed)
+        //    {
+        //        return;
+        //    }
 
-            this.disposed = true;
-            foreach (var syncProducer in this.syncProducers.Values)
-            {
-                syncProducer.Dispose();
-            }
-        }
+        //    this.disposed = true;
+        //    foreach (var syncProducer in this.syncProducers.Values)
+        //    {
+        //        syncProducer.Dispose();
+        //    }
+        //}
     }
 }

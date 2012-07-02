@@ -26,5 +26,13 @@ namespace Kafka.Client.Cfg
         int SocketTimeout { get; set; }
 
         int MaxMessageSize { get; set; }
+
+        int CorrelationId { get; set; }
+
+        string ClientId { get; set; }
+
+        short RequiredAcks { get; set; }
+
+        int AckTimeout { get; set; }
     }
 }

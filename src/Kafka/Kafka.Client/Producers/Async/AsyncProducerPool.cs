@@ -34,7 +34,7 @@ namespace Kafka.Client.Producers.Async
     /// Pool of asynchronous producers used by high-level API
     /// </summary>
     /// <typeparam name="TData">The type of the data.</typeparam>
-    internal class AsyncProducerPool<TData> : ProducerPool<TData>
+    internal class AsyncProducerPool<TData> //: ProducerPool<TData>
         where TData : class 
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -56,13 +56,13 @@ namespace Kafka.Client.Producers.Async
         /// <returns>
         /// Instantiated asynchronous producer pool
         /// </returns>
-        public static AsyncProducerPool<TData> CreateAsyncPool(
-            ProducerConfiguration config, 
-            IEncoder<TData> serializer, 
-            ICallbackHandler cbkHandler)
-        {
-            return new AsyncProducerPool<TData>(config, serializer, cbkHandler);
-        }
+        //public static AsyncProducerPool<TData> CreateAsyncPool(
+        //    ProducerConfiguration config, 
+        //    IEncoder<TData> serializer, 
+        //    ICallbackHandler cbkHandler)
+        //{
+        //    return new AsyncProducerPool<TData>(config, serializer, cbkHandler);
+        //}
 
         /// <summary>
         /// Factory method used to instantiating asynchronous producer pool
@@ -76,12 +76,12 @@ namespace Kafka.Client.Producers.Async
         /// <returns>
         /// Instantiated asynchronous producer pool
         /// </returns>
-        public static AsyncProducerPool<TData> CreateAsyncPool(
-            ProducerConfiguration config,
-            IEncoder<TData> serializer)
-        {
-            return new AsyncProducerPool<TData>(config, serializer);
-        }
+        //public static AsyncProducerPool<TData> CreateAsyncPool(
+        //    ProducerConfiguration config,
+        //    IEncoder<TData> serializer)
+        //{
+        //    return new AsyncProducerPool<TData>(config, serializer);
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncProducerPool{TData}"/> class. 
@@ -101,15 +101,15 @@ namespace Kafka.Client.Producers.Async
         /// <remarks>
         /// Should be used for testing purpose only
         /// </remarks>
-        private AsyncProducerPool(
-            ProducerConfiguration config, 
-            IEncoder<TData> serializer, 
-            IDictionary<int, IAsyncProducer> asyncProducers, 
-            ICallbackHandler cbkHandler)
-            : base(config, serializer, cbkHandler)
-        {
-            this.asyncProducers = asyncProducers;
-        }
+        //private AsyncProducerPool(
+        //    ProducerConfiguration config, 
+        //    IEncoder<TData> serializer, 
+        //    IDictionary<int, IAsyncProducer> asyncProducers, 
+        //    ICallbackHandler cbkHandler)
+        //    : base(config, serializer, cbkHandler)
+        //{
+        //    this.asyncProducers = asyncProducers;
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncProducerPool{TData}"/> class. 
@@ -123,13 +123,13 @@ namespace Kafka.Client.Producers.Async
         /// <param name="cbkHandler">
         /// The callback invoked after new broker is added.
         /// </param>
-        private AsyncProducerPool(
-            ProducerConfiguration config, 
-            IEncoder<TData> serializer, 
-            ICallbackHandler cbkHandler)
-            : this(config, serializer, new Dictionary<int, IAsyncProducer>(), cbkHandler)
-        {
-        }
+        //private AsyncProducerPool(
+        //    ProducerConfiguration config, 
+        //    IEncoder<TData> serializer, 
+        //    ICallbackHandler cbkHandler)
+        //    : this(config, serializer, new Dictionary<int, IAsyncProducer>(), cbkHandler)
+        //{
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncProducerPool{TData}"/> class. 
@@ -140,14 +140,14 @@ namespace Kafka.Client.Producers.Async
         /// <param name="serializer">
         /// The serializer.
         /// </param>
-        private AsyncProducerPool(ProducerConfiguration config, IEncoder<TData> serializer)
-            : this(
-            config,
-            serializer,
-            new Dictionary<int, IAsyncProducer>(),
-            ReflectionHelper.Instantiate<ICallbackHandler>(config.CallbackHandlerClass))
-        {
-        }
+        //private AsyncProducerPool(ProducerConfiguration config, IEncoder<TData> serializer)
+        //    : this(
+        //    config,
+        //    serializer,
+        //    new Dictionary<int, IAsyncProducer>(),
+        //    ReflectionHelper.Instantiate<ICallbackHandler>(config.CallbackHandlerClass))
+        //{
+        //}
 
         /// <summary>
         /// Selects an asynchronous producer, for
@@ -158,67 +158,67 @@ namespace Kafka.Client.Producers.Async
         /// <remarks>
         /// Used for multi-topic request
         /// </remarks>
-        public override void Send(IEnumerable<ProducerPoolData<TData>> poolData)
-        {
-            this.EnsuresNotDisposed();
-            Guard.NotNull(poolData, "poolData");
-            Dictionary<int, List<ProducerPoolData<TData>>> distinctBrokers = poolData.GroupBy(
-                x => x.BidPid.BrokerId, x => x)
-                .ToDictionary(x => x.Key, x => x.ToList());
-            foreach (var broker in distinctBrokers)
-            {
-                Logger.DebugFormat(CultureInfo.CurrentCulture, "Fetching async producer for broker id: {0}", broker.Key);
-                var producer = this.asyncProducers[broker.Key];
-                IEnumerable<ProducerRequest> requests = broker.Value.Select(x => new ProducerRequest(
-                    x.Topic,
-                    x.BidPid.PartId,
-                    new BufferedMessageSet(x.Data.Select(y => this.Serializer.ToMessage(y)))));
-                foreach (var request in requests)
-                {
-                    producer.Send(request);
-                }
-            }
-        }
+        //public override void Send(IEnumerable<ProducerPoolData<TData>> poolData)
+        //{
+        //    this.EnsuresNotDisposed();
+        //    Guard.NotNull(poolData, "poolData");
+        //    Dictionary<int, List<ProducerPoolData<TData>>> distinctBrokers = poolData.GroupBy(
+        //        x => x.BidPid.BrokerId, x => x)
+        //        .ToDictionary(x => x.Key, x => x.ToList());
+        //    foreach (var broker in distinctBrokers)
+        //    {
+        //        Logger.DebugFormat(CultureInfo.CurrentCulture, "Fetching async producer for broker id: {0}", broker.Key);
+        //        var producer = this.asyncProducers[broker.Key];
+        //        IEnumerable<ProducerRequest> requests = broker.Value.Select(x => new ProducerRequest(
+        //            x.Topic,
+        //            x.BidPid.PartId,
+        //            new BufferedMessageSet(x.Data.Select(y => this.Serializer.ToMessage(y)))));
+        //        foreach (var request in requests)
+        //        {
+        //            producer.Send(request);
+        //        }
+        //    }
+        //}
 
         /// <summary>
         /// Add a new asynchronous producer to the pool.
         /// </summary>
         /// <param name="broker">The broker informations.</param>
-        public override void AddProducer(Broker broker)
-        {
-            this.EnsuresNotDisposed();
-            Guard.NotNull(broker, "broker");
-            var asyncConfig = new AsyncProducerConfiguration(this.Config, broker.Id, broker.Host, broker.Port)
-                {
-                    SerializerClass = this.Config.SerializerClass
-                };
-            var asyncProducer = new AsyncProducer(asyncConfig, this.CallbackHandler);
-            Logger.InfoFormat(
-                CultureInfo.CurrentCulture,
-                "Creating async producer for broker id = {0} at {1}:{2}",
-                broker.Id,
-                broker.Host,
-                broker.Port);
-            this.asyncProducers.Add(broker.Id, asyncProducer);
-        }
+        //public override void AddProducer(Broker broker)
+        //{
+        //    this.EnsuresNotDisposed();
+        //    Guard.NotNull(broker, "broker");
+        //    var asyncConfig = new AsyncProducerConfiguration(this.Config, broker.Id, broker.Host, broker.Port)
+        //        {
+        //            SerializerClass = this.Config.SerializerClass
+        //        };
+        //    var asyncProducer = new AsyncProducer(asyncConfig, this.CallbackHandler);
+        //    Logger.InfoFormat(
+        //        CultureInfo.CurrentCulture,
+        //        "Creating async producer for broker id = {0} at {1}:{2}",
+        //        broker.Id,
+        //        broker.Host,
+        //        broker.Port);
+        //    this.asyncProducers.Add(broker.Id, asyncProducer);
+        //}
 
-        protected override void Dispose(bool disposing)
-        {
-            if (!disposing)
-            {
-                return;
-            }
+        //protected override void Dispose(bool disposing)
+        //{
+        //    if (!disposing)
+        //    {
+        //        return;
+        //    }
 
-            if (this.disposed)
-            {
-                return;
-            }
+        //    if (this.disposed)
+        //    {
+        //        return;
+        //    }
 
-            this.disposed = true;
-            foreach (var asyncProducer in this.asyncProducers.Values)
-            {
-                asyncProducer.Dispose();
-            }
-        }
+        //    this.disposed = true;
+        //    foreach (var asyncProducer in this.asyncProducers.Values)
+        //    {
+        //        asyncProducer.Dispose();
+        //    }
+        //}
     }
 }

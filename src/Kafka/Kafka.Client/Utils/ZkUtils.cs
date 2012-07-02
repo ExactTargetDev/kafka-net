@@ -24,6 +24,7 @@ namespace Kafka.Client.Utils
     using Kafka.Client.ZooKeeperIntegration;
     using log4net;
     using ZooKeeperNet;
+    using System.Linq;
 
     internal class ZkUtils
     {
@@ -142,6 +143,20 @@ namespace Kafka.Client.Utils
                 ZkUtils.CreateParentPath(zkClient, path);
                 zkClient.CreateEphemeral(path, data);
             }
+        }
+
+        internal static IEnumerable<Broker> GetAllBrokersInCluster(IZooKeeperClient zkClient)
+        {
+            var brokerIds = zkClient.GetChildren(ZooKeeperClient.DefaultBrokerIdsPath).OrderBy(x => x).ToList();
+            return ZkUtils.GetBrokerInfoFromIds(zkClient, brokerIds.Select(x => int.Parse(x)));
+        }
+
+        internal static IEnumerable<Broker> GetBrokerInfoFromIds(IZooKeeperClient zkClient, IEnumerable<int> brokerIds)
+        {
+            return brokerIds.Select(
+                brokerId =>
+                Broker.CreateBroker(brokerId,
+                                    zkClient.ReadData<string>(ZooKeeperClient.DefaultBrokerIdsPath + "/" + brokerId)));
         }
     }
 }

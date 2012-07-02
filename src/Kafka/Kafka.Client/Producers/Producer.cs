@@ -31,6 +31,7 @@ namespace Kafka.Client.Producers
     using Kafka.Client.Serialization;
     using Kafka.Client.Utils;
     using log4net;
+using Kafka.Client.ZooKeeperIntegration;
 
     /// <summary>
     /// High-level Producer API that exposes all the producer functionality to the client
@@ -42,18 +43,24 @@ namespace Kafka.Client.Producers
     /// and software load balancing through an optionally user-specified partitioner
     /// </remarks>
     public class Producer<TKey, TData> : KafkaClientBase, IProducer<TKey, TData>
-        where TKey : class 
-        where TData : class 
     {
-        private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);       
-        private static readonly Random Randomizer = new Random();
+        private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private readonly ProducerConfiguration config;
-        private readonly IProducerPool<TData> producerPool;
-        private readonly IPartitioner<TKey> partitioner;
-        private readonly bool populateProducerPool;
-        private readonly IBrokerPartitionInfo brokerPartitionInfo;
+        private readonly ICallbackHandler<TKey, TData> callbackHandler;
+        private bool sync = true;
         private volatile bool disposed;
         private readonly object shuttingDownLock = new object();
+
+        public Producer(ProducerConfiguration config, ICallbackHandler<TKey, TData> callbackHandler)
+        {
+            this.config = config;
+            this.callbackHandler = callbackHandler;
+        }
+
+        public Producer(ProducerConfiguration config)
+            : this(config, new DefaultCallbackHandler<TKey, TData>(config, ReflectionHelper.Instantiate<IPartitioner<TKey>>(config.PartitionerClass), ReflectionHelper.Instantiate<IEncoder<TData>>(config.SerializerClass), new ProducerPool(config, new ZooKeeperClient(config.ZooKeeper.ZkConnect, config.ZooKeeper.ZkSessionTimeoutMs, ZooKeeperStringSerializer.Serializer))))
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Producer&lt;TKey, TData&gt;"/> class.
@@ -66,46 +73,46 @@ namespace Kafka.Client.Producers
         /// <remarks>
         /// Should be used for testing purpose only.
         /// </remarks>
-        internal Producer(
-            ProducerConfiguration config,
-            IPartitioner<TKey> partitioner,
-            IProducerPool<TData> producerPool,
-            bool populateProducerPool = true)
-        {
-            Guard.NotNull(config, "config");
-            Guard.NotNull(producerPool, "producerPool");
+        //internal Producer(
+        //    ProducerConfiguration config,
+        //    IPartitioner<TKey> partitioner,
+        //    IProducerPool<TData> producerPool,
+        //    bool populateProducerPool = true)
+        //{
+        //    Guard.NotNull(config, "config");
+        //    Guard.NotNull(producerPool, "producerPool");
 
-            this.config = config;
-            this.partitioner = partitioner ?? new DefaultPartitioner<TKey>();
-            this.populateProducerPool = populateProducerPool;
-            this.producerPool = producerPool;
-            if (this.config.IsZooKeeperEnabled)
-            {
-                this.brokerPartitionInfo = new ZKBrokerPartitionInfo(this.config, this.Callback);
-            }
-            else
-            {
-                this.brokerPartitionInfo = new ConfigBrokerPartitionInfo(this.config);   
-            }
+        //    this.config = config;
+        //    this.partitioner = partitioner ?? new DefaultPartitioner<TKey>();
+        //    this.populateProducerPool = populateProducerPool;
+        //    this.producerPool = producerPool;
+        //    if (this.config.IsZooKeeperEnabled)
+        //    {
+        //        this.brokerPartitionInfo = new ZKBrokerPartitionInfo(this.config, this.Callback);
+        //    }
+        //    else
+        //    {
+        //        this.brokerPartitionInfo = new ConfigBrokerPartitionInfo(this.config);   
+        //    }
 
-            if (this.populateProducerPool)
-            {
-                try
-                {
-                    IDictionary<int, Broker> allBrokers = this.brokerPartitionInfo.GetAllBrokerInfo();
-                    foreach (var broker in allBrokers)
-                    {                    
-                        this.producerPool.AddProducer(
-                            new Broker(broker.Key, broker.Value.Host, broker.Value.Host, broker.Value.Port));
-                    }
-                }
-                catch
-                {
-                    this.brokerPartitionInfo.Dispose();
-                    throw;
-                }
-            }
-        }
+        //    if (this.populateProducerPool)
+        //    {
+        //        try
+        //        {
+        //            IDictionary<int, Broker> allBrokers = this.brokerPartitionInfo.GetAllBrokerInfo();
+        //            foreach (var broker in allBrokers)
+        //            {                    
+        //                this.producerPool.AddProducer(
+        //                    new Broker(broker.Key, broker.Value.Host, broker.Value.Host, broker.Value.Port));
+        //            }
+        //        }
+        //        catch
+        //        {
+        //            this.brokerPartitionInfo.Dispose();
+        //            throw;
+        //        }
+        //    }
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Producer&lt;TKey, TData&gt;"/> class.
@@ -115,14 +122,14 @@ namespace Kafka.Client.Producers
         /// Can be used when all config parameters will be specified through the config object
         /// and will be instantiated via reflection
         /// </remarks>
-        public Producer(ProducerConfiguration config)
-            : this(
-                config, 
-                ReflectionHelper.Instantiate<IPartitioner<TKey>>(config.PartitionerClass),
-                ProducerPool<TData>.CreatePool(config, ReflectionHelper.Instantiate<IEncoder<TData>>(config.SerializerClass)))
-        {
-            Guard.NotNull(config, "config");
-        }
+        //public Producer(ProducerConfiguration config)
+        //    : this(
+        //        config, 
+        //        ReflectionHelper.Instantiate<IPartitioner<TKey>>(config.PartitionerClass),
+        //        ProducerPool<TData>.CreatePool(config, ReflectionHelper.Instantiate<IEncoder<TData>>(config.SerializerClass)))
+        //{
+        //    Guard.NotNull(config, "config");
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Producer&lt;TKey, TData&gt;"/> class.
@@ -138,19 +145,19 @@ namespace Kafka.Client.Producers
         /// Can be used to provide pre-instantiated objects for all config parameters
         /// that would otherwise be instantiated via reflection.
         /// </remarks>
-        public Producer(
-            ProducerConfiguration config,
-            IPartitioner<TKey> partitioner,
-            IEncoder<TData> encoder,
-            ICallbackHandler callbackHandler)
-            : this(
-                config, 
-                partitioner,
-                ProducerPool<TData>.CreatePool(config, encoder, callbackHandler))
-        {
-            Guard.NotNull(config, "config");
-            Guard.NotNull(encoder, "encoder");
-        }
+        //public Producer(
+        //    ProducerConfiguration config,
+        //    IPartitioner<TKey> partitioner,
+        //    IEncoder<TData> encoder,
+        //    ICallbackHandler callbackHandler)
+        //    : this(
+        //        config, 
+        //        partitioner,
+        //        ProducerPool<TData>.CreatePool(config, encoder, callbackHandler))
+        //{
+        //    Guard.NotNull(config, "config");
+        //    Guard.NotNull(encoder, "encoder");
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Producer&lt;TKey, TData&gt;"/> class.
@@ -164,18 +171,18 @@ namespace Kafka.Client.Producers
         /// Can be used to provide pre-instantiated objects for all config parameters
         /// that would otherwise be instantiated via reflection.
         /// </remarks>
-        public Producer(
-            ProducerConfiguration config,
-            IPartitioner<TKey> partitioner,
-            IEncoder<TData> encoder)
-            : this(
-                config, 
-                partitioner,
-                ProducerPool<TData>.CreatePool(config, encoder, null))
-        {
-            Guard.NotNull(config, "config");
-            Guard.NotNull(encoder, "encoder");
-        }
+        //public Producer(
+        //    ProducerConfiguration config,
+        //    IPartitioner<TKey> partitioner,
+        //    IEncoder<TData> encoder)
+        //    : this(
+        //        config, 
+        //        partitioner,
+        //        ProducerPool<TData>.CreatePool(config, encoder, null))
+        //{
+        //    Guard.NotNull(config, "config");
+        //    Guard.NotNull(encoder, "encoder");
+        //}
 
         /// <summary>
         /// Sends the data to a multiple topics, partitioned by key, using either the
@@ -188,15 +195,15 @@ namespace Kafka.Client.Producers
             Guard.Greater(data.Count(), 0, "data");
 
             this.EnsuresNotDisposed();
-            var poolRequests = new List<ProducerPoolData<TData>>();
-            foreach (var dataItem in data)
-            {
-                Partition partition = this.GetPartition(dataItem);
-                var poolRequest = new ProducerPoolData<TData>(dataItem.Topic, partition, dataItem.Data);
-                poolRequests.Add(poolRequest);
-            }
 
-            this.producerPool.Send(poolRequests);
+            if (this.sync)
+            {
+                this.callbackHandler.Handle(data);
+            }
+            else
+            {
+                throw new NotImplementedException("Async send not implemented in the high-level producer yet!");
+            }
         }
 
         /// <summary>
@@ -212,7 +219,8 @@ namespace Kafka.Client.Producers
             Guard.Greater(data.Data.Count(), 0, "data.Data");
 
             this.EnsuresNotDisposed();
-            this.Send(new[] { data });
+            
+            this.Send(new List<ProducerData<TKey,TData>> {data});
         }
 
         protected override void Dispose(bool disposing)
@@ -239,14 +247,14 @@ namespace Kafka.Client.Producers
 
             try
             {
-                if (this.brokerPartitionInfo != null)
-                {
-                    this.brokerPartitionInfo.Dispose();
-                }
+                //if (this.brokerPartitionInfo != null)
+                //{
+                //    this.brokerPartitionInfo.Dispose();
+                //}
 
-                if (this.producerPool != null)
+                if (this.callbackHandler != null)
                 {
-                    this.producerPool.Dispose();
+                    this.callbackHandler.Dispose();
                 }
             }
             catch (Exception exc)
@@ -262,20 +270,20 @@ namespace Kafka.Client.Producers
         /// <param name="bid">The broker Id.</param>
         /// <param name="host">The broker host address.</param>
         /// <param name="port">The broker port.</param>
-        private void Callback(int bid, string host, int port)
-        {
-            Guard.NotNullNorEmpty(host, "host");
-            Guard.Greater(port, 0, "port");
+        //private void Callback(int bid, string host, int port)
+        //{
+        //    Guard.NotNullNorEmpty(host, "host");
+        //    Guard.Greater(port, 0, "port");
 
-            if (this.populateProducerPool)
-            {
-                this.producerPool.AddProducer(new Broker(bid, host, host, port));
-            }
-            else
-            {
-                Logger.Debug("Skipping the callback since populating producers is off");
-            }
-        }
+        //    if (this.populateProducerPool)
+        //    {
+        //        this.producerPool.AddProducer(new Broker(bid, host, host, port));
+        //    }
+        //    else
+        //    {
+        //        Logger.Debug("Skipping the callback since populating producers is off");
+        //    }
+        //}
 
         /// <summary>
         /// Retrieves the partition id based on key using given partitioner or select random partition if key is null
@@ -283,53 +291,53 @@ namespace Kafka.Client.Producers
         /// <param name="key">The partition key.</param>
         /// <param name="numPartitions">The total number of available partitions.</param>
         /// <returns>Partition Id</returns>
-        private int GetPartitionId(TKey key, int numPartitions)
-        {
-            Guard.Greater(numPartitions, 0, "numPartitions");
-            return key == null 
-                ? Randomizer.Next(numPartitions) 
-                : this.partitioner.Partition(key, numPartitions);
-        }
+        //private int GetPartitionId(TKey key, int numPartitions)
+        //{
+        //    Guard.Greater(numPartitions, 0, "numPartitions");
+        //    return key == null 
+        //        ? Randomizer.Next(numPartitions) 
+        //        : this.partitioner.Partition(key, numPartitions);
+        //}
 
         /// <summary>
         /// Gets the partition for topic.
         /// </summary>
         /// <param name="dataItem">The producer data object that encapsulates the topic, key and message data.</param>
         /// <returns>Partition for topic</returns>
-        private Partition GetPartition(ProducerData<TKey, TData> dataItem)
-        {
-            Logger.DebugFormat(
-                CultureInfo.CurrentCulture,
-                "Getting the number of broker partitions registered for topic: {0}",
-                dataItem.Topic);
-            SortedSet<Partition> brokerPartitions = this.brokerPartitionInfo.GetBrokerPartitionInfo(dataItem.Topic);
-            int totalNumPartitions = brokerPartitions.Count;
-            Logger.DebugFormat(
-                CultureInfo.CurrentCulture,
-                "Broker partitions registered for topic: {0} = {1}",
-                dataItem.Topic,
-                totalNumPartitions);
-            int partitionId = this.GetPartitionId(dataItem.Key, totalNumPartitions);
-            Partition brokerIdPartition = brokerPartitions.ToList()[partitionId];
-            Broker brokerInfo = this.brokerPartitionInfo.GetBrokerInfo(brokerIdPartition.BrokerId);
-            if (this.config.IsZooKeeperEnabled)
-            {
-                Logger.DebugFormat(
-                    CultureInfo.CurrentCulture,
-                    "Sending message to broker {0}:{1} on partition {2}",
-                    brokerInfo.Host,
-                    brokerInfo.Port,
-                    brokerIdPartition.PartId);
-                return new Partition(brokerIdPartition.BrokerId, brokerIdPartition.PartId);
-            }
+        //private Partition GetPartition(ProducerData<TKey, TData> dataItem)
+        //{
+        //    Logger.DebugFormat(
+        //        CultureInfo.CurrentCulture,
+        //        "Getting the number of broker partitions registered for topic: {0}",
+        //        dataItem.Topic);
+        //    SortedSet<Partition> brokerPartitions = this.brokerPartitionInfo.GetBrokerPartitionInfo(dataItem.Topic);
+        //    int totalNumPartitions = brokerPartitions.Count;
+        //    Logger.DebugFormat(
+        //        CultureInfo.CurrentCulture,
+        //        "Broker partitions registered for topic: {0} = {1}",
+        //        dataItem.Topic,
+        //        totalNumPartitions);
+        //    int partitionId = this.GetPartitionId(dataItem.Key, totalNumPartitions);
+        //    Partition brokerIdPartition = brokerPartitions.ToList()[partitionId];
+        //    Broker brokerInfo = this.brokerPartitionInfo.GetBrokerInfo(brokerIdPartition.BrokerId);
+        //    if (this.config.IsZooKeeperEnabled)
+        //    {
+        //        Logger.DebugFormat(
+        //            CultureInfo.CurrentCulture,
+        //            "Sending message to broker {0}:{1} on partition {2}",
+        //            brokerInfo.Host,
+        //            brokerInfo.Port,
+        //            brokerIdPartition.PartId);
+        //        return new Partition(brokerIdPartition.BrokerId, brokerIdPartition.PartId);
+        //    }
 
-            Logger.DebugFormat(
-                CultureInfo.CurrentCulture,
-                "Sending message to broker {0}:{1} on a randomly chosen partition",
-                brokerInfo.Host,
-                brokerInfo.Port);
-            return new Partition(brokerIdPartition.BrokerId, ProducerRequest.RandomPartition);
-        }
+        //    Logger.DebugFormat(
+        //        CultureInfo.CurrentCulture,
+        //        "Sending message to broker {0}:{1} on a randomly chosen partition",
+        //        brokerInfo.Host,
+        //        brokerInfo.Port);
+        //    return new Partition(brokerIdPartition.BrokerId, ProducerRequest.RandomPartition);
+        //}
 
         /// <summary>
         /// Ensures that object was not disposed

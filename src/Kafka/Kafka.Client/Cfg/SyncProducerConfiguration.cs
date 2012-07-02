@@ -31,12 +31,24 @@ namespace Kafka.Client.Cfg
 
         public const int DefaultMaxMessageSize = 1000 * 1000;
 
+        public const int DefaultCorrelationId = -1;
+
+        public const string DefaultClientId = "";
+
+        public const short DefaultRequiredAcks = 0;
+
+        public const int DefaultAckTimeout = 1;
+
         public SyncProducerConfiguration()
         {
             this.BufferSize = DefaultBufferSize;
             this.ConnectTimeout = DefaultConnectTimeout;
             this.SocketTimeout = DefaultSocketTimeout;
             this.MaxMessageSize = DefaultMaxMessageSize;
+            this.CorrelationId = DefaultCorrelationId;
+            this.ClientId = DefaultClientId;
+            this.RequiredAcks = DefaultRequiredAcks;
+            this.AckTimeout = DefaultAckTimeout;
         }
 
         public SyncProducerConfiguration(ProducerConfiguration config, int id, string host, int port) 
@@ -65,5 +77,13 @@ namespace Kafka.Client.Cfg
         public int Port { get; set; }
 
         public int BrokerId { get; set; }
+
+        public int CorrelationId{ get; set; }
+
+        public string ClientId{ get; set; }
+
+        public short RequiredAcks{ get; set; }
+
+        public int AckTimeout { get; set; }
     }
 }

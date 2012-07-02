@@ -43,6 +43,19 @@ namespace Kafka.Client.IntegrationTests
         /// </summary>
         private readonly int maxTestWaitTimeInMiliseconds = 5000;
 
+        [Test]
+        public void ZkAwareProducerSends1Message()
+        {
+            var prodConfig = this.ZooKeeperBasedSyncProdConfig;
+            var topic = CurrentTestTopic;
+            using (var producer = new Producer<int, string>(prodConfig))
+            {
+                string messageString = "ZkAwareProducerSends1Message - test message";
+                ProducerData<int, string> producerData = new ProducerData<int, string>(topic, messageString);
+                producer.Send(producerData);
+            }
+        }
+
         //[Test]
         //public void ZkAwareProducerSends1Message()
         //{
@@ -228,36 +241,36 @@ namespace Kafka.Client.IntegrationTests
         //    }
         //}
 
-        [Test]
-        public void ZkAwareProducerSendsLotsOfMessagesAndSessionCreatedHandlerInvokedInTheBackgroundShouldNotThrowException()
-        {
-            var prodConfig = this.ZooKeeperBasedAsyncProdConfig;
-            var originalMessage = new Message(Encoding.UTF8.GetBytes("TestData1"));
-            var originalMessageList = new List<Message> { originalMessage };
-            int numberOfPackagesToSend = 500;
-            int runBackgroundWorkerAfterNIterations = 100;
+        //[Test]
+        //public void ZkAwareProducerSendsLotsOfMessagesAndSessionCreatedHandlerInvokedInTheBackgroundShouldNotThrowException()
+        //{
+        //    var prodConfig = this.ZooKeeperBasedAsyncProdConfig;
+        //    var originalMessage = new Message(Encoding.UTF8.GetBytes("TestData1"));
+        //    var originalMessageList = new List<Message> { originalMessage };
+        //    int numberOfPackagesToSend = 500;
+        //    int runBackgroundWorkerAfterNIterations = 100;
 
-            var mockPartitioner = new MockAlwaysZeroPartitioner();
-            using (var producer = new Producer<string, Message>(prodConfig, mockPartitioner, new DefaultEncoder()))
-            {
-                BackgroundWorker bw = new BackgroundWorker();
-                bw.WorkerSupportsCancellation = true;
-                bw.DoWork += new DoWorkEventHandler(ZkAwareProducerSendsLotsOfMessagesAndSessionCreatedHandlerInvokedInTheBackgroundShouldNotThrowException_DoWork);
+        //    var mockPartitioner = new MockAlwaysZeroPartitioner();
+        //    using (var producer = new Producer<string, Message>(prodConfig, mockPartitioner, new DefaultEncoder()))
+        //    {
+        //        BackgroundWorker bw = new BackgroundWorker();
+        //        bw.WorkerSupportsCancellation = true;
+        //        bw.DoWork += new DoWorkEventHandler(ZkAwareProducerSendsLotsOfMessagesAndSessionCreatedHandlerInvokedInTheBackgroundShouldNotThrowException_DoWork);
                 
-                for (int i = 0; i < numberOfPackagesToSend; i++)
-                {
-                    if (i == runBackgroundWorkerAfterNIterations)
-                    {
-                        bw.RunWorkerAsync(producer);
-                    }
-                    var producerData = new ProducerData<string, Message>(CurrentTestTopic, "somekey",
-                                                                         originalMessageList);
-                    producer.Send(producerData);
-                }
+        //        for (int i = 0; i < numberOfPackagesToSend; i++)
+        //        {
+        //            if (i == runBackgroundWorkerAfterNIterations)
+        //            {
+        //                bw.RunWorkerAsync(producer);
+        //            }
+        //            var producerData = new ProducerData<string, Message>(CurrentTestTopic, "somekey",
+        //                                                                 originalMessageList);
+        //            producer.Send(producerData);
+        //        }
 
-                bw.CancelAsync();
-            }
-        }
+        //        bw.CancelAsync();
+        //    }
+        //}
 
         void ZkAwareProducerSendsLotsOfMessagesAndSessionCreatedHandlerInvokedInTheBackgroundShouldNotThrowException_DoWork(object sender, DoWorkEventArgs e)
         {

@@ -40,10 +40,10 @@ namespace Kafka.Client.Producers
         /// <remarks>
         /// Should be used for testing purpose only.
         /// </remarks>
-        internal Producer(ProducerConfiguration config, IPartitioner<string> partitioner, IProducerPool<Message> producerPool, bool populateProducerPool)
-            : base(config, partitioner, producerPool, populateProducerPool)
-        {
-        }
+        //internal Producer(ProducerConfiguration config, IPartitioner<string> partitioner, IProducerPool<Message> producerPool, bool populateProducerPool)
+        //    : base(config, partitioner, producerPool, populateProducerPool)
+        //{
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Producer"/> class.
@@ -71,10 +71,10 @@ namespace Kafka.Client.Producers
         /// Can be used to provide pre-instantiated objects for all config parameters
         /// that would otherwise be instantiated via reflection.
         /// </remarks>
-        public Producer(ProducerConfiguration config, IPartitioner<string> partitioner, IEncoder<Message> encoder, ICallbackHandler callbackHandler)
-            : base(config, partitioner, encoder, callbackHandler)
-        {
-        }
+        //public Producer(ProducerConfiguration config, IPartitioner<string> partitioner, IEncoder<Message> encoder, ICallbackHandler callbackHandler)
+        //    : base(config, partitioner, encoder, callbackHandler)
+        //{
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Producer"/> class.
@@ -88,9 +88,9 @@ namespace Kafka.Client.Producers
         /// Can be used to provide pre-instantiated objects for all config parameters
         /// that would otherwise be instantiated via reflection.
         /// </remarks>
-        public Producer(ProducerConfiguration config, IPartitioner<string> partitioner, IEncoder<Message> encoder)
-            : base(config, partitioner, encoder)
-        {
-        }
+        //public Producer(ProducerConfiguration config, IPartitioner<string> partitioner, IEncoder<Message> encoder)
+        //    : base(config, partitioner, encoder)
+        //{
+        //}
     }
 }

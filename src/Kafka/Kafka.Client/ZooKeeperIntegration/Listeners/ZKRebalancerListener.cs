@@ -330,11 +330,11 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
                 }
             }
 
-            Logger.InfoFormat(
-                CultureInfo.CurrentCulture,
-                "Consumer {0} selected partitions: {1}",
-                this.consumerIdString,
-                string.Join(",", allPartitionInfos.OrderBy(x => x.Partition.Name).Select(y => y.Partition.Name)));
+            //Logger.InfoFormat(
+            //    CultureInfo.CurrentCulture,
+            //    "Consumer {0} selected partitions: {1}",
+            //    this.consumerIdString,
+                //string.Join(",", allPartitionInfos.OrderBy(x => x.Partition.Name).Select(y => y.Partition.Name)));
             if (this.fetcher != null)
             {
                 this.fetcher.InitConnections(allPartitionInfos, cluster);
@@ -343,25 +343,25 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
 
         private void AddPartitionTopicInfo(IDictionary<string, IDictionary<Partition, PartitionTopicInfo>> currentTopicRegistry, ZKGroupTopicDirs topicDirs, string partitionString, string topic, string consumerThreadId)
         {
-            var partition = Partition.ParseFrom(partitionString);
-            var partTopicInfoMap = currentTopicRegistry[topic];
-            var znode = topicDirs.ConsumerOffsetDir + "/" + partition.Name;
-            var offsetString = this.zkClient.ReadData<string>(znode, true);
-            long offset = string.IsNullOrEmpty(offsetString) ? 0 : long.Parse(offsetString, CultureInfo.InvariantCulture);
-            var queue = this.queues[new Tuple<string, string>(topic, consumerThreadId)];
-            var partTopicInfo = new PartitionTopicInfo(
-                topic,
-                partition.BrokerId,
-                partition,
-                queue,
-                offset,
-                offset,
-                this.config.FetchSize);
-            partTopicInfoMap.Add(partition, partTopicInfo);
-            if (Logger.IsDebugEnabled)
-            {
-                Logger.DebugFormat(CultureInfo.CurrentCulture, "{0} selected new offset {1}", partTopicInfo, offset);
-            }
+            //var partition = Partition.ParseFrom(partitionString);
+            //var partTopicInfoMap = currentTopicRegistry[topic];
+            //var znode = topicDirs.ConsumerOffsetDir + "/" + partition.Name;
+            //var offsetString = this.zkClient.ReadData<string>(znode, true);
+            //long offset = string.IsNullOrEmpty(offsetString) ? 0 : long.Parse(offsetString, CultureInfo.InvariantCulture);
+            //var queue = this.queues[new Tuple<string, string>(topic, consumerThreadId)];
+            //var partTopicInfo = new PartitionTopicInfo(
+            //    topic,
+            //    partition.BrokerId,
+            //    partition,
+            //    queue,
+            //    offset,
+            //    offset,
+            //    this.config.FetchSize);
+            //partTopicInfoMap.Add(partition, partTopicInfo);
+            //if (Logger.IsDebugEnabled)
+            //{
+            //    Logger.DebugFormat(CultureInfo.CurrentCulture, "{0} selected new offset {1}", partTopicInfo, offset);
+            //}
         }
 
         private void ReleasePartitionOwnership()
@@ -374,13 +374,13 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
                     var topicDirs = new ZKGroupTopicDirs(this.config.GroupId, item.Key);
                     foreach (var partition in item.Value.Keys)
                     {
-                        string znode = topicDirs.ConsumerOwnerDir + "/" + partition.Name;
-                        ZkUtils.DeletePath(zkClient, znode);
-                        if (Logger.IsDebugEnabled)
-                        {
-                            Logger.DebugFormat(CultureInfo.CurrentCulture, "Consumer {0} releasing {1}",
-                                               this.consumerIdString, znode);
-                        }
+                        //string znode = topicDirs.ConsumerOwnerDir + "/" + partition.Name;
+                        //ZkUtils.DeletePath(zkClient, znode);
+                        //if (Logger.IsDebugEnabled)
+                        //{
+                        //    Logger.DebugFormat(CultureInfo.CurrentCulture, "Consumer {0} releasing {1}",
+                        //                       this.consumerIdString, znode);
+                        //}
                     }
                     topicRegistry.Remove(item.Key);
                 }

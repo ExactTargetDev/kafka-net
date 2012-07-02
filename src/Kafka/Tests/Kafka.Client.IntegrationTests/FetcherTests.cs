@@ -17,36 +17,36 @@ namespace Kafka.Client.IntegrationTests
     [TestFixture]
     public class FetcherTests : IntegrationFixtureBase
     {
-        [Test]
-        public void TestFetcher()
-        {
-            var configs = new List<SyncProducerConfiguration>() { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 };
-            var queue = new BlockingCollection<FetchedDataChunk>();
+        //[Test]
+        //public void TestFetcher()
+        //{
+        //    var configs = new List<SyncProducerConfiguration>() { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 };
+        //    var queue = new BlockingCollection<FetchedDataChunk>();
 
-            var cluster = new Cluster(
-                configs.Select(x => new Broker(x.BrokerId, x.BrokerId.ToString(), x.Host, x.Port)));
+        //    var cluster = new Cluster(
+        //        configs.Select(x => new Broker(x.BrokerId, x.BrokerId.ToString(), x.Host, x.Port)));
             
-            var topicInfos =
-                configs.Select(
-                    x =>
-                    new PartitionTopicInfo(
-                        this.CurrentTestTopic, x.BrokerId, new Partition(x.BrokerId, 0), queue, 0, 0, 0));
+        //    var topicInfos =
+        //        configs.Select(
+        //            x =>
+        //            new PartitionTopicInfo(
+        //                this.CurrentTestTopic, x.BrokerId, new Partition(x.BrokerId, 0), queue, 0, 0, 0));
 
-            var fetcher = new Fetcher(this.ConsumerConfig1, null);
-            fetcher.InitConnections(topicInfos, cluster);
+        //    var fetcher = new Fetcher(this.ConsumerConfig1, null);
+        //    fetcher.InitConnections(topicInfos, cluster);
 
-            var perNode = 2;
-            var countExpected = SendMessages(perNode, configs);
+        //    var perNode = 2;
+        //    var countExpected = SendMessages(perNode, configs);
 
-            Fetch(queue, countExpected);
+        //    Fetch(queue, countExpected);
 
-            Thread.Sleep(100);
-            Assert.AreEqual(0, queue.Count);
-            countExpected = this.SendMessages(perNode, configs);
-            Fetch(queue, countExpected);
-            Thread.Sleep(100);
-            Assert.AreEqual(0, queue.Count);
-        }
+        //    Thread.Sleep(100);
+        //    Assert.AreEqual(0, queue.Count);
+        //    countExpected = this.SendMessages(perNode, configs);
+        //    Fetch(queue, countExpected);
+        //    Thread.Sleep(100);
+        //    Assert.AreEqual(0, queue.Count);
+        //}
 
         private void Fetch(BlockingCollection<FetchedDataChunk> queue, int countExpected)
         {

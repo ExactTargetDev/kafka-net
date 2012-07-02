@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Messages;
+
 namespace Kafka.Client.Cfg
 {
     using System.Collections.Generic;
@@ -33,8 +35,11 @@ namespace Kafka.Client.Cfg
     public class ProducerConfiguration : ISyncProducerConfigShared, IAsyncProducerConfigShared
     {
         public const ProducerTypes DefaultProducerType = ProducerTypes.Sync;
-        public const string DefaultPartitioner = "Kafka.Client.Producers.Partitioning.DefaultStringPartitioner";
+        public const string DefaultPartitioner = "Kafka.Client.Producers.Partitioning.DefaultPartitioner`1";
+        public const string DefaultSerializer = "Kafka.Client.Serialization.StringEncoder";
         public const string DefaultSectionName = "kafkaProducer";
+        public const int DefaultProducerRetries = 3;
+        public const int DefaultProducerRetryBackoffMiliseconds = 5;
 
         public static ProducerConfiguration Configure(string section)
         {
@@ -50,6 +55,14 @@ namespace Kafka.Client.Cfg
             this.SocketTimeout = SyncProducerConfiguration.DefaultSocketTimeout;
             this.MaxMessageSize = SyncProducerConfiguration.DefaultMaxMessageSize;
             this.SerializerClass = AsyncProducerConfiguration.DefaultSerializerClass;
+            this.CompressionCodec = CompressionCodecs.DefaultCompressionCodec;
+            this.CompressedTopics = new List<string>();
+            this.ProducerRetries = DefaultProducerRetries;
+            this.ProducerRetryBackoffMiliseconds = DefaultProducerRetryBackoffMiliseconds;
+            this.CorrelationId = SyncProducerConfiguration.DefaultCorrelationId;
+            this.ClientId = SyncProducerConfiguration.DefaultClientId;
+            this.RequiredAcks = SyncProducerConfiguration.DefaultRequiredAcks;
+            this.AckTimeout = SyncProducerConfiguration.DefaultAckTimeout;
         }
 
         public ProducerConfiguration(XElement xml) : this(ProducerConfigurationSection.FromXml(xml))
@@ -67,6 +80,7 @@ namespace Kafka.Client.Cfg
         {
             this.ZooKeeper = zooKeeperConfig;
             this.PartitionerClass = DefaultPartitioner;
+            this.SerializerClass = DefaultSerializer;
         }
 
         public ProducerConfiguration(ProducerConfigurationSection config)
@@ -78,6 +92,14 @@ namespace Kafka.Client.Cfg
             this.SocketTimeout = config.SocketTimeout;
             this.MaxMessageSize = config.MaxMessageSize;
             this.SerializerClass = config.Serializer;
+            this.CompressionCodec = config.CompressionCodec;
+            this.CompressedTopics = config.CompressedTopics ?? new List<string>();
+            this.ProducerRetries = config.ProducerRetries;
+            this.ProducerRetryBackoffMiliseconds = config.ProducerRetryBackoffMiliseconds;
+            this.CorrelationId = config.CorrelationId;
+            this.ClientId = config.ClientId;
+            this.RequiredAcks = config.RequiredAcks;
+            this.AckTimeout = config.AckTimeout;
             Validate(config);
             if (config.ZooKeeperServers.ElementInformation.IsPresent)
             {
@@ -181,6 +203,22 @@ namespace Kafka.Client.Cfg
         public string SerializerClass { get; set; }
 
         public string CallbackHandlerClass { get; set; }
+
+        public CompressionCodecs CompressionCodec { get; set; }
+
+        public IEnumerable<string> CompressedTopics { get; set; }
+
+        public int ProducerRetries { get; set; }
+
+        public int ProducerRetryBackoffMiliseconds { get; set; }
+
+        public int CorrelationId { get; set; }
+
+        public string ClientId { get; set; }
+
+        public short RequiredAcks { get; set; }
+
+        public int AckTimeout { get; set; }
 
         private void SetZooKeeperServers(ZooKeeperConfigurationElement config)
         {

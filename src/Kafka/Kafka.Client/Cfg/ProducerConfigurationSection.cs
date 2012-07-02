@@ -15,12 +15,15 @@
  * limitations under the License.
  */
 
+using System.Collections.Generic;
+using Kafka.Client.Messages;
+
 namespace Kafka.Client.Cfg
 {
     using System.Configuration;
     using Kafka.Client.Producers;
     using System.Xml.Linq;
-
+    using System.Linq;
 
     public class ProducerConfigurationSection : ConfigurationSection
     {
@@ -108,7 +111,7 @@ namespace Kafka.Client.Cfg
 
         [ConfigurationProperty(
             "serializer",
-            DefaultValue = AsyncProducerConfiguration.DefaultSerializerClass,
+            DefaultValue = ProducerConfiguration.DefaultSerializer,
             IsRequired = false)]
         public string Serializer
         {
@@ -127,6 +130,109 @@ namespace Kafka.Client.Cfg
             get
             {
                 return (string)this["partitioner"];
+            }
+        }
+
+        [ConfigurationProperty(
+            "compressionCodec",
+            DefaultValue = CompressionCodecs.DefaultCompressionCodec,
+            IsRequired = false)]
+        public CompressionCodecs CompressionCodec
+        {
+            get
+            {
+                return Messages.CompressionCodec.GetCompressionCodec((int)this["compressionCodec"]);
+            }
+        }
+
+        [ConfigurationProperty(
+            "compressedTopics",
+            DefaultValue = null,
+            IsRequired = false)]
+        public List<string> CompressedTopics
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(((string)this["compressedTopics"])))
+                { return new List<string>(); }
+                else
+                {
+                    return
+                        new List<string>(
+                            ((string) this["compressedTopics"]).Split(',').Where(x => !string.IsNullOrEmpty(x)));
+                }
+            }
+        }
+
+        [ConfigurationProperty(
+            "producerRetries",
+            DefaultValue = 3,
+            IsRequired = false)]
+        public int ProducerRetries
+        {
+            get
+            {
+                return (int)this["producerRetries"];
+            }
+        }
+
+        [ConfigurationProperty(
+            "producerRetryBackoffMiliseconds",
+            DefaultValue = 5,
+            IsRequired = false)]
+        public int ProducerRetryBackoffMiliseconds
+        {
+            get
+            {
+                return (int)this["producerRetryBackoffMiliseconds"];
+            }
+        }
+
+        [ConfigurationProperty(
+            "correlationId",
+            DefaultValue = -1,
+            IsRequired = false)]
+        public int CorrelationId
+        {
+            get
+            {
+                return (int)this["correlationId"];
+            }
+        }
+
+        [ConfigurationProperty(
+            "clientId",
+            DefaultValue = "",
+            IsRequired = false)]
+        public string ClientId
+        {
+            get
+            {
+                return (string)this["clientId"];
+            }
+        }
+
+        [ConfigurationProperty(
+            "requiredAcks",
+            DefaultValue = (short)0,
+            IsRequired = false)]
+        public short RequiredAcks
+        {
+            get
+            {
+                return (short)this["requiredAcks"];
+            }
+        }
+
+        [ConfigurationProperty(
+            "ackTimeout",
+            DefaultValue = 1,
+            IsRequired = false)]
+        public int AckTimeout
+        {
+            get
+            {
+                return (int)this["ackTimeout"];
             }
         }
 

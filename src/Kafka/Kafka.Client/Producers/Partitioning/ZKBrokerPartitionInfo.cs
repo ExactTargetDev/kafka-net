@@ -243,8 +243,8 @@ namespace Kafka.Client.Producers.Partitioning
                 {
                     for (int i = 0; i < brokerPartition.Value; i++)
                     {
-                        var bidPid = new Partition(brokerPartition.Key, i);
-                        brokerParts.Add(bidPid);
+                        //var bidPid = new Partition(brokerPartition.Key, i);
+                        //brokerParts.Add(bidPid);
                     }
                 }
 
@@ -274,7 +274,7 @@ namespace Kafka.Client.Producers.Partitioning
                             string.Join(", ", allBrokers));
             foreach (var broker in allBrokers)
             {
-                numBrokerPartitions.Add(new Partition(int.Parse(broker, CultureInfo.InvariantCulture), 0));
+                //numBrokerPartitions.Add(new Partition(int.Parse(broker, CultureInfo.InvariantCulture), 0));
             }
 
             Logger.Debug("Adding following broker id, partition id for NEW topic: " + topic + " -> " +

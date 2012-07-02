@@ -15,6 +15,11 @@
  * limitations under the License.
  */
 
+using System.Reflection;
+using Kafka.Client.Exceptions;
+using Kafka.Client.ZooKeeperIntegration;
+using log4net;
+
 namespace Kafka.Client.Producers
 {
     using System;
@@ -25,77 +30,27 @@ namespace Kafka.Client.Producers
     using Kafka.Client.Producers.Sync;
     using Kafka.Client.Serialization;
     using Kafka.Client.Utils;
+    using System.Linq;
 
     /// <summary>
     /// The base for all classes that represents pool of producers used by high-level API
     /// </summary>
     /// <typeparam name="TData">The type of the data.</typeparam>
-    internal abstract class ProducerPool<TData> : IProducerPool<TData>
-        where TData : class 
+    internal class ProducerPool// : IProducerPool
     {
+        private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         protected bool Disposed { get; set; }
 
-        /// <summary>
-        /// Factory method used to instantiating either, 
-        /// synchronous or asynchronous, producer pool based on configuration.
-        /// </summary>
-        /// <param name="config">
-        /// The producer pool configuration.
-        /// </param>
-        /// <param name="serializer">
-        /// The serializer.
-        /// </param>
-        /// <returns>
-        /// Instantiated either, synchronous or asynchronous, producer pool
-        /// </returns>
-        public static ProducerPool<TData> CreatePool(ProducerConfiguration config, IEncoder<TData> serializer)
-        {
-            if (config.ProducerType == ProducerTypes.Async)
-            {
-                return AsyncProducerPool<TData>.CreateAsyncPool(config, serializer);
-            }
+        private Dictionary<int, SyncProducer> syncProducers;
 
-            if (config.ProducerType == ProducerTypes.Sync)
-            {
-                return SyncProducerPool<TData>.CreateSyncPool(config, serializer);
-            }
+        protected ProducerConfiguration Config { get; private set; }
 
-            throw new InvalidOperationException("Not supported producer type " + config.ProducerType);
-        }
+        private ZooKeeperClient zkClient;
 
-        /// <summary>
-        /// Factory method used to instantiating either, 
-        /// synchronous or asynchronous, producer pool based on configuration.
-        /// </summary>
-        /// <param name="config">
-        /// The producer pool configuration.
-        /// </param>
-        /// <param name="serializer">
-        /// The serializer.
-        /// </param>
-        /// <param name="cbkHandler">
-        /// The callback invoked after new broker is added.
-        /// </param>
-        /// <returns>
-        /// Instantiated either, synchronous or asynchronous, producer pool
-        /// </returns>
-        public static ProducerPool<TData> CreatePool(
-            ProducerConfiguration config,
-            IEncoder<TData> serializer,
-            ICallbackHandler cbkHandler)
-        {
-            if (config.ProducerType == ProducerTypes.Async)
-            {
-                return AsyncProducerPool<TData>.CreateAsyncPool(config, serializer, cbkHandler);
-            }
+        private object myLock = new object();
 
-            if (config.ProducerType == ProducerTypes.Sync)
-            {
-                return SyncProducerPool<TData>.CreateSyncPool(config, serializer, cbkHandler);
-            }
-
-            throw new InvalidOperationException("Not supported producer type " + config.ProducerType);
-        }
+        private Random random = new Random();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProducerPool&lt;TData&gt;"/> class.
@@ -105,81 +60,73 @@ namespace Kafka.Client.Producers
         /// <remarks>
         /// Should be used for testing purpose only
         /// </remarks>
-        protected ProducerPool(
+        internal ProducerPool(
             ProducerConfiguration config,
-            IEncoder<TData> serializer)
+            ZooKeeperClient zkClient)
         {
             Guard.NotNull(config, "config");
-            Guard.NotNull(serializer, "serializer");
+            Guard.NotNull(zkClient, "zkClient");
 
+            this.syncProducers = new Dictionary<int, SyncProducer>();
             this.Config = config;
-            this.Serializer = serializer;
+            this.zkClient = zkClient;
+            this.zkClient.Connect();
         }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ProducerPool&lt;TData&gt;"/> class.
-        /// </summary>
-        /// <param name="config">
-        /// The config.
-        /// </param>
-        /// <param name="serializer">
-        /// The serializer.
-        /// </param>
-        /// <param name="callbackHandler">
-        /// The callback invoked after new broker is added.
-        /// </param>
-        protected ProducerPool(
-            ProducerConfiguration config,
-            IEncoder<TData> serializer,
-            ICallbackHandler callbackHandler)
+        
+        public void AddProducer(Broker broker)
         {
-            Guard.NotNull(config, "config");
-            Guard.NotNull(serializer, "serializer");
-
-            this.Config = config;
-            this.Serializer = serializer;
-            this.CallbackHandler = callbackHandler;
+            var syncProducerConfig = new SyncProducerConfiguration(this.Config, broker.Id, broker.Host, broker.Port);
+            var producer = new SyncProducer(syncProducerConfig);
+            Logger.InfoFormat("Creating sync producer for broker id = {0} at {1}:{2}", broker.Id, broker.Host, broker.Port);
+            this.syncProducers.Add(broker.Id, producer);
         }
 
-        protected ProducerConfiguration Config { get; private set; }
-
-        protected IEncoder<TData> Serializer { get; private set; }
-
-        protected ICallbackHandler CallbackHandler { get; private set; }
-
-        /// <summary>
-        /// Add a new producer, either synchronous or asynchronous, to the pool
-        /// </summary>
-        /// <param name="broker">The broker informations.</param>
-        public abstract void AddProducer(Broker broker);
-
-        /// <summary>
-        /// Selects either a synchronous or an asynchronous producer, for
-        /// the specified broker id and calls the send API on the selected
-        /// producer to publish the data to the specified broker partition.
-        /// </summary>
-        /// <param name="poolData">The producer pool request object.</param>
-        /// <remarks>
-        /// Used for single-topic request
-        /// </remarks>
-        public void Send(ProducerPoolData<TData> poolData)
+        public void AddProducers(ProducerConfiguration config)
         {
-            this.EnsuresNotDisposed();
-            Guard.NotNull(poolData, "poolData");
-
-            this.Send(new[] { poolData });
+            lock (myLock)
+            {
+                Logger.DebugFormat("Connecting to {0} for creating sync producers for all brokers in the cluster", config.ZooKeeper.ZkConnect);
+                var brokers = ZkUtils.GetAllBrokersInCluster(this.zkClient);
+                brokers.ForEach(this.AddProducer);
+            }
         }
 
-        /// <summary>
-        /// Selects either a synchronous or an asynchronous producer, for
-        /// the specified broker id and calls the send API on the selected
-        /// producer to publish the data to the specified broker partition.
-        /// </summary>
-        /// <param name="poolData">The producer pool request object.</param>
-        /// <remarks>
-        /// Used for multi-topic request
-        /// </remarks>
-        public abstract void Send(IEnumerable<ProducerPoolData<TData>> poolData);
+        public SyncProducer GetProducer(int brokerId)
+        {
+            lock (myLock)
+            {
+                if (!this.syncProducers.ContainsKey(brokerId))
+                {
+                    throw new UnavailableProducerException(
+                        string.Format("Sync producer for broker id {0} does not exist", brokerId));
+                }
+                return this.syncProducers[brokerId];
+            }
+        }
+
+        public SyncProducer GetAnyProducer()
+        {
+            lock (myLock)
+            {
+                if (this.syncProducers.Count == 0)
+                {
+                    //refresh the list of brokers from zookeeper
+                    Logger.Info("No sync producers available. Refreshing the available broker list from ZK and creating sync producers");
+                    this.AddProducers(this.Config);
+                    if (this.syncProducers.Count == 0)
+                    {
+                        throw new NoBrokersForPartitionException("No brokers available");
+                    }
+                }
+                return this.syncProducers.ElementAt(random.Next(this.syncProducers.Count)).Value;
+            }
+        }
+
+        public ZooKeeperClient GetZkClient()
+        {
+            return this.zkClient;
+        }
 
         /// <summary>
         /// Releases all unmanaged and managed resources
@@ -190,7 +137,21 @@ namespace Kafka.Client.Producers
             GC.SuppressFinalize(this);
         }
 
-        protected abstract void Dispose(bool disposing);
+        protected void Dispose(bool disposing)
+        {
+            if (!disposing)
+            {
+                return;
+            }
+
+            if (this.Disposed)
+            {
+                return;
+            }
+
+            this.Disposed = true;
+            this.syncProducers.ForEach(x => x.Value.Dispose());
+        }
 
         /// <summary>
         /// Ensures that object was not disposed

@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using System;
+using System.Globalization;
 using Kafka.Client.Requests;
 using Kafka.Client.Utils;
 using Kafka.Client.Serialization;
@@ -49,6 +51,31 @@ namespace Kafka.Client.Cluster
             this.CreatorId = creatorId;
             this.Host = host;
             this.Port = port;
+        }
+
+        public static Broker CreateBroker(int id, string brokerInfoString)
+        {
+            if (string.IsNullOrEmpty(brokerInfoString))
+            {
+                throw new ArgumentException(string.Format("Broker id {0} does not exist", id));
+            }
+            var brokerInfo = brokerInfoString.Split(':');
+            if (brokerInfo.Length > 2)
+            {
+                int port;
+                if (int.TryParse(brokerInfo[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out port))
+                {
+                    return new Broker(id, brokerInfo[0], brokerInfo[1], int.Parse(brokerInfo[2], CultureInfo.InvariantCulture));
+                }
+                else
+                {
+                    throw new ArgumentException(String.Format(CultureInfo.CurrentCulture, "{0} is not a valid integer", brokerInfo[2]));
+                }
+            }
+            else
+            {
+                throw new ArgumentException(String.Format(CultureInfo.CurrentCulture, "{0} is not a valid BrokerInfoString", brokerInfoString));
+            }
         }
 
         /// <summary>

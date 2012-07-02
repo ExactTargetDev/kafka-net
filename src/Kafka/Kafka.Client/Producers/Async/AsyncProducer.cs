@@ -28,9 +28,9 @@ namespace Kafka.Client.Producers.Async
     /// <summary>
     /// Sends messages encapsulated in request to Kafka server asynchronously
     /// </summary>
-    public class AsyncProducer : IAsyncProducer
+    public class AsyncProducer //: IAsyncProducer
     {
-        private readonly ICallbackHandler callbackHandler;
+        //private readonly ICallbackHandler callbackHandler;
         private readonly KafkaConnection connection;
         private volatile bool disposed;
 
@@ -45,12 +45,12 @@ namespace Kafka.Client.Producers.Async
         /// <param name="config">
         /// The producer config.
         /// </param>
-        public AsyncProducer(AsyncProducerConfiguration config)
-            : this(
-                config,
-                ReflectionHelper.Instantiate<ICallbackHandler>(config.CallbackHandlerClass))
-        {
-        }
+        //public AsyncProducer(AsyncProducerConfiguration config)
+        //    : this(
+        //        config,
+        //        ReflectionHelper.Instantiate<ICallbackHandler>(config.CallbackHandlerClass))
+        //{
+        //}
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncProducer"/> class.
@@ -61,20 +61,20 @@ namespace Kafka.Client.Producers.Async
         /// <param name="callbackHandler">
         /// The callback invoked when a request is finished being sent.
         /// </param>
-        public AsyncProducer(
-            AsyncProducerConfiguration config,
-            ICallbackHandler callbackHandler)
-        {
-            Guard.NotNull(config, "config");
+        //public AsyncProducer(
+        //    AsyncProducerConfiguration config,
+        //    ICallbackHandler callbackHandler)
+        //{
+        //    Guard.NotNull(config, "config");
 
-            this.Config = config;
-            this.callbackHandler = callbackHandler;
-            this.connection = new KafkaConnection(
-                this.Config.Host,
-                this.Config.Port,
-                this.Config.BufferSize,
-                this.Config.SocketTimeout);
-        }
+        //    this.Config = config;
+        //    //this.callbackHandler = callbackHandler;
+        //    this.connection = new KafkaConnection(
+        //        this.Config.Host,
+        //        this.Config.Port,
+        //        this.Config.BufferSize,
+        //        this.Config.SocketTimeout);
+        //}
 
         /// <summary>
         /// Sends request to Kafka server asynchronously
@@ -82,20 +82,20 @@ namespace Kafka.Client.Producers.Async
         /// <param name="request">
         /// The request.
         /// </param>
-        public void Send(ProducerRequest request)
-        {
-            this.EnsuresNotDisposed();
-            Guard.NotNull(request, "request");
-            Guard.Assert<ArgumentException>(() => request.MessageSet.Messages.All(x => x.PayloadSize <= this.Config.MaxMessageSize));
-            if (this.callbackHandler != null)
-            {
-                this.Send(request, this.callbackHandler.Handle);
-            }
-            else
-            {
-                this.connection.BeginWrite(request);
-            }
-        }
+        //public void Send(ProducerRequest request)
+        //{
+        //    this.EnsuresNotDisposed();
+        //    Guard.NotNull(request, "request");
+        //    Guard.Assert<ArgumentException>(() => request.MessageSet.Messages.All(x => x.PayloadSize <= this.Config.MaxMessageSize));
+        //    if (this.callbackHandler != null)
+        //    {
+        //        this.Send(request, this.callbackHandler.Handle);
+        //    }
+        //    else
+        //    {
+        //        this.connection.BeginWrite(request);
+        //    }
+        //}
 
         /// <summary>
         /// Sends request to Kafka server asynchronously
@@ -130,15 +130,15 @@ namespace Kafka.Client.Producers.Async
         /// <param name="messages">
         /// The list of messages to sent.
         /// </param>
-        public void Send(string topic, int partition, IEnumerable<Message> messages)
-        {
-            this.EnsuresNotDisposed();
-            Guard.NotNullNorEmpty(topic, "topic");
-            Guard.NotNull(messages, "messages");
-            Guard.Assert<ArgumentException>(() => messages.All(x => x.PayloadSize <= this.Config.MaxMessageSize));
+        //public void Send(string topic, int partition, IEnumerable<Message> messages)
+        //{
+        //    this.EnsuresNotDisposed();
+        //    Guard.NotNullNorEmpty(topic, "topic");
+        //    Guard.NotNull(messages, "messages");
+        //    Guard.Assert<ArgumentException>(() => messages.All(x => x.PayloadSize <= this.Config.MaxMessageSize));
 
-            this.Send(new ProducerRequest(topic, partition, messages));
-        }
+        //    this.Send(new ProducerRequest(topic, partition, messages));
+        //}
 
         /// <summary>
         /// Constructs request and sent it to Kafka server asynchronously

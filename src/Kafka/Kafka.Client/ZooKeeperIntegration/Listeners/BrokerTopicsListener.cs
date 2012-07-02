@@ -165,7 +165,7 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
         {
             if (this.oldBrokerTopicsPartitionsMap.ContainsKey(topic))
             {
-                Logger.Debug("Old list of brokers -> " + this.oldBrokerTopicsPartitionsMap[topic].ToMultiString(x => x.BrokerId.ToString(), ","));
+                //Logger.Debug("Old list of brokers -> " + this.oldBrokerTopicsPartitionsMap[topic].ToMultiString(x => x.BrokerId.ToString(), ","));
             }
 
             var updatedBrokers = new SortedSet<int>(childs.Select(x => int.Parse(x, CultureInfo.InvariantCulture)));
@@ -182,8 +182,8 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
             {
                 for (int i = 0; i < bp.Value; i++)
                 {
-                    var bidPid = new Partition(bp.Key, i);
-                    updatedBrokerParts.Add(bidPid);
+                    //var bidPid = new Partition(bp.Key, i);
+                    //updatedBrokerParts.Add(bidPid);
                 }
             }
 
@@ -204,7 +204,7 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
                 this.actualBrokerTopicsPartitionsMap.Add(topic, null);
             }
 
-            this.actualBrokerTopicsPartitionsMap[topic] = new SortedSet<Partition>(mergedBrokerParts.Where(x => this.actualBrokerIdMap.ContainsKey(x.BrokerId)));
+            //this.actualBrokerTopicsPartitionsMap[topic] = new SortedSet<Partition>(mergedBrokerParts.Where(x => this.actualBrokerIdMap.ContainsKey(x.BrokerId)));
         }
 
         /// <summary>
@@ -244,12 +244,12 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
                 this.actualBrokerIdMap.Remove(bid);
                 foreach (var topicMap in this.actualBrokerTopicsPartitionsMap)
                 {
-                    int affected = topicMap.Value.RemoveWhere(x => x.BrokerId == bid);
-                    if (affected > 0)
-                    {
-                        Logger.Debug("Removing dead broker " + bid + " for topic: " + topicMap.Key);
-                        Logger.Debug("Actual list of mapped brokers is -> " + topicMap.Value.ToMultiString(x => x.ToString(), ","));
-                    }
+                    //int affected = topicMap.Value.RemoveWhere(x => x.BrokerId == bid);
+                    //if (affected > 0)
+                    //{
+                    //    Logger.Debug("Removing dead broker " + bid + " for topic: " + topicMap.Key);
+                    //    Logger.Debug("Actual list of mapped brokers is -> " + topicMap.Value.ToMultiString(x => x.ToString(), ","));
+                    //}
                 }
             }
         }
