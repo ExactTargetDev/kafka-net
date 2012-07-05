@@ -76,30 +76,30 @@ namespace Kafka.Client.Tests.Request
             Assert.AreEqual(100, BitConverter.ToInt32(BitWorks.ReverseBytes(bytes.Skip(20 + topicName.Length).Take(4).ToArray<byte>()), 0));
         }
 
-        [Test]
-        public void FetchRequestCreation()
-        {
-            var offsetInfo = new List<OffsetDetail>();
+        //[Test]
+        //public void FetchRequestCreation()
+        //{
+        //    var offsetInfo = new List<OffsetDetail>();
 
-            var request = FetchRequest.Create(offsetInfo);
+        //    var request = FetchRequest.Create(offsetInfo);
 
-            Assert.IsNotNull(request);
-            Assert.AreEqual(offsetInfo.Count, request.OffsetInfo.Count);
-            Assert.AreEqual(string.Empty, request.ClientId);
-            Assert.AreEqual(-1, request.CorrelationId);
-            Assert.AreEqual(-1, request.MinBytes);
-            Assert.AreEqual(-1, request.MaxWait);
-            Assert.AreEqual(-1, request.ReplicaId);
-            Assert.AreEqual(1, request.VersionId);
-        }
+        //    Assert.IsNotNull(request);
+        //    Assert.AreEqual(offsetInfo.Count, request.OffsetInfo.Count);
+        //    Assert.AreEqual(string.Empty, request.ClientId);
+        //    Assert.AreEqual(-1, request.CorrelationId);
+        //    Assert.AreEqual(-1, request.MinBytes);
+        //    Assert.AreEqual(-1, request.MaxWait);
+        //    Assert.AreEqual(-1, request.ReplicaId);
+        //    Assert.AreEqual(1, request.VersionId);
+        //}
 
-        [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
-        public void FetchRequestShouldThrowExceptionWhenOffsetInfoIsNull()
-        {
-            IList<OffsetDetail> offsetInfo = null;
+        //[Test]
+        //[ExpectedException(typeof(ArgumentNullException))]
+        //public void FetchRequestShouldThrowExceptionWhenOffsetInfoIsNull()
+        //{
+        //    IList<OffsetDetail> offsetInfo = null;
 
-            FetchRequest.Create(offsetInfo);
-        }
+        //    FetchRequest.Create(offsetInfo);
+        //}
     }
 }

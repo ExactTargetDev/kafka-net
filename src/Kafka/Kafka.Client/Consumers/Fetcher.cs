@@ -86,7 +86,7 @@ namespace Kafka.Client.Consumers
             }
         }
 
-        public void ClearFetcherQueues(IList<PartitionTopicInfo> topicInfos, Cluster cluster, IEnumerable<BlockingCollection<FetchedDataChunk>> queuesToBeCleared, IDictionary<string, IList<KafkaMessageStream>> kafkaMessageStreams)
+        public void ClearFetcherQueues<TData>(IList<PartitionTopicInfo> topicInfos, Cluster cluster, IEnumerable<BlockingCollection<FetchedDataChunk>> queuesToBeCleared, IDictionary<string, IList<KafkaMessageStream<TData>>> kafkaMessageStreams)
         {
             if (kafkaMessageStreams != null)
             {

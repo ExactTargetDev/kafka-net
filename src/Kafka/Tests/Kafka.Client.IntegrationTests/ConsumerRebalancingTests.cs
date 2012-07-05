@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Serialization;
+
 namespace Kafka.Client.IntegrationTests
 {
     using System.Collections.Generic;
@@ -35,10 +37,11 @@ namespace Kafka.Client.IntegrationTests
             using (var consumerConnector = new ZookeeperConsumerConnector(config, true))
             {
                 var client = ReflectionHelper.GetInstanceField<ZooKeeperClient>("zkClient", consumerConnector);
+                var decoder = ReflectionHelper.Instantiate<IDecoder<string>>("Kafka.Client.Serialization.StringDecoder");
                 Assert.IsNotNull(client);
                 client.DeleteRecursive("/consumers/group1");
                 var topicCount = new Dictionary<string, int> { { "test", 1 } };
-                consumerConnector.CreateMessageStreams(topicCount);
+                consumerConnector.CreateMessageStreams(topicCount, decoder);
                 WaitUntillIdle(client, 1000);
                 IList<string> children = client.GetChildren("/consumers", false);
                 Assert.That(children, Is.Not.Null.And.Not.Empty);
@@ -119,6 +122,7 @@ namespace Kafka.Client.IntegrationTests
         [Test]
         public void ConsumerPorformsRebalancingWhenBrokerIsRemovedFromTopic()
         {
+            var decoder = ReflectionHelper.Instantiate<IDecoder<string>>("Kafka.Client.Serialization.StringDecoder");
             var config = this.ZooKeeperBasedConsumerConfig;
             string brokerPath = ZooKeeperClient.DefaultBrokerIdsPath + "/" + 2345;
             string brokerTopicPath = ZooKeeperClient.DefaultBrokerTopicsPath + "/test/" + 2345;
@@ -128,7 +132,7 @@ namespace Kafka.Client.IntegrationTests
                 Assert.IsNotNull(client);
                 client.DeleteRecursive("/consumers/group1");
                 var topicCount = new Dictionary<string, int> { { "test", 1 } };
-                consumerConnector.CreateMessageStreams(topicCount);
+                consumerConnector.CreateMessageStreams(topicCount, decoder);
                 WaitUntillIdle(client, 1000);
                 client.CreateEphemeral(brokerPath, "192.168.1.39-1310449279123:192.168.1.39:9102");
                 client.CreateEphemeral(brokerTopicPath, 1);
@@ -152,6 +156,7 @@ namespace Kafka.Client.IntegrationTests
         public void ConsumerPerformsRebalancingWhenNewConsumerIsAddedAndTheyDividePartitions()
         {
             var config = this.ZooKeeperBasedConsumerConfig;
+            var decoder = ReflectionHelper.Instantiate<IDecoder<string>>("Kafka.Client.Serialization.StringDecoder");
             IList<string> ids;
             IList<string> owners;
             using (var consumerConnector = new ZookeeperConsumerConnector(config, true))
@@ -161,11 +166,11 @@ namespace Kafka.Client.IntegrationTests
                 Assert.IsNotNull(client);
                 client.DeleteRecursive("/consumers/group1");
                 var topicCount = new Dictionary<string, int> { { "test", 1 } };
-                consumerConnector.CreateMessageStreams(topicCount);
+                consumerConnector.CreateMessageStreams(topicCount, decoder);
                 WaitUntillIdle(client, 1000);
                 using (var consumerConnector2 = new ZookeeperConsumerConnector(config, true))
                 {
-                    consumerConnector2.CreateMessageStreams(topicCount);
+                    consumerConnector2.CreateMessageStreams(topicCount, decoder);
                     WaitUntillIdle(client, 1000);
                     ids = client.GetChildren("/consumers/group1/ids", false).ToList();
                     owners = client.GetChildren("/consumers/group1/owners/test", false).ToList();
@@ -191,6 +196,7 @@ namespace Kafka.Client.IntegrationTests
         public void ConsumerPerformsRebalancingWhenConsumerIsRemovedAndTakesItsPartitions()
         {
             var config = this.ZooKeeperBasedConsumerConfig;
+            var decoder = ReflectionHelper.Instantiate<IDecoder<string>>("Kafka.Client.Serialization.StringDecoder");
             string basePath = "/consumers/" + config.GroupId;
             IList<string> ids;
             IList<string> owners;
@@ -200,11 +206,11 @@ namespace Kafka.Client.IntegrationTests
                 Assert.IsNotNull(client);
                 client.DeleteRecursive("/consumers/group1");
                 var topicCount = new Dictionary<string, int> { { "test", 1 } };
-                consumerConnector.CreateMessageStreams(topicCount);
+                consumerConnector.CreateMessageStreams(topicCount, decoder);
                 WaitUntillIdle(client, 1000);
                 using (var consumerConnector2 = new ZookeeperConsumerConnector(config, true))
                 {
-                    consumerConnector2.CreateMessageStreams(topicCount);
+                    consumerConnector2.CreateMessageStreams(topicCount, decoder);
                     WaitUntillIdle(client, 1000);
                     ids = client.GetChildren("/consumers/group1/ids", false).ToList();
                     owners = client.GetChildren("/consumers/group1/owners/test", false).ToList();

@@ -26,13 +26,13 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
     using log4net;
     using ZooKeeperNet;
 
-    internal class ZKSessionExpireListener : IZooKeeperStateListener
+    internal class ZKSessionExpireListener<TData> : IZooKeeperStateListener
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private readonly string consumerIdString;
 
-        private readonly ZKRebalancerListener loadBalancerListener;
+        private readonly ZKRebalancerListener<TData> loadBalancerListener;
 
         private readonly ZookeeperConsumerConnector zkConsumerConnector;
 
@@ -40,7 +40,7 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
 
         private readonly TopicCount topicCount;
 
-        public ZKSessionExpireListener(ZKGroupDirs dirs, string consumerIdString, TopicCount topicCount, ZKRebalancerListener loadBalancerListener, ZookeeperConsumerConnector zkConsumerConnector)
+        public ZKSessionExpireListener(ZKGroupDirs dirs, string consumerIdString, TopicCount topicCount, ZKRebalancerListener<TData> loadBalancerListener, ZookeeperConsumerConnector zkConsumerConnector)
         {
             this.consumerIdString = consumerIdString;
             this.loadBalancerListener = loadBalancerListener;

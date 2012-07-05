@@ -59,6 +59,15 @@ namespace Kafka.Client.Cfg
             }
         }
 
+        [ConfigurationProperty("consumerId", IsRequired = false, DefaultValue = null)]
+        public string ConsumerId
+        {
+            get
+            {
+                return (string)this["consumerId"];
+            }
+        }
+
         [ConfigurationProperty("autoCommit", IsRequired = false, DefaultValue = ConsumerConfiguration.DefaultAutoCommit)]
         public bool AutoCommit
         {

@@ -63,9 +63,6 @@ namespace Kafka.Client.ZooKeeperIntegration
         /// </returns>
         public object Deserialize(byte[] bytes)
         {
-            Guard.NotNull(bytes, "bytes");
-            Guard.Greater(bytes.Count(), 0, "bytes");
-
             return bytes == null ? null : Encoding.UTF8.GetString(bytes);
         }
     }

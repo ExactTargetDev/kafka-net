@@ -75,66 +75,63 @@ namespace Kafka.Client.Consumers
                     "{0} start fetching topic: {1} part: {2} offset: {3} from {4}:{5}",
                     this.name,
                     partitionTopicInfo.Topic,
-                    partitionTopicInfo.Partition.PartId,
+                    partitionTopicInfo.PartitionId,
                     partitionTopicInfo.GetFetchOffset(),
                     this.broker.Host,
                     this.broker.Port);
             }
-
+            var reqId = 0;
             try
             {
                 while (!this.shouldStop)
                 {
-                    var requestList = new List<FetchRequest>();
-                    foreach (var partitionTopicInfo in this.partitionTopicInfos)
-                    {
-                        var singleRequest = new FetchRequest(partitionTopicInfo.Topic, partitionTopicInfo.Partition.PartId, partitionTopicInfo.GetFetchOffset(), this.config.MaxFetchSize);
-                        requestList.Add(singleRequest);
-                    }
+                    var builder =
+                        new FetchRequestBuilder().
+                            CorrelationId(reqId).
+                            ClientId(config.ConsumerId ?? this.name).
+                            MaxWait(0).
+                            MinBytes(0);
+                    partitionTopicInfos.ForEach(pti => builder.AddFetch(pti.Topic, pti.PartitionId, pti.GetFetchOffset(), config.FetchSize));
 
-                    Logger.Debug("Fetch request: " + string.Join(", ", requestList.Select(x => x.ToString())));
-                    var request = new MultiFetchRequest(requestList);
-                    var response = this.simpleConsumer.MultiFetch(request);
+                    var fetchRequest = builder.Build();
+                    Logger.Debug("Fetch request: " + fetchRequest);
+                    var response = this.simpleConsumer.Fetch(fetchRequest);
+
                     int read = 0;
-                    var items = this.partitionTopicInfos.Zip(
-                        response,
-                        (x, y) =>
-                        new Tuple<PartitionTopicInfo, BufferedMessageSet>(x, y));
-                    foreach (Tuple<PartitionTopicInfo, BufferedMessageSet> item in items)
+
+                    foreach (PartitionTopicInfo partitionTopicInfo in partitionTopicInfos)
                     {
-                        BufferedMessageSet messages = item.Item2;
-                        PartitionTopicInfo info = item.Item1;
+                        var messages = response.MessageSet(partitionTopicInfo.Topic, partitionTopicInfo.PartitionId);
                         try
                         {
                             bool done = false;
                             if (messages.ErrorCode == ErrorMapping.OffsetOutOfRangeCode)
                             {
-                                Logger.InfoFormat(CultureInfo.CurrentCulture, "offset {0} out of range", info.GetFetchOffset());
-                                //// see if we can fix this error
-                                var resetOffset = this.ResetConsumerOffsets(info.Topic, info.Partition);
+                                Logger.InfoFormat("offset for {0} out of range", partitionTopicInfo);
+                                //see if we can fix this error
+                                var resetOffset = ResetConsumerOffsets(partitionTopicInfo.Topic,
+                                                                       partitionTopicInfo.PartitionId);
                                 if (resetOffset >= 0)
                                 {
-                                    info.ResetFetchOffset(resetOffset);
-                                    info.ResetConsumeOffset(resetOffset);
+                                    partitionTopicInfo.ResetFetchOffset(resetOffset);
+                                    partitionTopicInfo.ResetConsumeOffset(resetOffset);
                                     done = true;
                                 }
                             }
-
                             if (!done)
                             {
-                                read += info.Add(messages, info.GetFetchOffset());
+                                read += partitionTopicInfo.Add(messages, partitionTopicInfo.GetFetchOffset());
                             }
                         }
                         catch (Exception ex)
                         {
                             if (!shouldStop)
                             {
-                                Logger.ErrorFormat(CultureInfo.CurrentCulture, "error in FetcherRunnable for {0}" + info, ex);
+                                Logger.ErrorFormat("error in FetcherRunnable for {0}", partitionTopicInfo, ex);
                             }
-
-                            throw;
                         }
                     }
+                    reqId = reqId == int.MaxValue ? 0 : reqId + 1;
 
                     Logger.Info("Fetched bytes: " + read);
                     if (read == 0)
@@ -142,6 +139,54 @@ namespace Kafka.Client.Consumers
                         Logger.DebugFormat(CultureInfo.CurrentCulture, "backing off {0} ms", this.config.BackOffIncrement);
                         Thread.Sleep(this.config.BackOffIncrement);
                     }
+
+
+                    //var items = this.partitionTopicInfos.Zip(
+                    //    response,
+                    //    (x, y) =>
+                    //    new Tuple<PartitionTopicInfo, BufferedMessageSet>(x, y));
+                    //foreach (Tuple<PartitionTopicInfo, BufferedMessageSet> item in items)
+                    //{
+                    //    BufferedMessageSet messages = item.Item2;
+                    //    PartitionTopicInfo info = item.Item1;
+                    //    try
+                    //    {
+                    //        bool done = false;
+                    //        if (messages.ErrorCode == ErrorMapping.OffsetOutOfRangeCode)
+                    //        {
+                    //            Logger.InfoFormat(CultureInfo.CurrentCulture, "offset {0} out of range", info.GetFetchOffset());
+                    //            //// see if we can fix this error
+                    //            var resetOffset = this.ResetConsumerOffsets(info.Topic, info.PartitionId);
+                    //            if (resetOffset >= 0)
+                    //            {
+                    //                info.ResetFetchOffset(resetOffset);
+                    //                info.ResetConsumeOffset(resetOffset);
+                    //                done = true;
+                    //            }
+                    //        }
+
+                    //        if (!done)
+                    //        {
+                    //            read += info.Add(messages, info.GetFetchOffset());
+                    //        }
+                    //    }
+                    //    catch (Exception ex)
+                    //    {
+                    //        if (!shouldStop)
+                    //        {
+                    //            Logger.ErrorFormat(CultureInfo.CurrentCulture, "error in FetcherRunnable for {0}" + info, ex);
+                    //        }
+
+                    //        throw;
+                    //    }
+                    //}
+
+                    //Logger.Info("Fetched bytes: " + read);
+                    //if (read == 0)
+                    //{
+                    //    Logger.DebugFormat(CultureInfo.CurrentCulture, "backing off {0} ms", this.config.BackOffIncrement);
+                    //    Thread.Sleep(this.config.BackOffIncrement);
+                    //}
                 }
             }
             catch (Exception ex)
@@ -157,6 +202,7 @@ namespace Kafka.Client.Consumers
             }
 
             Logger.InfoFormat(CultureInfo.CurrentCulture, "stopping fetcher {0} to host {1}", this.name, this.broker.Host);
+
         }
 
         internal void Shutdown()
@@ -164,7 +210,7 @@ namespace Kafka.Client.Consumers
             this.shouldStop = true;
         }
 
-        private long ResetConsumerOffsets(string topic, Partition partition)
+        private long ResetConsumerOffsets(string topic, int partitionId)
         {
             long offset;
             switch (this.config.AutoOffsetReset)
@@ -179,11 +225,11 @@ namespace Kafka.Client.Consumers
                     return -1;
             }
 
-            var request = new OffsetRequest(topic, partition.PartId, offset, 1);
+            var request = new OffsetRequest(topic, partitionId, offset, 1);
             var offsets = this.simpleConsumer.GetOffsetsBefore(request);
             var topicDirs = new ZKGroupTopicDirs(this.config.GroupId, topic);
-            Logger.InfoFormat(CultureInfo.CurrentCulture, "updating partition {0} with {1} offset {2}", partition.PartId, offset == OffsetRequest.EarliestTime ? "earliest" : "latest", offsets[0]);
-            ZkUtils.UpdatePersistentPath(this.zkClient, topicDirs.ConsumerOffsetDir + "/" + partition.PartId, offsets[0].ToString());
+            Logger.InfoFormat(CultureInfo.CurrentCulture, "updating partition {0} with {1} offset {2}", partitionId, offset == OffsetRequest.EarliestTime ? "earliest" : "latest", offsets[0]);
+            ZkUtils.UpdatePersistentPath(this.zkClient, topicDirs.ConsumerOffsetDir + "/" + partitionId, offsets[0].ToString());
 
             return offsets[0];
         }

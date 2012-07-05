@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Serialization;
+
 namespace Kafka.Client.Consumers
 {
     using System;
@@ -35,7 +37,7 @@ namespace Kafka.Client.Consumers
         /// <returns>
         /// The list of <see cref="KafkaMessageStream"/>, which are iterators over topic.
         /// </returns>
-        IDictionary<string, IList<KafkaMessageStream>> CreateMessageStreams(IDictionary<string, int> topicCountDict);
+        IDictionary<string, IList<KafkaMessageStream<TData>>> CreateMessageStreams<TData>(IDictionary<string, int> topicCountDict, IDecoder<TData> decoder);
 
         /// <summary>
         /// Commits the offsets of all messages consumed so far.

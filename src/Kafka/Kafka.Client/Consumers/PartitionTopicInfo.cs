@@ -69,14 +69,14 @@ namespace Kafka.Client.Consumers
         public PartitionTopicInfo(
             string topic, 
             int brokerId, 
-            Partition partition, 
+            int partitionId, 
             BlockingCollection<FetchedDataChunk> chunkQueue, 
             long consumedOffset, 
             long fetchedOffset, 
             int fetchSize)
         {
             this.Topic = topic;
-            this.Partition = partition;
+            this.PartitionId = partitionId;
             this.chunkQueue = chunkQueue;
             this.BrokerId = brokerId;
             this.consumedOffset = consumedOffset;
@@ -102,9 +102,9 @@ namespace Kafka.Client.Consumers
         public int FetchSize { get; private set; }
 
         /// <summary>
-        /// Gets the partition.
+        /// Gets the partition Id.
         /// </summary>
-        public Partition Partition { get; private set; }
+        public int PartitionId { get; private set; }
 
         /// <summary>
         /// Gets the topic.
@@ -142,7 +142,6 @@ namespace Kafka.Client.Consumers
                 this.chunkQueue.Add(new FetchedDataChunk(messages, this, fetchOffset));
                 long newOffset = Interlocked.Add(ref this.fetchedOffset, size);
                 Logger.Debug("Updated fetch offset of " + this + " to " + newOffset);
-                Logger.DebugFormat("PartitionTopicInfo: Partition ({0}), ConsumedOffset ({1}), FetchedOffset ({2})", this.Partition, this.consumedOffset, this.fetchedOffset);
             }
 
             return size;
@@ -194,7 +193,7 @@ namespace Kafka.Client.Consumers
 
         public override string ToString()
         {
-            return this.Topic + ":" + this.Partition;
+            return string.Format("{0}:{1}: fetched offset = {2}: consumed offset = {3}", this.Topic, this.PartitionId, this.fetchedOffset, this.consumedOffset);
         }
     }
 }

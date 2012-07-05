@@ -48,14 +48,7 @@ using Kafka.Client.ZooKeeperIntegration;
             {
                 var brokerZkString = zkClient.ReadData<string>(ZooKeeperClient.DefaultBrokerIdsPath + "/" + node);
                 Broker broker = this.CreateBroker(node, brokerZkString);
-                if (brokers.ContainsKey(broker.Id))
-                {
-                    brokers[broker.Id] = broker;
-                }
-                else
-                {
-                    brokers.Add(broker.Id, broker);
-                }
+                brokers[broker.Id] = broker;
             }
         }
 

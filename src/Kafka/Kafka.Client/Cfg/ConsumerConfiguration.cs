@@ -46,6 +46,8 @@ namespace Kafka.Client.Cfg
 
         public const int DefaultBufferSize = 64 * 1024;
 
+        public const string DefaultConsumerId = null;
+
         public const string DefaultSection = "kafkaConsumer";
 
         public ConsumerConfiguration()
@@ -57,6 +59,7 @@ namespace Kafka.Client.Cfg
             this.AutoCommitInterval = DefaultAutoCommitInterval;
             this.FetchSize = DefaultFetchSize;
             this.BackOffIncrement = DefaultBackOffIncrement;
+            this.ConsumerId = DefaultConsumerId;
         }
 
         public ConsumerConfiguration(string host, int port)
@@ -78,6 +81,7 @@ namespace Kafka.Client.Cfg
             this.BackOffIncrement = config.BackOffIncrement;
             this.SocketTimeout = config.SocketTimeout;
             this.BufferSize = config.BufferSize;
+            this.ConsumerId = config.ConsumerId;
             if (config.Broker.ElementInformation.IsPresent)
             {
                 this.SetBrokerConfiguration(config.Broker);
@@ -118,6 +122,8 @@ namespace Kafka.Client.Cfg
         public int SocketTimeout { get; set; }
 
         public int BufferSize { get; set; }
+
+        public string ConsumerId { get; set; }
 
         public int MaxFetchSize
         {

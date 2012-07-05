@@ -16,6 +16,7 @@
  */
 
 using System.Threading;
+using Kafka.Client.Serialization;
 
 namespace Kafka.Client.Consumers
 {
@@ -35,7 +36,7 @@ namespace Kafka.Client.Consumers
     /// <remarks>
     /// The iterator takes a shutdownCommand object which can be added to the queue to trigger a shutdown
     /// </remarks>
-    internal class ConsumerIterator : IEnumerator<Message>
+    internal class ConsumerIterator<TData> : IEnumerator<TData>
     {
         private readonly CancellationToken cancellationToken;
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -45,9 +46,11 @@ namespace Kafka.Client.Consumers
         private ConsumerIteratorState state = ConsumerIteratorState.NotReady;
         private IEnumerator<MessageAndOffset> current;
         private FetchedDataChunk currentDataChunk = null;
-        private Message nextItem;
+        private TData nextItem;
         private long consumedOffset = -1;
         private SemaphoreSlim makeNextSemaphore = new SemaphoreSlim(1, 1);
+        private string topic;
+        private IDecoder<TData> decoder;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ConsumerIterator"/> class.
@@ -58,7 +61,7 @@ namespace Kafka.Client.Consumers
         /// <param name="consumerTimeoutMs">
         /// The consumer timeout in ms.
         /// </param>
-        public ConsumerIterator(BlockingCollection<FetchedDataChunk> channel, int consumerTimeoutMs) : this(channel, consumerTimeoutMs, CancellationToken.None)
+        public ConsumerIterator(string topic, BlockingCollection<FetchedDataChunk> channel, int consumerTimeoutMs, IDecoder<TData> decoder) : this(topic, channel, consumerTimeoutMs, decoder, CancellationToken.None)
         { 
         }
 
@@ -68,10 +71,12 @@ namespace Kafka.Client.Consumers
         /// <param name="channel">The queue containing</param>
         /// <param name="consumerTimeoutMs">The consumer timeout in ms</param>
         /// <param name="cacellationToken">The <see cref="CancellationToken"/> to allow for clean task cancellation</param>
-        public ConsumerIterator(BlockingCollection<FetchedDataChunk> channel, int consumerTimeoutMs, CancellationToken cancellationToken)
+        public ConsumerIterator(string topic, BlockingCollection<FetchedDataChunk> channel, int consumerTimeoutMs, IDecoder<TData> decoder, CancellationToken cancellationToken)
         {
+            this.topic = topic;
             this.channel = channel;
             this.consumerTimeoutMs = consumerTimeoutMs;
+            this.decoder = decoder;
             this.cancellationToken = cancellationToken;
         }
 
@@ -81,7 +86,7 @@ namespace Kafka.Client.Consumers
         /// <returns>
         /// The element in the collection at the current position of the enumerator.
         /// </returns>
-        public Message Current
+        public TData Current
         {
             get
             {
@@ -206,7 +211,7 @@ namespace Kafka.Client.Consumers
             return true;
         }
 
-        private Message MakeNext()
+        private TData MakeNext()
         {
             if (current == null || !current.MoveNext())
             {
@@ -253,13 +258,13 @@ namespace Kafka.Client.Consumers
 
             var item = current.Current;
             consumedOffset = item.Offset;
-            return item.Message;
+            return this.decoder.ToEvent(item.Message);
         }
 
-        private Message AllDone()
+        private TData AllDone()
         {
             this.state = ConsumerIteratorState.Done;
-            return null;
+            return default(TData);
         }
     }
 }

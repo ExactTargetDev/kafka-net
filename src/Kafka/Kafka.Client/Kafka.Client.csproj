@@ -181,9 +181,13 @@
     <Compile Include="Producers\Sync\SyncProducerPool.cs" />
     <Compile Include="Producers\TopicData.cs" />
     <Compile Include="Producers\TopicMetadata.cs" />
+    <Compile Include="Requests\FetchRequestBuilder.cs" />
     <Compile Include="Requests\TopicMetadataRequest.cs" />
     <Compile Include="Responses\FetchResponse.cs" />
     <Compile Include="Responses\ProducerResponse.cs" />
+    <Compile Include="Serialization\DefaultDecoder.cs" />
+    <Compile Include="Serialization\IDecoder.cs" />
+    <Compile Include="Serialization\StringDecoder.cs" />
     <Compile Include="Serialization\StringEncoder.cs" />
     <Compile Include="Serialization\IWritable.cs" />
     <Compile Include="Producers\ProducerTypes.cs" />

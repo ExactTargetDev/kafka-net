@@ -53,11 +53,6 @@ namespace Kafka.Client.Requests
         public const byte DefaultOffsetInfoSizeSize = 4;
 
         public const short CurrentVersion = 1;
-        private const short DefaultCorrelationId = -1;
-        private const string DefaultClientId = "";
-        private const short DefaultReplicaId = -1;
-        private const short DefaultMaxWait = -1;
-        private const short DefaultMinBytes = -1;
 
         public short VersionId { get; private set; }
         public int CorrelationId { get; private set; }
@@ -65,7 +60,7 @@ namespace Kafka.Client.Requests
         public int ReplicaId { get; private set; }
         public int MaxWait { get; private set; }
         public int MinBytes { get; private set; }
-        public ReadOnlyCollection<OffsetDetail> OffsetInfo { get; set; }
+        public IEnumerable<OffsetDetail> OffsetInfo { get; set; }
 
         public int GetRequestLength()
         {
@@ -87,54 +82,7 @@ namespace Kafka.Client.Requests
             return topicLength + DefaultHeaderAsPartOfMultirequestSize;
         }
 
-        public static FetchRequest Create(IList<OffsetDetail> offsetInfo, Action<FetchRequest> options = null)
-        {
-            if (offsetInfo == null)
-            {
-                throw new ArgumentNullException("offsetInfo", "List of offset details cannot be null.");
-            }
-
-            var request = new FetchRequest(CurrentVersion, DefaultCorrelationId, DefaultClientId, DefaultReplicaId, DefaultMaxWait, DefaultMinBytes, offsetInfo);
-
-            if (options != null)
-            {
-                options(request);
-            }
-
-            return request;
-        }
-
-        public void SetCorrelationId(int correlationId)
-        {
-            this.CorrelationId = correlationId;
-        }
-
-        public void SetClientId(string clientId)
-        {
-            this.ClientId = clientId;
-        }
-
-        public void SetReplicaId(int replicaId)
-        {
-            this.ReplicaId = replicaId;
-        }
-
-        public void SetMaxWait(int maxWait)
-        {
-            this.MaxWait = maxWait;
-        }
-
-        public void SetMinBytes(int minBytes)
-        {
-            this.MinBytes = minBytes;
-        }
-
-        public void SetVersionId(short versionId)
-        {
-            this.VersionId = versionId;
-        }
-
-        private FetchRequest(short versionId, int correlationId, string clientId, int replicaId, int maxWait, int minBytes, IList<OffsetDetail> offsetInfo)
+        public FetchRequest(short versionId, int correlationId, string clientId, int replicaId, int maxWait, int minBytes, IEnumerable<OffsetDetail> offsetInfo)
         {
             this.VersionId = versionId;
             this.CorrelationId = correlationId;
@@ -142,7 +90,7 @@ namespace Kafka.Client.Requests
             this.ReplicaId = replicaId;
             this.MaxWait = maxWait;
             this.MinBytes = minBytes;
-            this.OffsetInfo = new ReadOnlyCollection<OffsetDetail>(offsetInfo);
+            this.OffsetInfo = new List<OffsetDetail>(offsetInfo);
 
             int length = GetRequestLength();
             this.RequestBuffer = new BoundedBuffer(length);

@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Serialization;
+
 namespace Kafka.Client.IntegrationTests
 {
     using System;
@@ -601,8 +603,9 @@ namespace Kafka.Client.IntegrationTests
             var receivedMessages = new List<Message>();
             using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
             {
+                var decoder = new DefaultDecoder();
                 var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
-                var messages = consumerConnector.CreateMessageStreams(topicCount);
+                var messages = consumerConnector.CreateMessageStreams(topicCount, decoder);
                 var sets = messages[CurrentTestTopic];
 
                 try
@@ -687,8 +690,9 @@ namespace Kafka.Client.IntegrationTests
             var receivedMessages = new List<Message>();
             using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
             {
+                var decoder = new DefaultDecoder();
                 var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
-                var messages = consumerConnector.CreateMessageStreams(topicCount);
+                var messages = consumerConnector.CreateMessageStreams(topicCount, decoder);
                 var sets = messages[CurrentTestTopic];
 
                 try

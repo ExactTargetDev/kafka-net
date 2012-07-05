@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Serialization;
+
 namespace Kafka.Client.Consumers
 {
     using System;
@@ -54,7 +56,7 @@ namespace Kafka.Client.Consumers
 
         private readonly KafkaScheduler scheduler = new KafkaScheduler();
 
-        private readonly IDictionary<string, IDictionary<Partition, PartitionTopicInfo>> topicRegistry = new ConcurrentDictionary<string, IDictionary<Partition, PartitionTopicInfo>>();
+        private readonly IDictionary<string, IDictionary<int, PartitionTopicInfo>> topicRegistry = new ConcurrentDictionary<string, IDictionary<int, PartitionTopicInfo>>();
 
         private readonly IDictionary<Tuple<string, string>, BlockingCollection<FetchedDataChunk>> queues = new Dictionary<Tuple<string, string>, BlockingCollection<FetchedDataChunk>>();
 
@@ -107,17 +109,17 @@ namespace Kafka.Client.Consumers
             this.zkClient.SlimLock.EnterReadLock();
             try
             {
-                foreach (KeyValuePair<string, IDictionary<Partition, PartitionTopicInfo>> topic in topicRegistry)
+                foreach (KeyValuePair<string, IDictionary<int, PartitionTopicInfo>> topic in topicRegistry)
                 {
                     var topicDirs = new ZKGroupTopicDirs(this.config.GroupId, topic.Key);
-                    foreach (KeyValuePair<Partition, PartitionTopicInfo> partition in topic.Value)
+                    foreach (KeyValuePair<int, PartitionTopicInfo> partition in topic.Value)
                     {
                         var newOffset = partition.Value.GetConsumeOffset();
                         try
                         {
                             ZkUtils.UpdatePersistentPath(zkClient,
                                                          topicDirs.ConsumerOffsetDir + "/" +
-                                                         partition.Value.Partition.PartId, newOffset.ToString());
+                                                         partition.Value.PartitionId, newOffset.ToString());
                         }
                         catch (Exception ex)
                         {
@@ -222,10 +224,10 @@ namespace Kafka.Client.Consumers
         /// <remarks>
         /// Explicitly triggers load balancing for this consumer
         /// </remarks>
-        public IDictionary<string, IList<KafkaMessageStream>> CreateMessageStreams(IDictionary<string, int> topicCountDict)
+        public IDictionary<string, IList<KafkaMessageStream<TData>>> CreateMessageStreams<TData>(IDictionary<string, int> topicCountDict, IDecoder<TData> decoder)
         {
             this.EnsuresNotDisposed();
-            return this.Consume(topicCountDict);
+            return this.Consume(topicCountDict, decoder);
         }
 
         private void ConnectZk()
@@ -243,7 +245,7 @@ namespace Kafka.Client.Consumers
             }
         }
 
-        private IDictionary<string, IList<KafkaMessageStream>> Consume(IDictionary<string, int> topicCountDict)
+        private IDictionary<string, IList<KafkaMessageStream<TData>>> Consume<TData>(IDictionary<string, int> topicCountDict, IDecoder<TData> decoder)
         {
             Logger.Debug("entering consume");
 
@@ -253,15 +255,31 @@ namespace Kafka.Client.Consumers
             }
 
             var dirs = new ZKGroupDirs(this.config.GroupId);
-            var result = new Dictionary<string, IList<KafkaMessageStream>>();
+            var result = new Dictionary<string, IList<KafkaMessageStream<TData>>>();
 
             var guid = Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 8);
             string consumerUuid = string.Format("{0}-{1}-{2}", Dns.GetHostName(), DateTime.Now.Ticks, guid);
             string consumerIdString = this.config.GroupId + "_" + consumerUuid;
             var topicCount = new TopicCount(consumerIdString, topicCountDict);
 
+            //// create a queue per topic per consumer thread
+            var consumerThreadIdsPerTopicMap = topicCount.GetConsumerThreadIdsPerTopic();
+            foreach (var topic in consumerThreadIdsPerTopicMap.Keys)
+            {
+                var streamList = new List<KafkaMessageStream<TData>>();
+                foreach (string threadId in consumerThreadIdsPerTopicMap[topic])
+                {
+                    var stream = new BlockingCollection<FetchedDataChunk>(new ConcurrentQueue<FetchedDataChunk>());
+                    this.queues.Add(new Tuple<string, string>(topic, threadId), stream);
+                    streamList.Add(new KafkaMessageStream<TData>(topic, stream, this.config.Timeout, decoder));
+                }
+
+                result.Add(topic, streamList);
+                Logger.DebugFormat(CultureInfo.CurrentCulture, "adding topic {0} and stream to map...", topic);
+            }
+
             // listener to consumer and partition changes
-            var loadBalancerListener = new ZKRebalancerListener(
+            var loadBalancerListener = new ZKRebalancerListener<TData>(
                 this.config,
                 consumerIdString,
                 this.topicRegistry,
@@ -272,31 +290,18 @@ namespace Kafka.Client.Consumers
                 this.syncLock,
                 result);
             this.RegisterConsumerInZk(dirs, consumerIdString, topicCount);
+            
+            //// register listener for session expired event
+            this.zkClient.Subscribe(new ZKSessionExpireListener<TData>(dirs, consumerIdString, topicCount, loadBalancerListener, this));
+
             this.zkClient.Subscribe(dirs.ConsumerRegistryDir, loadBalancerListener);
 
-            //// create a queue per topic per consumer thread
-            var consumerThreadIdsPerTopicMap = topicCount.GetConsumerThreadIdsPerTopic();
-            foreach (var topic in consumerThreadIdsPerTopicMap.Keys)
-            {
-                var streamList = new List<KafkaMessageStream>();
-                foreach (string threadId in consumerThreadIdsPerTopicMap[topic])
-                {
-                    var stream = new BlockingCollection<FetchedDataChunk>(new ConcurrentQueue<FetchedDataChunk>());
-                    this.queues.Add(new Tuple<string, string>(topic, threadId), stream);
-                    streamList.Add(new KafkaMessageStream(stream, this.config.Timeout));
-                }
-
-                result.Add(topic, streamList);
-                Logger.DebugFormat(CultureInfo.CurrentCulture, "adding topic {0} and stream to map...", topic);
-
+            result.ForEach( topicAndStreams =>{
                 // register on broker partition path changes
-                string partitionPath = ZooKeeperClient.DefaultBrokerTopicsPath + "/" + topic;
+                string partitionPath = ZooKeeperClient.DefaultBrokerTopicsPath + "/" + topicAndStreams.Key;
                 this.zkClient.MakeSurePersistentPathExists(partitionPath);
                 this.zkClient.Subscribe(partitionPath, loadBalancerListener);
-            }
-
-            //// register listener for session expired event
-            this.zkClient.Subscribe(new ZKSessionExpireListener(dirs, consumerIdString, topicCount, loadBalancerListener, this));
+            });
 
             //// explicitly trigger load balancing for this consumer););
             lock (this.syncLock)

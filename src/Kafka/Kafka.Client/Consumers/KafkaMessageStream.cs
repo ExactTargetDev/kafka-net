@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Serialization;
+
 namespace Kafka.Client.Consumers
 {
     using System.Collections;
@@ -26,31 +28,39 @@ namespace Kafka.Client.Consumers
     /// <summary>
     /// This class is a thread-safe IEnumerable of <see cref="Message"/> that can be enumerated to get messages.
     /// </summary>
-    public class KafkaMessageStream : IEnumerable<Message>
+    public class KafkaMessageStream<TData> : IEnumerable<TData>
     {
         private readonly BlockingCollection<FetchedDataChunk> queue;
 
         private readonly int consumerTimeoutMs;
 
-        private ConsumerIterator iterator;
+        private ConsumerIterator<TData> iterator;
 
-        internal KafkaMessageStream(BlockingCollection<FetchedDataChunk> queue, int consumerTimeoutMs)
+        private string topic;
+
+        private IDecoder<TData> decoder;
+
+        internal KafkaMessageStream(string topic, BlockingCollection<FetchedDataChunk> queue, int consumerTimeoutMs, IDecoder<TData> decoder)
         {
+            this.topic = topic;
             this.consumerTimeoutMs = consumerTimeoutMs;
             this.queue = queue;
-            this.iterator = new ConsumerIterator(this.queue, this.consumerTimeoutMs);
+            this.decoder = decoder;
+            this.iterator = new ConsumerIterator<TData>(this.topic, this.queue, this.consumerTimeoutMs, this.decoder);
         }
 
-        internal KafkaMessageStream(BlockingCollection<FetchedDataChunk> queue, int consumerTimeoutMs, CancellationToken token)
+        internal KafkaMessageStream(string topic, BlockingCollection<FetchedDataChunk> queue, int consumerTimeoutMs, IDecoder<TData> decoder, CancellationToken token)
         {
+            this.topic = topic;
             this.consumerTimeoutMs = consumerTimeoutMs;
             this.queue = queue;
-            this.iterator = new ConsumerIterator(queue, consumerTimeoutMs, token);
+            this.decoder = decoder;
+            this.iterator = new ConsumerIterator<TData>(topic, queue, consumerTimeoutMs, decoder, token);
         }
 
-        public IEnumerable<Message> GetCancellable(CancellationToken cancellationToken)
+        public IEnumerable<TData> GetCancellable(CancellationToken cancellationToken)
         {
-            return new KafkaMessageStream(this.queue, this.consumerTimeoutMs, cancellationToken);
+            return new KafkaMessageStream<TData>(this.topic, this.queue, this.consumerTimeoutMs, this.decoder, cancellationToken);
         }
 
         public void Clear()
@@ -58,7 +68,7 @@ namespace Kafka.Client.Consumers
             iterator.ClearIterator();
         }
 
-        public IEnumerator<Message> GetEnumerator()
+        public IEnumerator<TData> GetEnumerator()
         {
             return this.iterator;
         }
