@@ -147,7 +147,7 @@ namespace Kafka.Client.IntegrationTests
 
             var producerHelper = new ProducerHelper();
             producerHelper.SendMessagesToTopicSynchronously(topic, new List<Message>() { msg1, msg2 }, prodConfig);
-            
+
             // now consuming
             var resultMessages = new List<Message>();
             using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
@@ -249,33 +249,33 @@ namespace Kafka.Client.IntegrationTests
             producerHelper.SendMessagesToTopicSynchronously(CurrentTestTopic, new List<Message>() { msg1 }, prodConfig);
 
 
-                // now consuming
-                using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
-                {
-                    var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
-                    var messages = consumerConnector.CreateMessageStreams(topicCount, decoder);
-                    var sets = messages[CurrentTestTopic];
-                    KafkaMessageStream<Message> myStream = sets[0];
-                    var enumerator = myStream.GetEnumerator();
+            // now consuming
+            using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
+            {
+                var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
+                var messages = consumerConnector.CreateMessageStreams(topicCount, decoder);
+                var sets = messages[CurrentTestTopic];
+                KafkaMessageStream<Message> myStream = sets[0];
+                var enumerator = myStream.GetEnumerator();
 
-                    Assert.IsTrue(enumerator.MoveNext());
-                    Assert.AreEqual(msg1.ToString(), enumerator.Current.ToString());
+                Assert.IsTrue(enumerator.MoveNext());
+                Assert.AreEqual(msg1.ToString(), enumerator.Current.ToString());
 
-                    Assert.Throws<ConsumerTimeoutException>(() => enumerator.MoveNext());
+                Assert.Throws<ConsumerTimeoutException>(() => enumerator.MoveNext());
 
-                    enumerator.Reset();
+                enumerator.Reset();
 
-                    // producing again
-                    string payload2 = "kafka 2.";
-                    byte[] payloadData2 = Encoding.UTF8.GetBytes(payload2);
-                    var msg2 = new Message(payloadData2);
+                // producing again
+                string payload2 = "kafka 2.";
+                byte[] payloadData2 = Encoding.UTF8.GetBytes(payload2);
+                var msg2 = new Message(payloadData2);
 
-                    producerHelper.SendMessagesToTopicSynchronously(CurrentTestTopic, new List<Message>() { msg2 }, prodConfig);
-                    Thread.Sleep(3000);
+                producerHelper.SendMessagesToTopicSynchronously(CurrentTestTopic, new List<Message>() { msg2 }, prodConfig);
+                Thread.Sleep(3000);
 
-                    Assert.IsTrue(enumerator.MoveNext());
-                    Assert.AreEqual(msg2.ToString(), enumerator.Current.ToString());
-                }
+                Assert.IsTrue(enumerator.MoveNext());
+                Assert.AreEqual(msg2.ToString(), enumerator.Current.ToString());
+            }
         }
 
         [Test]
@@ -794,11 +794,13 @@ namespace Kafka.Client.IntegrationTests
             int numberOfMessagesToSend = 100;
             string topic = CurrentTestTopic;
 
+            Assert.True(consumerConfig.FetchSize >= numberOfMessagesToSend + 16);
+
             var msgList = new List<Message>();
             var producerHelper = new ProducerHelper();
             for (int i = 0; i < numberOfMessagesToSend; i++)
             {
-                string payload = CreatePayloadByNumber(i + 100);
+                string payload = CreatePayloadByNumber(i);
                 byte[] payloadData = Encoding.UTF8.GetBytes(payload);
                 var msg = new Message(payloadData);
                 msgList.Add(msg);
@@ -814,21 +816,23 @@ namespace Kafka.Client.IntegrationTests
                 var messages = consumerConnector.CreateMessageStreams(topicCount, decoder);
                 var sets = messages[topic];
 
-                try
+
+                foreach (var set in sets)
                 {
-                    foreach (var set in sets)
+                    try
                     {
                         foreach (var message in set)
                         {
-                            Assert.AreEqual(CreatePayloadByNumber(messageNumberCounter + 100), Encoding.UTF8.GetString(message.Payload));
+                            Assert.AreEqual(CreatePayloadByNumber(messageNumberCounter), Encoding.UTF8.GetString(message.Payload));
                             messageNumberCounter++;
                         }
                     }
+                    catch (ConsumerTimeoutException)
+                    {
+                        // do nothing, this is expected
+                    }
                 }
-                catch (ConsumerTimeoutException)
-                {
-                    // do nothing, this is expected
-                }
+
             }
 
             Assert.AreEqual(numberOfMessagesToSend, messageNumberCounter);
