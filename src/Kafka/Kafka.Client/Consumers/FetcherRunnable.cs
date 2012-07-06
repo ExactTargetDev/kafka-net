@@ -139,54 +139,6 @@ namespace Kafka.Client.Consumers
                         Logger.DebugFormat(CultureInfo.CurrentCulture, "backing off {0} ms", this.config.BackOffIncrement);
                         Thread.Sleep(this.config.BackOffIncrement);
                     }
-
-
-                    //var items = this.partitionTopicInfos.Zip(
-                    //    response,
-                    //    (x, y) =>
-                    //    new Tuple<PartitionTopicInfo, BufferedMessageSet>(x, y));
-                    //foreach (Tuple<PartitionTopicInfo, BufferedMessageSet> item in items)
-                    //{
-                    //    BufferedMessageSet messages = item.Item2;
-                    //    PartitionTopicInfo info = item.Item1;
-                    //    try
-                    //    {
-                    //        bool done = false;
-                    //        if (messages.ErrorCode == ErrorMapping.OffsetOutOfRangeCode)
-                    //        {
-                    //            Logger.InfoFormat(CultureInfo.CurrentCulture, "offset {0} out of range", info.GetFetchOffset());
-                    //            //// see if we can fix this error
-                    //            var resetOffset = this.ResetConsumerOffsets(info.Topic, info.PartitionId);
-                    //            if (resetOffset >= 0)
-                    //            {
-                    //                info.ResetFetchOffset(resetOffset);
-                    //                info.ResetConsumeOffset(resetOffset);
-                    //                done = true;
-                    //            }
-                    //        }
-
-                    //        if (!done)
-                    //        {
-                    //            read += info.Add(messages, info.GetFetchOffset());
-                    //        }
-                    //    }
-                    //    catch (Exception ex)
-                    //    {
-                    //        if (!shouldStop)
-                    //        {
-                    //            Logger.ErrorFormat(CultureInfo.CurrentCulture, "error in FetcherRunnable for {0}" + info, ex);
-                    //        }
-
-                    //        throw;
-                    //    }
-                    //}
-
-                    //Logger.Info("Fetched bytes: " + read);
-                    //if (read == 0)
-                    //{
-                    //    Logger.DebugFormat(CultureInfo.CurrentCulture, "backing off {0} ms", this.config.BackOffIncrement);
-                    //    Thread.Sleep(this.config.BackOffIncrement);
-                    //}
                 }
             }
             catch (Exception ex)
