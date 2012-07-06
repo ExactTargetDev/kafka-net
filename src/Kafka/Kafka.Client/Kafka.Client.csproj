@@ -167,6 +167,11 @@
     <Compile Include="Messages\CompressionCodec.cs" />
     <Compile Include="Messages\CompressionCodecs.cs" />
     <Compile Include="Messages\CompressionUtils.cs" />
+    <Compile Include="Messages\Compression\BitArrayManipulation.cs" />
+    <Compile Include="Messages\Compression\ByteBuffer.cs" />
+    <Compile Include="Messages\Compression\SnappyCompress.cs" />
+    <Compile Include="Messages\Compression\SnappyDecompress.cs" />
+    <Compile Include="Messages\Compression\SnappyHelper.cs" />
     <Compile Include="Messages\MessageAndOffset.cs" />
     <Compile Include="Producers\Async\AsyncProducerPool.cs" />
     <Compile Include="Producers\Async\DefaultCallbackHandler.cs" />

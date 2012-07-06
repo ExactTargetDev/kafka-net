@@ -15,9 +15,6 @@
  * limitations under the License.
  */
 
-using Kafka.Client.Serialization;
-using Kafka.Client.Utils;
-
 namespace Kafka.Client.IntegrationTests
 {
     using System.Collections.Generic;
@@ -27,9 +24,9 @@ namespace Kafka.Client.IntegrationTests
     using Kafka.Client.Consumers;
     using Kafka.Client.Exceptions;
     using Kafka.Client.Messages;
-    using Kafka.Client.Producers.Async;
-    using Kafka.Client.Producers.Sync;
     using Kafka.Client.Requests;
+    using Kafka.Client.Serialization;
+
     using NUnit.Framework;
 
     [TestFixture]
@@ -40,189 +37,284 @@ namespace Kafka.Client.IntegrationTests
         /// </summary>
         private static readonly int MaxTestWaitTimeInMiliseconds = 5000;
 
-        //[Test]
-        //public void SimpleSyncProducerSends2CompressedMessagesAndConsumerConnectorGetsThemBack()
-        //{
-        //    var prodConfig = this.SyncProducerConfig1;
-        //    var consumerConfig = this.ZooKeeperBasedConsumerConfig;
+        [Test]
+        [ExpectedException(typeof(UnknownCodecException))]
+        public void NoCompressionTest()
+        {
+            this.SimpleSyncProducerSendsMessagesUsingCompressionAndConsumerGetsThemBack(5, CompressionCodecs.NoCompressionCodec);
+        }
 
-        //    // first producing
-        //    string payload1 = "kafka 1.";
-        //    byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
-        //    var msg1 = new Message(payloadData1);
+        [Test]
+        public void GzipCompressionForSingleTopicTest()
+        {
+            this.SimpleSyncProducerSendsMessagesUsingCompressionAndConsumerGetsThemBack(5, CompressionCodecs.GZIPCompressionCodec);
+        }
 
-        //    string payload2 = "kafka 2.";
-        //    byte[] payloadData2 = Encoding.UTF8.GetBytes(payload2);
-        //    var msg2 = new Message(payloadData2);
+        [Test]
+        public void DefaultCompressionForSingleTopicTest()
+        {
+            this.SimpleSyncProducerSendsMessagesUsingCompressionAndConsumerGetsThemBack(5, CompressionCodecs.DefaultCompressionCodec);
+        }
 
-        //    Message compressedMessage = CompressionUtils.Compress(new List<Message> { msg1, msg2 }, CompressionCodecs.DefaultCompressionCodec);
-        //    var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { compressedMessage });
-        //    using (var producer = new SyncProducer(prodConfig))
-        //    {
-        //        producer.Send(producerRequest);
-        //    }
+        [Test]
+        public void SnappyCompressionForSingleTopicTest()
+        {
+            this.SimpleSyncProducerSendsMessagesUsingCompressionAndConsumerGetsThemBack(5, CompressionCodecs.SnappyCompressionCodec);
+        }
 
-        //    // now consuming
-        //    var resultMessages = new List<Message>();
-        //    using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
-        //    {
-        //        var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
-        //        var messages = consumerConnector.CreateMessageStreams(topicCount, decoder);
-        //        var sets = messages[CurrentTestTopic];
-        //        try
-        //        {
-        //            foreach (var set in sets)
-        //            {
-        //                foreach (var message in set)
-        //                {
-        //                    resultMessages.Add(message);
-        //                }
-        //            }
-        //        }
-        //        catch (ConsumerTimeoutException)
-        //        {
-        //            // do nothing, this is expected
-        //        }
-        //    }
+        [Test]
+        public void GzipCompressionForTwoTopicsTest()
+        {
+            this.SimpleSyncProducerSendsMessagesToDifferentTopicsUsingCompressionAndConsumerGetsThemBack(5, CompressionCodecs.GZIPCompressionCodec);
+        }
 
-        //    Assert.AreEqual(2, resultMessages.Count);
-        //    Assert.AreEqual(msg1.ToString(), resultMessages[0].ToString());
-        //    Assert.AreEqual(msg2.ToString(), resultMessages[1].ToString());
-        //}
+        [Test]
+        public void DefaultCompressionForTwoTopicsTest()
+        {
+            this.SimpleSyncProducerSendsMessagesToDifferentTopicsUsingCompressionAndConsumerGetsThemBack(5, CompressionCodecs.DefaultCompressionCodec);
+        }
 
-        //[Test]
-        //public void ProducersSendCompressedMessagesToDifferentPartitionsAndConsumerConnectorGetsThemBack()
-        //{
-        //    var prodConfig = this.SyncProducerConfig1;
-        //    var consumerConfig = this.ZooKeeperBasedConsumerConfig;
+        [Test]
+        public void SnappyCompressionForTwoTopicsTest()
+        {
+            this.SimpleSyncProducerSendsMessagesToDifferentTopicsUsingCompressionAndConsumerGetsThemBack(5, CompressionCodecs.SnappyCompressionCodec);
+        }
 
-        //    // first producing
-        //    string payload1 = "kafka 1.";
-        //    byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
-        //    var msg1 = new Message(payloadData1);
-        //    Message compressedMessage1 = CompressionUtils.Compress(new List<Message> { msg1 }, CompressionCodecs.GZIPCompressionCodec);
+        [Test]
+        public void GzipCompressionForTwoPartitionsTest()
+        {
+            this.SimpleSyncProducerSendsMessagesToDifferentPartitionsUsingCompressionAndConsumerGetsThemBack(5, CompressionCodecs.GZIPCompressionCodec);
+        }
 
-        //    string payload2 = "kafka 2.";
-        //    byte[] payloadData2 = Encoding.UTF8.GetBytes(payload2);
-        //    var msg2 = new Message(payloadData2);
-        //    Message compressedMessage2 = CompressionUtils.Compress(new List<Message> { msg2 }, CompressionCodecs.GZIPCompressionCodec);
+        [Test]
+        public void DefaultCompressionForTwoPartitionsTest()
+        {
+            this.SimpleSyncProducerSendsMessagesToDifferentPartitionsUsingCompressionAndConsumerGetsThemBack(5, CompressionCodecs.DefaultCompressionCodec);
+        }
 
-        //    var producerRequest1 = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { compressedMessage1 });
-        //    var producerRequest2 = new ProducerRequest(CurrentTestTopic, 1, new List<Message> { compressedMessage2 });
-        //    using (var producer = new SyncProducer(prodConfig))
-        //    {
-        //        producer.Send(producerRequest1);
-        //        producer.Send(producerRequest2);
-        //    }
+        [Test]
+        public void SnappyCompressionForTwoPartitionsTest()
+        {
+            this.SimpleSyncProducerSendsMessagesToDifferentPartitionsUsingCompressionAndConsumerGetsThemBack(5, CompressionCodecs.SnappyCompressionCodec);
+        }
 
-        //    // now consuming
-        //    var resultMessages = new List<Message>();
-        //    using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
-        //    {
-        //        var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
-        //        var messages = consumerConnector.CreateMessageStreams(topicCount);
+        private void SimpleSyncProducerSendsMessagesUsingCompressionAndConsumerGetsThemBack(int numberOfMessages, CompressionCodecs compressionCodec)
+        {
+            var producerHelper = new ProducerHelper();
+            var topic = this.CurrentTestTopic;
+            var producerConfiguration = this.SyncProducerConfig1;
 
-        //        var sets = messages[CurrentTestTopic];
+            var messages = new List<Message>();
+            for (var i = 0; i < numberOfMessages; i++)
+            {
+                messages.Add(new Message(Encoding.UTF8.GetBytes(string.Format("TestMessage.{0}", i))));
+            }
 
-        //        try
-        //        {
-        //            foreach (var set in sets)
-        //            {
-        //                foreach (var message in set)
-        //                {
-        //                    resultMessages.Add(message);
-        //                }
-        //            }
-        //        }
-        //        catch (ConsumerTimeoutException)
-        //        {
-        //            // do nothing, this is expected
-        //        }
-        //    }
+            var compressedMessage = CompressionUtils.Compress(messages, compressionCodec);
 
-        //    Assert.AreEqual(2, resultMessages.Count);
-        //    Assert.AreEqual(msg1.ToString(), resultMessages[0].ToString());
-        //    Assert.AreEqual(msg2.ToString(), resultMessages[1].ToString());
-        //}
+            var producerResult = producerHelper.SendMessagesToTopicSynchronously(topic, new List<Message> { compressedMessage }, producerConfiguration);
 
-        //[Test]
-        //public void ConsumerConnectorConsumesTwoDifferentCompressedTopics()
-        //{
-        //    var prodConfig = this.SyncProducerConfig1;
-        //    var consumerConfig = this.ZooKeeperBasedConsumerConfig;
+            var producerResponse = producerResult.Item1;
+            var partitionMetadata = producerResult.Item2;
 
-        //    string topic1 = CurrentTestTopic + "1";
-        //    string topic2 = CurrentTestTopic + "2";
+            var broker = partitionMetadata.Replicas.ToArray()[0];
 
-        //    // first producing
-        //    string payload1 = "kafka 1.";
-        //    byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
-        //    var msg1 = new Message(payloadData1);
-        //    Message compressedMessage1 = CompressionUtils.Compress(new List<Message> { msg1 }, CompressionCodecs.GZIPCompressionCodec);
+            var consumerConfiguration = this.ConsumerConfig1;
+            consumerConfiguration.Broker.BrokerId = broker.Id;
+            consumerConfiguration.Broker.Host = broker.Host;
+            consumerConfiguration.Broker.Port = broker.Port;
 
-        //    string payload2 = "kafka 2.";
-        //    byte[] payloadData2 = Encoding.UTF8.GetBytes(payload2);
-        //    var msg2 = new Message(payloadData2);
-        //    Message compressedMessage2 = CompressionUtils.Compress(new List<Message> { msg2 }, CompressionCodecs.GZIPCompressionCodec);
+            var consumer = new Consumer(consumerConfiguration);
+            var offsetInfo = new List<OffsetDetail> { new OffsetDetail(topic, new List<int>() { partitionMetadata.PartitionId }, new List<long> { 0 }, new List<int> { 256 }) };
+            var fetchRequest = new FetchRequest(FetchRequest.CurrentVersion, 0, "", broker.Id, 0, 0, offsetInfo);
 
-        //    var producerRequest1 = new ProducerRequest(topic1, 0, new List<Message> { compressedMessage1 });
-        //    var producerRequest2 = new ProducerRequest(topic2, 0, new List<Message> { compressedMessage2 });
-        //    using (var producer = new SyncProducer(prodConfig))
-        //    {
-        //        producer.Send(producerRequest1);
-        //        producer.Send(producerRequest2);
-        //    }
+            // giving the kafka server some time to process the message
+            Thread.Sleep(750 * numberOfMessages);
 
-        //    // now consuming
-        //    var resultMessages1 = new List<Message>();
-        //    var resultMessages2 = new List<Message>();
-        //    using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfig, true))
-        //    {
-        //        var topicCount = new Dictionary<string, int> { { topic1, 1 }, { topic2, 1 } };
-        //        var messages = consumerConnector.CreateMessageStreams(topicCount);
+            var fetchResponse = consumer.Fetch(fetchRequest);
+            var fetchedMessageSet = fetchResponse.MessageSet(topic, partitionMetadata.PartitionId);
+            var fetchedMessages = fetchedMessageSet.ToList();
+            Assert.AreEqual(numberOfMessages, messages.Count);
 
-        //        Assert.IsTrue(messages.ContainsKey(topic1));
-        //        Assert.IsTrue(messages.ContainsKey(topic2));
+            for (var i = 0; i < fetchedMessages.Count; i++)
+            {
+                var message = fetchedMessages[i];
+                var expectedPayload = Encoding.UTF8.GetBytes(string.Format("TestMessage.{0}", i));
+                var actualPayload = message.Message.Payload;
 
-        //        var sets1 = messages[topic1];
-        //        try
-        //        {
-        //            foreach (var set in sets1)
-        //            {
-        //                foreach (var message in set)
-        //                {
-        //                    resultMessages1.Add(message);
-        //                }
-        //            }
-        //        }
-        //        catch (ConsumerTimeoutException)
-        //        {
-        //            // do nothing, this is expected
-        //        }
+                Assert.AreEqual(expectedPayload, actualPayload);
+            }
+        }
 
-        //        var sets2 = messages[topic2];
-        //        try
-        //        {
-        //            foreach (var set in sets2)
-        //            {
-        //                foreach (var message in set)
-        //                {
-        //                    resultMessages2.Add(message);
-        //                }
-        //            }
-        //        }
-        //        catch (ConsumerTimeoutException)
-        //        {
-        //            // do nothing, this is expected
-        //        }
-        //    }
+        private void SimpleSyncProducerSendsMessagesToDifferentPartitionsUsingCompressionAndConsumerGetsThemBack(int numberOfMessages, CompressionCodecs compressionCodec)
+        {
+            var producerHelper = new ProducerHelper();
+            var topic = this.CurrentTestTopic;
+            var producerConfiguration = this.SyncProducerConfig1;
 
-        //    Assert.AreEqual(1, resultMessages1.Count);
-        //    Assert.AreEqual(msg1.ToString(), resultMessages1[0].ToString());
+            var messages1 = new List<Message>();
+            for (var i = 0; i < numberOfMessages; i++)
+            {
+                messages1.Add(new Message(Encoding.UTF8.GetBytes(string.Format("TestMessage.{0}", i))));
+            }
 
-        //    Assert.AreEqual(1, resultMessages2.Count);
-        //    Assert.AreEqual(msg2.ToString(), resultMessages2[0].ToString());
-        //}
+            var messages2 = new List<Message>();
+            for (var i = 0; i < numberOfMessages; i++)
+            {
+                messages2.Add(new Message(Encoding.UTF8.GetBytes(string.Format("TestMessage.{0}", i))));
+            }
+
+            var compressedMessage1 = CompressionUtils.Compress(messages1, compressionCodec);
+            var compressedMessage2 = CompressionUtils.Compress(messages2, compressionCodec);
+
+            var producerResult1 = producerHelper.SendMessagesToTopicSynchronously(topic, new List<Message> { compressedMessage1 }, producerConfiguration, 0);
+
+            // giving the kafka server some time to process the message
+            Thread.Sleep(750 * numberOfMessages);
+
+            var producerResult2 = producerHelper.SendMessagesToTopicSynchronously(topic, new List<Message> { compressedMessage2 }, producerConfiguration, 1);
+
+            var consumerConfiguration = this.ZooKeeperBasedConsumerConfig;
+
+            // giving the kafka server some time to process the message
+            Thread.Sleep(750 * numberOfMessages);
+
+            var resultMessages = new List<Message>();
+            using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfiguration, true))
+            {
+                var topicCount = new Dictionary<string, int> { { topic, 1 } };
+                var messages = consumerConnector.CreateMessageStreams(topicCount, new DefaultDecoder());
+
+                Assert.IsTrue(messages.ContainsKey(topic));
+
+                var sets = messages[topic];
+                try
+                {
+                    foreach (var set in sets)
+                    {
+                        foreach (var message in set)
+                        {
+                            resultMessages.Add(message);
+                        }
+                    }
+                }
+                catch (ConsumerTimeoutException)
+                {
+                    // do nothing, this is expected
+                }
+            }
+
+            Assert.AreEqual(numberOfMessages * 2, resultMessages.Count);
+
+            var resultHelper = new Dictionary<string, int>();
+            for (var i = 0; i < numberOfMessages; i++)
+            {
+                resultHelper.Add(string.Format("TestMessage.{0}", i), 0);
+            }
+
+            foreach (var message in resultMessages)
+            {
+                var actualPayload = message.Payload;
+
+                resultHelper[Encoding.UTF8.GetString(actualPayload)] += 1;
+            }
+
+            foreach (var key in resultHelper.Keys)
+            {
+                Assert.AreEqual(2, resultHelper[key]);
+            }
+        }
+
+        private void SimpleSyncProducerSendsMessagesToDifferentTopicsUsingCompressionAndConsumerGetsThemBack(int numberOfMessages, CompressionCodecs compressionCodec)
+        {
+            var producerHelper = new ProducerHelper();
+            var topic1 = this.CurrentTestTopic + 1;
+            var topic2 = this.CurrentTestTopic + 2;
+            var producerConfiguration = this.SyncProducerConfig1;
+
+            var messages1 = new List<Message>();
+            for (var i = 0; i < numberOfMessages; i++)
+            {
+                messages1.Add(new Message(Encoding.UTF8.GetBytes(string.Format("1.TestMessage.{0}", i))));
+            }
+
+            var messages2 = new List<Message>();
+            for (var i = 0; i < numberOfMessages; i++)
+            {
+                messages2.Add(new Message(Encoding.UTF8.GetBytes(string.Format("2.TestMessage.{0}", i))));
+            }
+
+            var compressedMessage1 = CompressionUtils.Compress(messages1, compressionCodec);
+            var compressedMessage2 = CompressionUtils.Compress(messages2, compressionCodec);
+
+            var producerResult1 = producerHelper.SendMessagesToTopicSynchronously(topic1, new List<Message> { compressedMessage1 }, producerConfiguration);
+            var producerResult2 = producerHelper.SendMessagesToTopicSynchronously(topic2, new List<Message> { compressedMessage2 }, producerConfiguration);
+
+            var consumerConfiguration = this.ZooKeeperBasedConsumerConfig;
+
+            // giving the kafka server some time to process the message
+            Thread.Sleep(750 * numberOfMessages * 2);
+
+            var resultMessages1 = new List<Message>();
+            var resultMessages2 = new List<Message>();
+            using (IConsumerConnector consumerConnector = new ZookeeperConsumerConnector(consumerConfiguration, true))
+            {
+                var topicCount = new Dictionary<string, int> { { topic1, 1 }, { topic2, 1 } };
+                var messages = consumerConnector.CreateMessageStreams(topicCount, new DefaultDecoder());
+
+                Assert.IsTrue(messages.ContainsKey(topic1));
+                Assert.IsTrue(messages.ContainsKey(topic2));
+
+                var sets1 = messages[topic1];
+                try
+                {
+                    foreach (var set in sets1)
+                    {
+                        foreach (var message in set)
+                        {
+                            resultMessages1.Add(message);
+                        }
+                    }
+                }
+                catch (ConsumerTimeoutException)
+                {
+                    // do nothing, this is expected
+                }
+
+                var sets2 = messages[topic2];
+                try
+                {
+                    foreach (var set in sets2)
+                    {
+                        foreach (var message in set)
+                        {
+                            resultMessages2.Add(message);
+                        }
+                    }
+                }
+                catch (ConsumerTimeoutException)
+                {
+                    // do nothing, this is expected
+                }
+            }
+
+            Assert.AreEqual(numberOfMessages, resultMessages1.Count);
+            Assert.AreEqual(numberOfMessages, resultMessages2.Count);
+
+            for (var i = 0; i < resultMessages1.Count; i++)
+            {
+                var message1 = resultMessages1[i];
+                var expectedPayload1 = Encoding.UTF8.GetBytes(string.Format("1.TestMessage.{0}", i));
+                var actualPayload1 = message1.Payload;
+
+                var message2 = resultMessages2[i];
+                var expectedPayload2 = Encoding.UTF8.GetBytes(string.Format("2.TestMessage.{0}", i));
+                var actualPayload2 = message2.Payload;
+
+                Assert.AreEqual(expectedPayload1, actualPayload1);
+                Assert.AreEqual(expectedPayload2, actualPayload2);
+            }
+        }
 
         //[Test]
         //public void AsyncProducerSendsCompressedAndConsumerReceivesSingleSimpleMessage()

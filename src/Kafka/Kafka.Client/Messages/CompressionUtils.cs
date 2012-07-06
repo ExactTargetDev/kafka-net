@@ -25,6 +25,10 @@ namespace Kafka.Client.Messages
     using System.IO;
     using System.IO.Compression;
     using System.Reflection;
+
+    using Kafka.Client.Messages.Compression;
+    using Kafka.Client.Serialization;
+
     using log4net;
 
     public static class CompressionUtils
@@ -42,9 +46,9 @@ namespace Kafka.Client.Messages
             {
                 case CompressionCodecs.DefaultCompressionCodec:
                 case CompressionCodecs.GZIPCompressionCodec:
-                    using (MemoryStream outputStream = new MemoryStream())
+                    using (var outputStream = new MemoryStream())
                     {
-                        using (GZipStream gZipStream = new GZipStream(outputStream, CompressionMode.Compress))
+                        using (var gZipStream = new GZipStream(outputStream, CompressionMode.Compress))
                         {
                             if (Logger.IsDebugEnabled)
                             {
@@ -55,7 +59,7 @@ namespace Kafka.Client.Messages
                             }
 
                             var bufferedMessageSet = new BufferedMessageSet(messages);
-                            using (MemoryStream inputStream = new MemoryStream(bufferedMessageSet.SetSize))
+                            using (var inputStream = new MemoryStream(bufferedMessageSet.SetSize))
                             {
                                 bufferedMessageSet.WriteTo(inputStream);
                                 inputStream.Position = 0;
@@ -71,8 +75,34 @@ namespace Kafka.Client.Messages
                                 }
                             }
 
-                            Message oneCompressedMessage = new Message(outputStream.ToArray(), compressionCodec);
+                            var oneCompressedMessage = new Message(outputStream.ToArray(), compressionCodec);
                             return oneCompressedMessage;
+                        }
+                    }
+
+                case CompressionCodecs.SnappyCompressionCodec:
+                    if (Logger.IsDebugEnabled)
+                    {
+                        Logger.DebugFormat(
+                            CultureInfo.CurrentCulture,
+                            "Allocating BufferedMessageSet of size = {0}",
+                            MessageSet.GetMessageSetSize(messages));
+                    }
+
+                    var messageSet = new BufferedMessageSet(messages);
+                    using (var inputStream = new MemoryStream(messageSet.SetSize))
+                    {
+                        messageSet.WriteTo(inputStream);
+                        inputStream.Position = 0;
+
+                        try
+                        {
+                            return new Message(SnappyHelper.Compress(inputStream.GetBuffer()), compressionCodec);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error("Error while writing to the Snappy stream", ex);
+                            throw;
                         }
                     }
 
@@ -88,11 +118,11 @@ namespace Kafka.Client.Messages
                 case CompressionCodecs.DefaultCompressionCodec:
                 case CompressionCodecs.GZIPCompressionCodec:
                     byte[] inputBytes = message.Payload;
-                    using (MemoryStream outputStream = new MemoryStream())
+                    using (var outputStream = new MemoryStream())
                     {
-                        using (MemoryStream inputStream = new MemoryStream(inputBytes))
+                        using (var inputStream = new MemoryStream(inputBytes))
                         {
-                            using (GZipStream gzipInputStream = new GZipStream(inputStream, CompressionMode.Decompress))
+                            using (var gzipInputStream = new GZipStream(inputStream, CompressionMode.Decompress))
                             {
                                 try
                                 {
@@ -107,7 +137,28 @@ namespace Kafka.Client.Messages
                             }
                         }
 
-                        return BufferedMessageSet.ParseFrom(outputStream.ToArray());
+                        outputStream.Position = 0;
+                        using (var reader = new KafkaBinaryReader(outputStream))
+                        {
+                            return BufferedMessageSet.ParseFrom(reader, outputStream.Length, 0);
+                        }
+                    }
+
+                case CompressionCodecs.SnappyCompressionCodec:
+                    try
+                    {
+                        using (var stream = new MemoryStream(SnappyHelper.Decompress(message.Payload)))
+                        {
+                            using (var reader = new KafkaBinaryReader(stream))
+                            {
+                                return BufferedMessageSet.ParseFrom(reader, stream.Length, 0);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Error while reading from the Snappy input stream", ex);
+                        throw;
                     }
 
                 default:

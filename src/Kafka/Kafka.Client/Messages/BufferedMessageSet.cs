@@ -203,7 +203,7 @@ namespace Kafka.Client.Messages
             return sb.ToString();
         }
 
-        internal static BufferedMessageSet ParseFrom(KafkaBinaryReader reader, int size, long initialOffset)
+        internal static BufferedMessageSet ParseFrom(KafkaBinaryReader reader, long size, long initialOffset)
         {
             if (size == 0)
             {
@@ -227,7 +227,7 @@ namespace Kafka.Client.Messages
             {
                 int msgSize = reader.ReadInt32();
                 readed += 4;
-                int sizeNotUsed = size - readed;
+                long sizeNotUsed = size - readed;
                 if (msgSize > sizeNotUsed || msgSize < 0)
                 {
                     if (messages.Count == 0 || msgSize < 0)
