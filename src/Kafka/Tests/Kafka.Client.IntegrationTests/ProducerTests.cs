@@ -20,11 +20,20 @@ namespace Kafka.Client.IntegrationTests
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using System.Threading;
 
+    using Kafka.Client.Cfg;
+    using Kafka.Client.Consumers;
     using Kafka.Client.Messages;
     using Kafka.Client.Producers;
+    using Kafka.Client.Producers.Async;
+    using Kafka.Client.Producers.Partitioning;
     using Kafka.Client.Producers.Sync;
     using Kafka.Client.Requests;
+    using Kafka.Client.Responses;
+    using Kafka.Client.Serialization;
+    using Kafka.Client.Utils;
+    using Kafka.Client.ZooKeeperIntegration;
 
     using NUnit.Framework;
 
@@ -35,107 +44,6 @@ namespace Kafka.Client.IntegrationTests
         /// Maximum amount of time to wait trying to get a specific test message from Kafka server (in miliseconds)
         /// </summary>
         private readonly int maxTestWaitTimeInMiliseconds = 5000;
-
-        [Test]
-        public void SyncProducerSendsTopicMetadataRequestWithOneTopic()
-        {
-            var prodConfig = this.SyncProducerConfig1;
-            int waitSingle = 100;
-            int totalWaitTimeInMiliseconds = 0;
-
-            var topic = CurrentTestTopic;
-
-            TopicMetadataRequest request = TopicMetadataRequest.Create(new List<string> { topic });
-
-            using (var producer = new SyncProducer(prodConfig))
-            {
-                var response = producer.Send(request);
-                Assert.NotNull(response);
-                Assert.AreEqual(1, response.Count());
-                var responseItem = response.ToArray()[0];
-                Assert.AreEqual(CurrentTestTopic, responseItem.Topic);
-                Assert.NotNull(responseItem.PartitionsMetadata);
-            }
-        }
-
-        [Test]
-        public void SyncProducerSendsTopicMetadataRequestWithTwoTopics()
-        {
-            var prodConfig = this.SyncProducerConfig1;
-            int waitSingle = 100;
-            int totalWaitTimeInMiliseconds = 0;
-
-            var topic1 = CurrentTestTopic + "_1";
-            var topic2 = CurrentTestTopic + "_2";
-
-            var request = TopicMetadataRequest.Create(new List<string>() { topic1, topic2 });
-
-            //TopicMetadataRequest request = new TopicMetadataRequest(new List<string>() { topic1, topic2 });
-
-            using (var producer = new SyncProducer(prodConfig))
-            {
-                var response = producer.Send(request);
-                Assert.NotNull(response);
-                Assert.AreEqual(2, response.Count());
-                var responseItem1 = response.ToArray()[0];
-                var responseItem2 = response.ToArray()[1];
-                Assert.AreEqual(topic1, responseItem1.Topic);
-                Assert.NotNull(responseItem1.PartitionsMetadata);
-                Assert.AreEqual(topic2, responseItem2.Topic);
-                Assert.NotNull(responseItem2.PartitionsMetadata);
-            }
-        }
-
-        [Test]
-        public void SyncProducerGetsTopicMetadataAndSends1Message()
-        {
-            var prodConfig = this.SyncProducerConfig1;
-            int waitSingle = 100;
-            int totalWaitTimeInMiliseconds = 0;
-
-            var topic = CurrentTestTopic;
-
-            // first producing
-            string payload1 = "TestData.";
-            byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
-            var msg1 = new Message(payloadData1);
-            
-            TopicMetadataRequest topicMetadataRequest = TopicMetadataRequest.Create(new List<string> { topic });
-            IEnumerable<TopicMetadata> topicMetadata = null;
-
-            using (var producer = new SyncProducer(prodConfig))
-            {
-                topicMetadata = producer.Send(topicMetadataRequest);
-                Assert.NotNull(topicMetadata);
-            }
-
-            var topicMetadataItem = topicMetadata.ToArray()[0];
-            var partitionMetadata = topicMetadataItem.PartitionsMetadata.ToArray()[0];
-            var broker = partitionMetadata.Replicas.ToArray()[0];
-            prodConfig.BrokerId = broker.Id;
-            prodConfig.Host = broker.Host;
-            prodConfig.Port = broker.Port;
-
-            using (var producer = new SyncProducer(prodConfig))
-            {
-                var bufferedMessageSet = new BufferedMessageSet(new List<Message>() { msg1 });
-                var req = new ProducerRequest(-1, "", 0, 0,
-                                              new List<TopicData>()
-                                                  {
-                                                      new TopicData(CurrentTestTopic,
-                                                                    new List<PartitionData>()
-                                                                        {
-                                                                            new PartitionData(
-                                                                                partitionMetadata.PartitionId,
-                                                                                bufferedMessageSet)
-                                                                        })
-                                                  });
-                var producerResponse = producer.Send(req);
-                Assert.NotNull(producerResponse);
-                Assert.AreEqual(1, producerResponse.Offsets.Count());
-                Assert.Greater(producerResponse.Offsets.ToArray()[0], 0);
-            }
-        }
 
         //[Test]
         //public void ProducerSends3Messages()
@@ -205,7 +113,7 @@ namespace Kafka.Client.IntegrationTests
         //[Test]
         //public void ProducerSends1MessageUsingNotDefaultEncoder()
         //{
-        //    var prodConfig = this.ConfigBasedSyncProdConfig;
+        //    var prodConfig = this.ZooKeeperBasedSyncProdConfig;
 
         //    int totalWaitTimeInMiliseconds = 0;
         //    int waitSingle = 100;
@@ -213,7 +121,15 @@ namespace Kafka.Client.IntegrationTests
 
         //    var multipleBrokersHelper = new TestMultipleBrokersHelper(CurrentTestTopic);
         //    multipleBrokersHelper.GetCurrentOffsets(new[] { this.SyncProducerConfig1, this.SyncProducerConfig2, this.SyncProducerConfig3 });
-        //    using (var producer = new Producer<string, string>(prodConfig, null, new StringEncoder(), null))
+
+        //    var callbackHandler = new DefaultCallbackHandler<string, string>(
+        //        prodConfig,
+        //        ReflectionHelper.Instantiate<IPartitioner<string>>(prodConfig.PartitionerClass),
+        //        new StringEncoder(),
+        //        new ProducerPool(
+        //            prodConfig,
+        //            new ZooKeeperClient(prodConfig.ZooKeeper.ZkConnect, prodConfig.ZooKeeper.ZkSessionTimeoutMs, ZooKeeperStringSerializer.Serializer)));
+        //    using (var producer = new Producer<string, string>(prodConfig, callbackHandler))
         //    {
         //        var producerData = new ProducerData<string, string>(
         //            CurrentTestTopic, new List<string> { originalMessage });
@@ -241,12 +157,14 @@ namespace Kafka.Client.IntegrationTests
         //    IConsumer consumer = new Consumer(consumerConfig);
         //    var request = new FetchRequest(CurrentTestTopic, multipleBrokersHelper.PartitionThatHasChanged, multipleBrokersHelper.OffsetFromBeforeTheChange);
 
-        //    BufferedMessageSet response;
+        //    BufferedMessageSet messageSet;
+        //    FetchResponse response;
         //    while (true)
         //    {
         //        Thread.Sleep(waitSingle);
         //        response = consumer.Fetch(request);
-        //        if (response != null && response.Messages.Count() > 0)
+        //        messageSet = response.MessageSet(CurrentTestTopic, multipleBrokersHelper.PartitionThatHasChanged);
+        //        if (messageSet.Count() > 0)
         //        {
         //            break;
         //        }
@@ -259,8 +177,8 @@ namespace Kafka.Client.IntegrationTests
         //    }
 
         //    Assert.NotNull(response);
-        //    Assert.AreEqual(1, response.Messages.Count());
-        //    Assert.AreEqual(originalMessage, Encoding.UTF8.GetString(response.Messages.First().Payload));
+        //    Assert.AreEqual(1, messageSet.Count());
+        //    Assert.AreEqual(originalMessage, Encoding.UTF8.GetString(messageSet.First().Message.Payload));
         //}
     }
 }

@@ -83,6 +83,51 @@ namespace Kafka.Client.IntegrationTests
             this.SimpleSyncProducerSendsMessagesAndConsumerGetsThemBack(20);
         }
 
+        [Test]
+        public void FetchRequestAndResponseCorrelationIdAndVersionIdTest()
+        {
+            short versionId = 5;
+            short expectedServerVersionId = 1;
+            int correlationId = 10;
+
+            var producerHelper = new ProducerHelper();
+            var topic = this.CurrentTestTopic;
+            var producerConfiguration = this.SyncProducerConfig1;
+
+            var messages = new List<Message>();
+            for (var i = 0; i < 1; i++)
+            {
+                messages.Add(new Message(Encoding.UTF8.GetBytes(string.Format("TestMessage.{0}", i))));
+            }
+
+            var producerResult = producerHelper.SendMessagesToTopicSynchronously(topic, messages, producerConfiguration);
+
+            var producerResponse = producerResult.Item1;
+            var partitionMetadata = producerResult.Item2;
+
+            var broker = partitionMetadata.Replicas.ToArray()[0];
+
+            var consumerConfiguration = this.ConsumerConfig1;
+            consumerConfiguration.Broker.BrokerId = broker.Id;
+            consumerConfiguration.Broker.Host = broker.Host;
+            consumerConfiguration.Broker.Port = broker.Port;
+
+            var consumer = new Consumer(consumerConfiguration);
+            var offsetInfo = new List<OffsetDetail> { new OffsetDetail(topic, new List<int>() { partitionMetadata.PartitionId }, new List<long> { 0 }, new List<int> { 256 }) };
+            var fetchRequest = new FetchRequest(versionId, correlationId, "", broker.Id, 0, 0, offsetInfo);
+
+            Assert.AreEqual(correlationId, fetchRequest.CorrelationId);
+            Assert.AreEqual(versionId, fetchRequest.VersionId);
+
+            // giving the kafka server some time to process the message
+            Thread.Sleep(750 * 1);
+
+            var fetchResponse = consumer.Fetch(fetchRequest);
+
+            Assert.AreEqual(correlationId, fetchResponse.CorrelationId);
+            Assert.AreEqual(expectedServerVersionId, fetchResponse.VersionId);
+        }
+
         private void SimpleSyncProducerSendsMessagesAndConsumerGetsThemBack(int numberOfMessages)
         {
             var producerHelper = new ProducerHelper();
