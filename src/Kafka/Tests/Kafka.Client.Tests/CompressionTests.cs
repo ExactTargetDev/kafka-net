@@ -20,11 +20,48 @@ namespace Kafka.Client.Tests
     using System.Collections.Generic;
     using System.Text;
     using Kafka.Client.Messages;
+
     using NUnit.Framework;
 
     [TestFixture]
     public class CompressionTests
     {
+        [Test]
+        public void CompressAndDecompressMessageUsingSnappyCompressionCodec()
+        {
+            byte[] messageBytes = new byte[] { 1, 2, 3, 4, 5 };
+            Message message = new Message(messageBytes);
+            Message compressedMsg = CompressionUtils.Compress(new List<Message>() { message }, CompressionCodecs.SnappyCompressionCodec);
+            var decompressed = CompressionUtils.Decompress(compressedMsg);
+            int i = 0;
+            foreach (var decompressedMessage in decompressed.Messages)
+            {
+                i++;
+                Assert.AreEqual(message.Payload, decompressedMessage.Payload);
+            }
+
+            Assert.AreEqual(1, i);
+        }
+
+        [Test]
+        public void CompressAndDecompress3MessagesUsingSnappyCompressionCodec()
+        {
+            byte[] messageBytes = new byte[] { 1, 2, 3, 4, 5 };
+            Message message1 = new Message(messageBytes);
+            Message message2 = new Message(messageBytes);
+            Message message3 = new Message(messageBytes);
+            Message compressedMsg = CompressionUtils.Compress(new List<Message>() { message1, message2, message3 }, CompressionCodecs.SnappyCompressionCodec);
+            var decompressed = CompressionUtils.Decompress(compressedMsg);
+            int i = 0;
+            foreach (var decompressedMessage in decompressed.Messages)
+            {
+                i++;
+                Assert.AreEqual(message1.Payload, decompressedMessage.Payload);
+            }
+
+            Assert.AreEqual(3, i);
+        }
+
         [Test]
         public void CompressAndDecompressMessageUsingDefaultCompressionCodec()
         {

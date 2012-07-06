@@ -26,6 +26,7 @@ namespace Kafka.Client.Messages
     {
         NoCompressionCodec,
         DefaultCompressionCodec,
-        GZIPCompressionCodec
+        GZIPCompressionCodec,
+        SnappyCompressionCodec
     }
 }

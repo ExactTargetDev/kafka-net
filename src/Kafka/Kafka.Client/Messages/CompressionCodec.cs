@@ -31,6 +31,8 @@ namespace Kafka.Client.Messages
                     return CompressionCodecs.NoCompressionCodec;
                 case 1:
                     return CompressionCodecs.GZIPCompressionCodec;
+                case 2:
+                    return CompressionCodecs.SnappyCompressionCodec;
                 default:
                     throw new UnknownCodecException(String.Format(
                         CultureInfo.CurrentCulture,
@@ -43,6 +45,8 @@ namespace Kafka.Client.Messages
         {
             switch (compressionCodec)
             {
+                case CompressionCodecs.SnappyCompressionCodec:
+                    return (byte)2;
                 case CompressionCodecs.DefaultCompressionCodec:
                 case CompressionCodecs.GZIPCompressionCodec:
                     return (byte)1;

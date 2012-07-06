@@ -34,7 +34,7 @@ namespace Kafka.Client.IntegrationTests
     /// </summary>
     public class ProducerHelper : IntegrationFixtureBase
     {
-        public Tuple<ProducerResponse,PartitionMetadata> SendMessagesToTopicSynchronously(string topic, IEnumerable<Message> messages, SyncProducerConfiguration syncProducerConfig)
+        public Tuple<ProducerResponse,PartitionMetadata> SendMessagesToTopicSynchronously(string topic, IEnumerable<Message> messages, SyncProducerConfiguration syncProducerConfig, int partitionIndex = 0)
         {
             var prodConfig = syncProducerConfig;
 
@@ -47,7 +47,7 @@ namespace Kafka.Client.IntegrationTests
             }
 
             var topicMetadataItem = topicMetadata.ToArray()[0];
-            var partitionMetadata = topicMetadataItem.PartitionsMetadata.ToArray()[0];
+            var partitionMetadata = topicMetadataItem.PartitionsMetadata.ToArray()[partitionIndex];
             var broker = partitionMetadata.Replicas.ToArray()[0];
             prodConfig.BrokerId = broker.Id;
             prodConfig.Host = broker.Host;
