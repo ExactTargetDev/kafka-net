@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+using System.Collections.Concurrent;
+using System.Configuration;
+using System.Threading;
+
 namespace Kafka.Client.Producers
 {
     using System;
@@ -50,11 +54,27 @@ using Kafka.Client.ZooKeeperIntegration;
         private bool sync = true;
         private volatile bool disposed;
         private readonly object shuttingDownLock = new object();
+        private BlockingCollection<ProducerData<TKey, TData>> queue = null;
+        private ProducerSendAsyncWorker<TKey, TData> producerSendAsyncWorker = null;
 
         public Producer(ProducerConfiguration config, ICallbackHandler<TKey, TData> callbackHandler)
         {
             this.config = config;
             this.callbackHandler = callbackHandler;
+            queue = new BlockingCollection<ProducerData<TKey, TData>>(config.QueueSize);
+            switch(this.config.ProducerType)
+            {
+                case ProducerTypes.Sync:
+                    break;
+                case ProducerTypes.Async:
+                    this.sync = false;
+                    Random rnd = new Random();
+                    var asyndProducerId = rnd.Next();
+                    this.producerSendAsyncWorker = new ProducerSendAsyncWorker<TKey, TData>("ProducerSendAsyncWorker-" + asyndProducerId.ToString(), this.queue, this.callbackHandler, this.config.QueueTime, this.config.BatchSize);
+                    break;
+                default:
+                    throw new ConfigurationErrorsException("Valid values for producer type are sync/async");
+            }
         }
 
         public Producer(ProducerConfiguration config)
@@ -202,7 +222,7 @@ using Kafka.Client.ZooKeeperIntegration;
             }
             else
             {
-                throw new NotImplementedException("Async send not implemented in the high-level producer yet!");
+                this.AsyncSend(data);
             }
         }
 
@@ -221,6 +241,14 @@ using Kafka.Client.ZooKeeperIntegration;
             this.EnsuresNotDisposed();
             
             this.Send(new List<ProducerData<TKey,TData>> {data});
+        }
+
+        private void AsyncSend(IEnumerable<ProducerData<TKey, TData>> producerData)
+        {
+            foreach (ProducerData<TKey, TData> data in producerData)
+            {
+                this.queue.Add(data);
+            }
         }
 
         protected override void Dispose(bool disposing)

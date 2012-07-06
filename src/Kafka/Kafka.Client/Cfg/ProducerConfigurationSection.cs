@@ -236,6 +236,42 @@ namespace Kafka.Client.Cfg
             }
         }
 
+        [ConfigurationProperty(
+            "queueTime",
+            DefaultValue = 5000,
+            IsRequired = false)]
+        public int QueueTime
+        {
+            get
+            {
+                return (int)this["queueTime"];
+            }
+        }
+
+        [ConfigurationProperty(
+            "queueSize",
+            DefaultValue = 10000,
+            IsRequired = false)]
+        public int QueueSize
+        {
+            get
+            {
+                return (int)this["queueSize"];
+            }
+        }
+
+        [ConfigurationProperty(
+            "batchSize",
+            DefaultValue = 200,
+            IsRequired = false)]
+        public int BatchSize
+        {
+            get
+            {
+                return (int)this["batchSize"];
+            }
+        }
+
         public static ProducerConfigurationSection FromXml(XElement xml)
         {
             var config = new ProducerConfigurationSection();

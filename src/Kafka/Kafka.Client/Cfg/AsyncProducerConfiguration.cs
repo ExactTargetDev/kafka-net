@@ -27,10 +27,16 @@ namespace Kafka.Client.Cfg
     public class AsyncProducerConfiguration : SyncProducerConfiguration, IAsyncProducerConfigShared
     {
         public const string DefaultSerializerClass = "Kafka.Client.Serialization.DefaultEncoder";
+        public const int DefaultQueueTime = 5000;
+        public const int DefaultQueueSize = 10000;
+        public const int DefaultBatchSize = 200;
 
         public AsyncProducerConfiguration()
         {
-            this.SerializerClass = DefaultSerializerClass;  
+            this.SerializerClass = DefaultSerializerClass;
+            this.QueueTime = DefaultQueueTime;
+            this.QueueSize = DefaultQueueSize;
+            this.BatchSize = DefaultBatchSize;
         }
 
         public AsyncProducerConfiguration(ProducerConfiguration config, int id, string host, int port) 
@@ -38,10 +44,19 @@ namespace Kafka.Client.Cfg
         {
             Guard.NotNull(config, "config");
             this.SerializerClass = config.SerializerClass;
+            this.QueueTime = config.QueueTime;
+            this.QueueSize = config.QueueSize;
+            this.BatchSize = config.BatchSize;
         }
 
         public string SerializerClass { get; set; }
 
         public string CallbackHandlerClass { get; set; }
+
+        public int QueueTime { get; set; }
+
+        public int QueueSize { get; set; }
+
+        public int BatchSize { get; set; }
     }
 }

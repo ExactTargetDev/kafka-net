@@ -63,6 +63,9 @@ namespace Kafka.Client.Cfg
             this.ClientId = SyncProducerConfiguration.DefaultClientId;
             this.RequiredAcks = SyncProducerConfiguration.DefaultRequiredAcks;
             this.AckTimeout = SyncProducerConfiguration.DefaultAckTimeout;
+            this.QueueTime = AsyncProducerConfiguration.DefaultQueueTime;
+            this.QueueSize = AsyncProducerConfiguration.DefaultQueueSize;
+            this.BatchSize = AsyncProducerConfiguration.DefaultBatchSize;
         }
 
         public ProducerConfiguration(XElement xml) : this(ProducerConfigurationSection.FromXml(xml))
@@ -100,6 +103,9 @@ namespace Kafka.Client.Cfg
             this.ClientId = config.ClientId;
             this.RequiredAcks = config.RequiredAcks;
             this.AckTimeout = config.AckTimeout;
+            this.QueueTime = config.QueueTime;
+            this.QueueSize = config.QueueSize;
+            this.BatchSize = config.BatchSize;
             Validate(config);
             if (config.ZooKeeperServers.ElementInformation.IsPresent)
             {
@@ -219,6 +225,12 @@ namespace Kafka.Client.Cfg
         public short RequiredAcks { get; set; }
 
         public int AckTimeout { get; set; }
+
+        public int QueueTime { get; set; }
+
+        public int QueueSize { get; set; }
+
+        public int BatchSize { get; set; }
 
         private void SetZooKeeperServers(ZooKeeperConfigurationElement config)
         {

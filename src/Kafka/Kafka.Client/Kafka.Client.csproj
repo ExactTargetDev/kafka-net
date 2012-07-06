@@ -144,6 +144,7 @@
     <Compile Include="Consumers\TopicCount.cs" />
     <Compile Include="Consumers\ZookeeperConsumerConnector.cs" />
     <Compile Include="Exceptions\ConsumerTimeoutException.cs" />
+    <Compile Include="Exceptions\IllegalQueueStateException.cs" />
     <Compile Include="Exceptions\IllegalStateException.cs" />
     <Compile Include="Exceptions\InvalidMessageSizeException.cs" />
     <Compile Include="Exceptions\InvalidPartitionException.cs" />
@@ -171,6 +172,7 @@
     <Compile Include="Producers\Async\AsyncProducerPool.cs" />
     <Compile Include="Producers\Async\DefaultCallbackHandler.cs" />
     <Compile Include="Producers\Async\MessageSent.cs" />
+    <Compile Include="Producers\Async\ProducerSendAsyncWorker.cs" />
     <Compile Include="Producers\LogMetadata.cs" />
     <Compile Include="Producers\LogSegmentMetadata.cs" />
     <Compile Include="Producers\PartitionData.cs" />

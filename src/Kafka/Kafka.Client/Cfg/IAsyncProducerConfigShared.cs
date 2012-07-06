@@ -22,5 +22,11 @@ namespace Kafka.Client.Cfg
         string SerializerClass { get; set; }
 
         string CallbackHandlerClass { get; set; }
+
+        int QueueTime { get; set; }
+
+        int QueueSize { get; set; }
+
+        int BatchSize { get; set; }
     }
 }
