@@ -48,21 +48,6 @@ namespace Kafka.Client.Consumers
         FetchResponse Fetch(FetchRequest request);
 
         /// <summary>
-        /// Combine multiple fetch requests in one call.
-        /// </summary>
-        /// <param name="request">
-        /// The list of fetch requests.
-        /// </param>
-        /// <returns>
-        /// A list of sets of fetched messages.
-        /// </returns>
-        /// <remarks>
-        /// Offset is passed in on every request, allowing the user to maintain this metadata 
-        /// however they choose.
-        /// </remarks>
-        IList<BufferedMessageSet> MultiFetch(MultiFetchRequest request);
-
-        /// <summary>
         /// Gets a list of valid offsets (up to maxSize) before the given time.
         /// </summary>
         /// <param name="request">

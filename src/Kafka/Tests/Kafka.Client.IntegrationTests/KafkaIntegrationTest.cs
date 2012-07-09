@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Producers;
 using Kafka.Client.Serialization;
 
 namespace Kafka.Client.IntegrationTests
@@ -97,16 +98,44 @@ namespace Kafka.Client.IntegrationTests
         /// <summary>
         /// Asynchronously sends many random messages to Kafka
         /// </summary>
-        //[Test]
-        //public void AsyncProducerSendsManyLongRandomMessages()
-        //{
-        //    var prodConfig = this.AsyncProducerConfig1;
-        //    List<Message> messages = GenerateRandomTextMessages(50);
-        //    using (var producer = new AsyncProducer(prodConfig))
-        //    {
-        //        producer.Send(CurrentTestTopic, 0, messages);
-        //    }
-        //}
+        [Test]
+        public void AsyncProducerSendsManyLongRandomMessagesAndConsumerConnectorGetsThemBack()
+        {
+            var prodConfig = this.ZooKeeperBasedAsyncProdConfig;
+            var consConfig = this.ZooKeeperBasedConsumerConfig;
+            List<string> messages = GenerateRandomMessageStrings(50);
+
+            using (var producer = new Producer<int, string>(prodConfig))
+            {
+                string messageString = "ZkAwareProducerSends1Message - test message";
+                ProducerData<int, string> producerData = new ProducerData<int, string>(CurrentTestTopic, messages);
+                producer.Send(producerData);
+            }
+
+            using (var consumerConnector = new ZookeeperConsumerConnector(consConfig, true))
+            {
+                var decoder = new DefaultDecoder();
+                var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
+                var messageStreams = consumerConnector.CreateMessageStreams(topicCount, decoder);
+                var resultMessages = new List<Message>();
+                var sets = messageStreams[CurrentTestTopic];
+                try
+                {
+                    foreach (var set in sets)
+                    {
+                        foreach (var message in set)
+                        {
+                            resultMessages.Add(message);
+                        }
+                    }
+                }
+                catch (ConsumerTimeoutException)
+                {
+                    // do nothing, this is expected
+                }
+                Assert.AreEqual(messages.Count, resultMessages.Count);
+            }
+        }
 
         /// <summary>
         /// Asynchronously sends few short fixed messages to Kafka
@@ -209,28 +238,6 @@ namespace Kafka.Client.IntegrationTests
         }
 
         /// <summary>
-        /// Send a multi-produce request to Kafka.
-        /// </summary>
-        [Test]
-        public void ProducerSendMultiRequest()
-        {
-            var prodConfig = this.SyncProducerConfig1;
-
-            var requests = new List<ProducerRequest>
-            { 
-                new ProducerRequest(CurrentTestTopic, 0, new List<Message> { new Message(Encoding.UTF8.GetBytes("1: " + DateTime.UtcNow)) }),
-                new ProducerRequest(CurrentTestTopic, 0, new List<Message> { new Message(Encoding.UTF8.GetBytes("2: " + DateTime.UtcNow)) }),
-                new ProducerRequest(CurrentTestTopic, 0, new List<Message> { new Message(Encoding.UTF8.GetBytes("3: " + DateTime.UtcNow)) }),
-                new ProducerRequest(CurrentTestTopic, 0, new List<Message> { new Message(Encoding.UTF8.GetBytes("4: " + DateTime.UtcNow)) })
-            };
-
-            using (var producer = new SyncProducer(prodConfig))
-            {
-                producer.MultiSend(requests);
-            }
-        }
-
-        /// <summary>
         /// Generates messages for Kafka then gets them back.
         /// </summary>
         //[Test]
@@ -252,38 +259,6 @@ namespace Kafka.Client.IntegrationTests
 
         //    Assert.AreEqual(2, count);
         //}
-
-        /// <summary>
-        /// Generates multiple messages for Kafka then gets them back.
-        /// </summary>
-        [Test]
-        public void ConsumerMultiFetchGetsMessage()
-        {
-            var config = this.ConsumerConfig1;
-
-            ProducerSendMultiRequest();
-            Thread.Sleep(2000);
-            IConsumer cons = new Consumer(config);
-            var request = new MultiFetchRequest(new List<FetchRequest>
-            {
-                new FetchRequest(CurrentTestTopic, 0, 0),
-                new FetchRequest(CurrentTestTopic, 0, 0),
-                new FetchRequest(CurrentTestTopic, 0, 0)
-            });
-
-            IList<BufferedMessageSet> response = cons.MultiFetch(request);
-            Assert.AreEqual(3, response.Count);
-            for (int ix = 0; ix < response.Count; ix++)
-            {
-                IEnumerable<Message> messageSet = response[ix].Messages;
-                Assert.AreEqual(4, messageSet.Count());
-                Console.WriteLine(string.Format("Request #{0}-->", ix));
-                foreach (Message msg in messageSet)
-                {
-                    Console.WriteLine(msg.ToString());
-                }
-            }
-        }
 
         /// <summary>
         /// Gets offsets from Kafka.
@@ -396,74 +371,19 @@ namespace Kafka.Client.IntegrationTests
         //}
 
         /// <summary>
-        /// Synchronous producer sends a multi request and a consumer receives it from to Kafka.
+        /// Gererates a random list of messages strings.
         /// </summary>
-        [Test]
-        public void ProducerSendsAndConsumerReceivesMultiRequest()
+        /// <param name="numberOfMessages">The number of strings to generate.</param>
+        /// <returns>A list of random strings.</returns>
+        private static List<string> GenerateRandomMessageStrings(int numberOfMessages)
         {
-            var prodConfig = this.SyncProducerConfig1;
-            var consumerConfig = this.ConsumerConfig1;
-
-            string testTopic1 = CurrentTestTopic + "1";
-            string testTopic2 = CurrentTestTopic + "2";
-            string testTopic3 = CurrentTestTopic + "3";
-
-            var sourceMessage1 = new Message(Encoding.UTF8.GetBytes("1: TestMessage"));
-            var sourceMessage2 = new Message(Encoding.UTF8.GetBytes("2: TestMessage"));
-            var sourceMessage3 = new Message(Encoding.UTF8.GetBytes("3: TestMessage"));
-            var sourceMessage4 = new Message(Encoding.UTF8.GetBytes("4: TestMessage"));
-
-            var requests = new List<ProducerRequest>
-            { 
-                new ProducerRequest(testTopic1, 0, new List<Message> { sourceMessage1 }),
-                new ProducerRequest(testTopic1, 0, new List<Message> { sourceMessage2 }),
-                new ProducerRequest(testTopic2, 0, new List<Message> { sourceMessage3 }),
-                new ProducerRequest(testTopic3, 0, new List<Message> { sourceMessage4 })
-            };
-
-            long currentOffset1 = TestHelper.GetCurrentKafkaOffset(testTopic1, consumerConfig);
-            long currentOffset2 = TestHelper.GetCurrentKafkaOffset(testTopic2, consumerConfig);
-            long currentOffset3 = TestHelper.GetCurrentKafkaOffset(testTopic3, consumerConfig);
-
-            using (var producer = new SyncProducer(prodConfig))
+            var messages = new List<string>();
+            for (int ix = 0; ix < numberOfMessages; ix++)
             {
-                producer.MultiSend(requests);
+                messages.Add((GenerateRandomMessage(10000)));
             }
 
-            IConsumer consumer = new Consumer(consumerConfig);
-            var request = new MultiFetchRequest(new List<FetchRequest>
-            {
-                new FetchRequest(testTopic1, 0, currentOffset1),
-                new FetchRequest(testTopic2, 0, currentOffset2),
-                new FetchRequest(testTopic3, 0, currentOffset3)
-            });
-            IList<BufferedMessageSet> messageSets;
-            int totalWaitTimeInMiliseconds = 0;
-            int waitSingle = 100;
-            while (true)
-            {
-                Thread.Sleep(waitSingle);
-                messageSets = consumer.MultiFetch(request);
-                if (messageSets.Count > 2 && messageSets[0].Messages.Count() > 0 && messageSets[1].Messages.Count() > 0 && messageSets[2].Messages.Count() > 0)
-                {
-                    break;
-                }
-
-                totalWaitTimeInMiliseconds += waitSingle;
-                if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
-                {
-                    break;
-                }
-            }
-
-            Assert.AreEqual(3, messageSets.Count);
-            Assert.AreEqual(2, messageSets[0].Messages.Count());
-            Assert.AreEqual(1, messageSets[1].Messages.Count());
-            Assert.AreEqual(1, messageSets[2].Messages.Count());
-            Assert.AreEqual(sourceMessage1.ToString(), messageSets[0].Messages.First().ToString());
-            Assert.AreEqual(sourceMessage2.ToString(), messageSets[0].Messages.Skip(1).First().ToString());
-            Assert.AreEqual(sourceMessage3.ToString(), messageSets[1].Messages.First().ToString());
-            Assert.AreEqual(sourceMessage4.ToString(), messageSets[2].Messages.First().ToString());
+            return messages;
         }
 
         /// <summary>

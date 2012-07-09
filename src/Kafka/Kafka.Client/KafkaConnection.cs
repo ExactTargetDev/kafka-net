@@ -141,20 +141,6 @@ namespace Kafka.Client
         }
 
         /// <summary>
-        /// Writes a multi-producer request to the server.
-        /// </summary>
-        /// <remarks>
-        /// Write timeout is defaulted to infitite.
-        /// </remarks>
-        /// <param name="request">The <see cref="MultiProducerRequest"/> to send to the server.</param>
-        public void Write(MultiProducerRequest request)
-        {
-            this.EnsuresNotDisposed();
-            Guard.NotNull(request, "request");
-            this.Write(request.RequestBuffer.GetBuffer());
-        }
-
-        /// <summary>
         /// Writes data to the server.
         /// </summary>
         /// <param name="data">The data to write to the server.</param>
@@ -173,20 +159,6 @@ namespace Kafka.Client
         /// </remarks>
         /// <param name="request">The <see cref="FetchRequest"/> to send to the server.</param>
         public void Write(FetchRequest request)
-        {
-            this.EnsuresNotDisposed();
-            Guard.NotNull(request, "request");
-            this.Write(request.RequestBuffer.GetBuffer());
-        }
-
-        /// <summary>
-        /// Writes a multifetch request to the server.
-        /// </summary>
-        /// <remarks>
-        /// Write timeout is defaulted to infitite.
-        /// </remarks>
-        /// <param name="request">The <see cref="MultiFetchRequest"/> to send to the server.</param>
-        public void Write(MultiFetchRequest request)
         {
             this.EnsuresNotDisposed();
             Guard.NotNull(request, "request");

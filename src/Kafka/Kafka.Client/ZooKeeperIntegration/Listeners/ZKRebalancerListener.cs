@@ -254,13 +254,8 @@ namespace Kafka.Client.ZooKeeperIntegration.Listeners
                 zkClient.SlimLock.EnterWriteLock();
                 try
                 {
-                    //this.topicRegistry.Clear();
-                    //foreach (var item in currentTopicRegistry)
-                    //{
-                    //    this.topicRegistry.Add(item);
-                    //}
-                
-                this.UpdateFetcher(cluster);}
+                    this.UpdateFetcher(cluster);
+                }
                 finally
                 {
                     zkClient.SlimLock.ExitWriteLock();

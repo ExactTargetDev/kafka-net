@@ -234,8 +234,6 @@
     <Compile Include="Producers\ProducerData.cs" />
     <Compile Include="RequestContext.cs" />
     <Compile Include="Requests\FetchRequest.cs" />
-    <Compile Include="Requests\MultiFetchRequest.cs" />
-    <Compile Include="Requests\MultiProducerRequest.cs" />
     <Compile Include="Requests\OffsetRequest.cs" />
     <Compile Include="Requests\ProducerRequest.cs" />
     <Compile Include="Serialization\IEncoder.cs" />

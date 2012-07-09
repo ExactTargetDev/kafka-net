@@ -64,31 +64,6 @@ namespace Kafka.Client.Producers.Sync
         }
 
         /// <summary>
-        /// Constructs producer request and sends it to given broker partition synchronously
-        /// </summary>
-        /// <param name="topic">
-        /// The topic.
-        /// </param>
-        /// <param name="partition">
-        /// The partition.
-        /// </param>
-        /// <param name="messages">
-        /// The list of messages messages.
-        /// </param>
-        [Obsolete]
-        public void Send(string topic, int partition, IEnumerable<Message> messages)
-        {
-            Guard.NotNullNorEmpty(topic, "topic");
-            Guard.NotNull(messages, "messages");
-            Guard.AllNotNull(messages, "messages.items");
-            Guard.Assert<ArgumentOutOfRangeException>(
-                () => messages.All(
-                    x => x.PayloadSize <= this.Config.MaxMessageSize));
-            this.EnsuresNotDisposed();
-            this.Send(new ProducerRequest(topic, partition, messages));
-        }
-
-        /// <summary>
         /// Sends request to Kafka server synchronously
         /// </summary>
         /// <param name="request">
@@ -111,13 +86,13 @@ namespace Kafka.Client.Producers.Sync
             }
         }
 
-        public ProducerResponse Send(string topic, BufferedMessageSet messages)
-        {
-            var partitionData = new PartitionData[] { new PartitionData(ProducerRequest.RandomPartition, messages) };
-            var data = new TopicData[] {new TopicData(topic, partitionData)};
-            var producerRequest = new ProducerRequest(ProducerRequest.RandomPartition, string.Empty, 0, 0, data);
-            return this.Send(producerRequest);
-        }
+        //public ProducerResponse Send(string topic, BufferedMessageSet messages)
+        //{
+        //    var partitionData = new PartitionData[] { new PartitionData(ProducerRequest.RandomPartition, messages) };
+        //    var data = new TopicData[] {new TopicData(topic, partitionData)};
+        //    var producerRequest = new ProducerRequest(ProducerRequest.RandomPartition, string.Empty, 0, 0, data);
+        //    return this.Send(producerRequest);
+        //}
 
         public IEnumerable<TopicMetadata> Send(TopicMetadataRequest request)
         {
@@ -126,27 +101,6 @@ namespace Kafka.Client.Producers.Sync
                 this.connection.Write(request);
                 return TopicMetadataRequest.DeserializeTopicsMetadataResponse(this.connection.Reader);
             }
-        }
-
-        /// <summary>
-        /// Sends the data to a multiple topics on Kafka server synchronously
-        /// </summary>
-        /// <param name="requests">
-        /// The requests.
-        /// </param>
-        public void MultiSend(IEnumerable<ProducerRequest> requests)
-        {
-            Guard.NotNull(requests, "requests");
-            Guard.Assert<ArgumentNullException>(
-                () => requests.All(
-                    x => x != null && x.MessageSet != null && x.MessageSet.Messages != null));
-            Guard.Assert<ArgumentNullException>(
-                () => requests.All(
-                    x => x.MessageSet.Messages.All(
-                        y => y != null && y.PayloadSize <= this.Config.MaxMessageSize)));
-            this.EnsuresNotDisposed();
-            var multiRequest = new MultiProducerRequest(requests);
-            this.connection.Write(multiRequest);
         }
 
         /// <summary>

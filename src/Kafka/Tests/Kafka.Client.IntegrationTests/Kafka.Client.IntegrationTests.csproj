@@ -108,7 +108,6 @@
     <Compile Include="TestsSetup.cs" />
     <Compile Include="TestMultipleBrokersHelper.cs" />
     <Compile Include="TopicMetadataTests.cs" />
-    <Compile Include="ZKBrokerPartitionInfoTests.cs" />
     <Compile Include="ZooKeeperAwareProducerTests.cs" />
     <Compile Include="ZooKeeperClientTests.cs" />
     <Compile Include="ZooKeeperConnectionTests.cs" />

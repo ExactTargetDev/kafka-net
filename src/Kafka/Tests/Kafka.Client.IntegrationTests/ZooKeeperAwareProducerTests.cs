@@ -48,6 +48,7 @@ namespace Kafka.Client.IntegrationTests
         {
             var prodConfig = this.ZooKeeperBasedSyncProdConfig;
             var topic = CurrentTestTopic;
+
             using (var producer = new Producer<int, string>(prodConfig))
             {
                 string messageString = "ZkAwareProducerSends1Message - test message";

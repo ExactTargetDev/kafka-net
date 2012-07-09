@@ -30,21 +30,7 @@ namespace Kafka.Client.Producers.Sync
     public interface ISyncProducer : IDisposable
     {
         /// <summary>
-        /// Constructs producer request and sends it to given broker partition synchronously
-        /// </summary>
-        /// <param name="topic">
-        /// The topic.
-        /// </param>
-        /// <param name="partition">
-        /// The partition.
-        /// </param>
-        /// <param name="messages">
-        /// The list of messages messages.
-        /// </param>
-        void Send(string topic, int partition, IEnumerable<Message> messages);
-
-        /// <summary>
-        /// Sends request to Kafka server synchronously
+        /// Sends a producer request to Kafka server synchronously
         /// </summary>
         /// <param name="request">
         /// The request.
@@ -52,11 +38,10 @@ namespace Kafka.Client.Producers.Sync
         ProducerResponse Send(ProducerRequest request);
 
         /// <summary>
-        /// Sends the data to a multiple topics on Kafka server synchronously
+        /// Sends a topic metadata request to Kafka server synchronously
         /// </summary>
-        /// <param name="requests">
-        /// The requests.
-        /// </param>
-        void MultiSend(IEnumerable<ProducerRequest> requests);
+        /// <param name="request">The Request</param>
+        /// <returns>The Response</returns>
+        IEnumerable<TopicMetadata> Send(TopicMetadataRequest request);
     }
 }

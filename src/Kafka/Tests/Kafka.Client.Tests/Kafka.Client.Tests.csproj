@@ -95,10 +95,7 @@
     <Compile Include="Producers\PartitioningTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Request\FetchRequestTests.cs" />
-    <Compile Include="Request\MultiFetchRequestTests.cs" />
-    <Compile Include="Request\MultiProducerRequestTests.cs" />
     <Compile Include="Request\OffsetRequestTests.cs" />
-    <Compile Include="Request\ProducerRequestTests.cs" />
     <Compile Include="Request\TopicMetadataRequestTests.cs" />
     <Compile Include="Util\BitWorksTests.cs" />
   </ItemGroup>

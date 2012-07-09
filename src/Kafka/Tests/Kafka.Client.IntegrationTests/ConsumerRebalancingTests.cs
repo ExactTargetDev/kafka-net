@@ -15,6 +15,13 @@
  * limitations under the License.
  */
 
+using System.Text;
+using System.Threading;
+using Kafka.Client.Cfg;
+using Kafka.Client.Messages;
+using Kafka.Client.Producers;
+using Kafka.Client.Producers.Sync;
+using Kafka.Client.Requests;
 using Kafka.Client.Serialization;
 
 namespace Kafka.Client.IntegrationTests
@@ -33,14 +40,19 @@ namespace Kafka.Client.IntegrationTests
         [Test]
         public void ConsumerPorformsRebalancingOnStart()
         {
+            var topic = CurrentTestTopic;
+            var prodConfig = this.SyncProducerConfig1;
+
             var config = this.ZooKeeperBasedConsumerConfig;
             using (var consumerConnector = new ZookeeperConsumerConnector(config, true))
             {
                 var client = ReflectionHelper.GetInstanceField<ZooKeeperClient>("zkClient", consumerConnector);
                 var decoder = ReflectionHelper.Instantiate<IDecoder<string>>("Kafka.Client.Serialization.StringDecoder");
                 Assert.IsNotNull(client);
-                client.DeleteRecursive("/consumers/group1");
-                var topicCount = new Dictionary<string, int> { { "test", 1 } };
+
+                CreateTopicInKafka(prodConfig, topic);
+
+                var topicCount = new Dictionary<string, int> { { topic, 1 } };
                 consumerConnector.CreateMessageStreams(topicCount, decoder);
                 WaitUntillIdle(client, 1000);
                 IList<string> children = client.GetChildren("/consumers", false);
@@ -55,18 +67,17 @@ namespace Kafka.Client.IntegrationTests
                 string consumerId = children[0];
                 children = client.GetChildren("/consumers/group1/owners", false);
                 Assert.That(children, Is.Not.Null.And.Not.Empty);
-                Assert.That(children.Count, Is.EqualTo(1));
-                Assert.That(children, Contains.Item("test"));
-                children = client.GetChildren("/consumers/group1/owners/test", false);
+                Assert.That(children, Contains.Item(topic));
+                children = client.GetChildren("/consumers/group1/owners/" + topic, false);
                 Assert.That(children, Is.Not.Null.And.Not.Empty);
                 Assert.That(children.Count, Is.EqualTo(2));
                 string partId = children[0];
-                var data = client.ReadData<string>("/consumers/group1/owners/test/" + partId);
+                var data = client.ReadData<string>("/consumers/group1/owners/" + topic + "/" + partId);
                 Assert.That(data, Is.Not.Null.And.Not.Empty);
                 Assert.That(data, Contains.Substring(consumerId));
                 data = client.ReadData<string>("/consumers/group1/ids/" + consumerId);
                 Assert.That(data, Is.Not.Null.And.Not.Empty);
-                Assert.That(data, Is.EqualTo("{ \"test\": 1 }"));
+                Assert.That(data, Is.EqualTo("{ \"" + topic + "\": 1 }"));
             }
 
             using (var client = new ZooKeeperClient(config.ZooKeeper.ZkConnect, config.ZooKeeper.ZkSessionTimeoutMs, ZooKeeperStringSerializer.Serializer))
@@ -76,9 +87,20 @@ namespace Kafka.Client.IntegrationTests
                 IList<string> children = client.GetChildren("/consumers/group1/ids");
                 Assert.That(children, Is.Null.Or.Empty);
                 //// Should be created as ephemeral
-                children = client.GetChildren("/consumers/group1/owners/test");
+                children = client.GetChildren("/consumers/group1/owners/" + topic);
                 Assert.That(children, Is.Null.Or.Empty);
             }
+        }
+
+        private void CreateTopicInKafka(SyncProducerConfiguration prodConfig, string topic)
+        {
+            using (var producer = new SyncProducer(prodConfig))
+            {
+                TopicMetadataRequest topicMetadataRequest = TopicMetadataRequest.Create(new List<string> { topic });
+                IEnumerable<TopicMetadata> topicMetadata = null;
+                topicMetadata = producer.Send(topicMetadataRequest);
+            }
+            Thread.Sleep(3000);
         }
 
         //[Test]
@@ -122,31 +144,36 @@ namespace Kafka.Client.IntegrationTests
         [Test]
         public void ConsumerPorformsRebalancingWhenBrokerIsRemovedFromTopic()
         {
+            var topic = CurrentTestTopic;
+            var prodConfig = this.SyncProducerConfig1;
+
             var decoder = ReflectionHelper.Instantiate<IDecoder<string>>("Kafka.Client.Serialization.StringDecoder");
             var config = this.ZooKeeperBasedConsumerConfig;
             string brokerPath = ZooKeeperClient.DefaultBrokerIdsPath + "/" + 2345;
-            string brokerTopicPath = ZooKeeperClient.DefaultBrokerTopicsPath + "/test/" + 2345;
+            string brokerTopicPath = ZooKeeperClient.DefaultBrokerTopicsPath + "/" + topic + "/" + 2345;
             using (var consumerConnector = new ZookeeperConsumerConnector(config, true))
             {
                 var client = ReflectionHelper.GetInstanceField<ZooKeeperClient>("zkClient", consumerConnector);
                 Assert.IsNotNull(client);
-                client.DeleteRecursive("/consumers/group1");
-                var topicCount = new Dictionary<string, int> { { "test", 1 } };
+
+                CreateTopicInKafka(prodConfig, topic);
+
+                var topicCount = new Dictionary<string, int> { { topic, 1 } };
                 consumerConnector.CreateMessageStreams(topicCount, decoder);
                 WaitUntillIdle(client, 1000);
-                client.CreateEphemeral(brokerPath, "192.168.1.39-1310449279123:192.168.1.39:9102");
+                client.CreateEphemeral(brokerPath, "192.168.1.40-1310449279123:192.168.1.40:9102");
                 client.CreateEphemeral(brokerTopicPath, 1);
                 WaitUntillIdle(client, 1000);
                 client.DeleteRecursive(brokerTopicPath);
                 WaitUntillIdle(client, 1000);
 
-                IList<string> children = client.GetChildren("/consumers/group1/owners/test", false);
+                IList<string> children = client.GetChildren("/consumers/group1/owners/" + topic, false);
                 Assert.That(children.Count, Is.EqualTo(2));
                 Assert.That(children, Has.None.EqualTo("2345-0"));
-                var topicRegistry = ReflectionHelper.GetInstanceField<IDictionary<string, IDictionary<Partition, PartitionTopicInfo>>>("topicRegistry", consumerConnector);
+                var topicRegistry = ReflectionHelper.GetInstanceField<IDictionary<string, IDictionary<int, PartitionTopicInfo>>>("topicRegistry", consumerConnector);
                 Assert.That(topicRegistry, Is.Not.Null.And.Not.Empty);
                 Assert.That(topicRegistry.Count, Is.EqualTo(1));
-                var item = topicRegistry["test"];
+                var item = topicRegistry[topic];
                 Assert.That(item.Count, Is.EqualTo(2));
                 Assert.That(item.Where(x => x.Value.BrokerId == 2345).Count(), Is.EqualTo(0));
             }
@@ -155,6 +182,9 @@ namespace Kafka.Client.IntegrationTests
         [Test]
         public void ConsumerPerformsRebalancingWhenNewConsumerIsAddedAndTheyDividePartitions()
         {
+            var topic = CurrentTestTopic;
+            var prodConfig = this.SyncProducerConfig1;
+
             var config = this.ZooKeeperBasedConsumerConfig;
             var decoder = ReflectionHelper.Instantiate<IDecoder<string>>("Kafka.Client.Serialization.StringDecoder");
             IList<string> ids;
@@ -164,8 +194,10 @@ namespace Kafka.Client.IntegrationTests
                 var client = ReflectionHelper.GetInstanceField<ZooKeeperClient>(
                     "zkClient", consumerConnector);
                 Assert.IsNotNull(client);
-                client.DeleteRecursive("/consumers/group1");
-                var topicCount = new Dictionary<string, int> { { "test", 1 } };
+
+                CreateTopicInKafka(prodConfig, topic);
+
+                var topicCount = new Dictionary<string, int> { { topic, 1 } };
                 consumerConnector.CreateMessageStreams(topicCount, decoder);
                 WaitUntillIdle(client, 1000);
                 using (var consumerConnector2 = new ZookeeperConsumerConnector(config, true))
@@ -173,15 +205,15 @@ namespace Kafka.Client.IntegrationTests
                     consumerConnector2.CreateMessageStreams(topicCount, decoder);
                     WaitUntillIdle(client, 1000);
                     ids = client.GetChildren("/consumers/group1/ids", false).ToList();
-                    owners = client.GetChildren("/consumers/group1/owners/test", false).ToList();
+                    owners = client.GetChildren("/consumers/group1/owners/" + topic, false).ToList();
 
                     Assert.That(ids, Is.Not.Null.And.Not.Empty);
                     Assert.That(ids.Count, Is.EqualTo(2));
                     Assert.That(owners, Is.Not.Null.And.Not.Empty);
                     Assert.That(owners.Count, Is.EqualTo(2));
 
-                    var data1 = client.ReadData<string>("/consumers/group1/owners/test/" + owners[0], false);
-                    var data2 = client.ReadData<string>("/consumers/group1/owners/test/" + owners[1], false);
+                    var data1 = client.ReadData<string>("/consumers/group1/owners/"+ topic + "/" + owners[0], false);
+                    var data2 = client.ReadData<string>("/consumers/group1/owners/" + topic + "/" + owners[1], false);
 
                     Assert.That(data1, Is.Not.Null.And.Not.Empty);
                     Assert.That(data2, Is.Not.Null.And.Not.Empty);
@@ -195,6 +227,9 @@ namespace Kafka.Client.IntegrationTests
         [Test]
         public void ConsumerPerformsRebalancingWhenConsumerIsRemovedAndTakesItsPartitions()
         {
+            var topic = CurrentTestTopic;
+            var prodConfig = this.SyncProducerConfig1;
+
             var config = this.ZooKeeperBasedConsumerConfig;
             var decoder = ReflectionHelper.Instantiate<IDecoder<string>>("Kafka.Client.Serialization.StringDecoder");
             string basePath = "/consumers/" + config.GroupId;
@@ -204,8 +239,10 @@ namespace Kafka.Client.IntegrationTests
             {
                 var client = ReflectionHelper.GetInstanceField<ZooKeeperClient>("zkClient", consumerConnector);
                 Assert.IsNotNull(client);
-                client.DeleteRecursive("/consumers/group1");
-                var topicCount = new Dictionary<string, int> { { "test", 1 } };
+
+                CreateTopicInKafka(prodConfig, topic);
+
+                var topicCount = new Dictionary<string, int> { { topic, 1 } };
                 consumerConnector.CreateMessageStreams(topicCount, decoder);
                 WaitUntillIdle(client, 1000);
                 using (var consumerConnector2 = new ZookeeperConsumerConnector(config, true))
@@ -213,7 +250,7 @@ namespace Kafka.Client.IntegrationTests
                     consumerConnector2.CreateMessageStreams(topicCount, decoder);
                     WaitUntillIdle(client, 1000);
                     ids = client.GetChildren("/consumers/group1/ids", false).ToList();
-                    owners = client.GetChildren("/consumers/group1/owners/test", false).ToList();
+                    owners = client.GetChildren("/consumers/group1/owners/" + topic, false).ToList();
                     Assert.That(ids, Is.Not.Null.And.Not.Empty);
                     Assert.That(ids.Count, Is.EqualTo(2));
                     Assert.That(owners, Is.Not.Null.And.Not.Empty);
@@ -222,15 +259,15 @@ namespace Kafka.Client.IntegrationTests
 
                 WaitUntillIdle(client, 1000);
                 ids = client.GetChildren("/consumers/group1/ids", false).ToList();
-                owners = client.GetChildren("/consumers/group1/owners/test", false).ToList();
+                owners = client.GetChildren("/consumers/group1/owners/" + topic, false).ToList();
 
                 Assert.That(ids, Is.Not.Null.And.Not.Empty);
                 Assert.That(ids.Count, Is.EqualTo(1));
                 Assert.That(owners, Is.Not.Null.And.Not.Empty);
                 Assert.That(owners.Count, Is.EqualTo(2));
 
-                var data1 = client.ReadData<string>("/consumers/group1/owners/test/" + owners[0], false);
-                var data2 = client.ReadData<string>("/consumers/group1/owners/test/" + owners[1], false);
+                var data1 = client.ReadData<string>("/consumers/group1/owners/" + topic + "/" + owners[0], false);
+                var data2 = client.ReadData<string>("/consumers/group1/owners/" + topic + "/" + owners[1], false);
 
                 Assert.That(data1, Is.Not.Null.And.Not.Empty);
                 Assert.That(data2, Is.Not.Null.And.Not.Empty);

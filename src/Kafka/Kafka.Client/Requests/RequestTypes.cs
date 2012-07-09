@@ -43,10 +43,6 @@ namespace Kafka.Client.Requests
         /// <summary>
         /// Gets topic metadata
         /// </summary>
-        TopicMetadataRequest = 3,
-
-        // both to be deleted
-        MultiFetch = 10 ,
-        MultiProduce = 11 
+        TopicMetadataRequest = 3
     }
 }
