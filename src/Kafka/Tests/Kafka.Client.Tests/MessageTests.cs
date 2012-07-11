@@ -24,6 +24,7 @@ namespace Kafka.Client.Tests
     using Kafka.Client.Messages;
     using Kafka.Client.Utils;
     using NUnit.Framework;
+    using Kafka.Client.Serialization;
 
     /// <summary>
     /// Tests for the <see cref="Message"/> class.
@@ -49,17 +50,22 @@ namespace Kafka.Client.Tests
             byte magic = 1;
             byte attributes = 0;
             byte[] payloadData = Encoding.UTF8.GetBytes(payload);
-            byte[] payloadSize = BitConverter.GetBytes(payloadData.Length);
             byte[] checksum = crc32.ComputeHash(payloadData);
-            byte[] messageData = new byte[payloadData.Length + 2 + payloadSize.Length + checksum.Length];
+            byte[] messageData = new byte[2 + payloadData.Length + checksum.Length];
 
-            Buffer.BlockCopy(payloadSize, 0, messageData, 0, payloadSize.Length);
-            messageData[4] = magic;
-            messageData[5] = attributes;
-            Buffer.BlockCopy(checksum, 0, messageData, payloadSize.Length + 2, checksum.Length);
-            Buffer.BlockCopy(payloadData, 0, messageData, payloadSize.Length + 2 + checksum.Length, payloadData.Length);
+            messageData[0] = magic;
+            messageData[1] = attributes;
+            Buffer.BlockCopy(checksum, 0, messageData, 2, checksum.Length);
+            Buffer.BlockCopy(payloadData, 0, messageData, 2 + checksum.Length, payloadData.Length);
 
-            Message message = Message.ParseFrom(messageData);
+            Message message;
+            using (var stream = new MemoryStream(messageData))
+            {
+                using (var reader = new KafkaBinaryReader(stream))
+                {
+                    message = Message.ParseFrom(reader, messageData.Length);
+                }
+            }
 
             Assert.IsNotNull(message);
             Assert.AreEqual(magic, message.Magic);

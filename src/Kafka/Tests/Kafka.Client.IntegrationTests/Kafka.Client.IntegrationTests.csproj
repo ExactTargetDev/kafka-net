@@ -96,7 +96,6 @@
     <Compile Include="CompressionTests.cs" />
     <Compile Include="ConsumerRebalancingTests.cs" />
     <Compile Include="ConsumerTests.cs" />
-    <Compile Include="FetcherTests.cs" />
     <Compile Include="IntegrationFixtureBase.cs" />
     <Compile Include="KafkaIntegrationTest.cs" />
     <Compile Include="MockAlwaysZeroPartitioner.cs" />

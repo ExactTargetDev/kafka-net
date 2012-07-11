@@ -241,28 +241,6 @@ namespace Kafka.Client.Messages
             return sb.ToString();
         }
 
-        [Obsolete("Use KafkaBinaryReader instead")]
-        public static Message FromMessageBytes(byte[] data)
-        {
-            byte magic = data[0];
-            byte[] checksum;
-            byte[] payload;
-            byte attributes;
-            if (magic == (byte)1)
-            {
-                attributes = data[1];
-                checksum = data.Skip(2).Take(4).ToArray();
-                payload = data.Skip(6).ToArray();
-                return new Message(payload, checksum, Messages.CompressionCodec.GetCompressionCodec(attributes & CompressionCodeMask));
-            }
-            else
-            {
-                checksum = data.Skip(1).Take(4).ToArray();
-                payload = data.Skip(5).ToArray();
-                return new Message(payload, checksum);
-            }
-        }
-
         internal static Message ParseFrom(KafkaBinaryReader reader, int size)
         {
             Message result;
@@ -296,34 +274,6 @@ namespace Kafka.Client.Messages
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// Parses a message from a byte array given the format Kafka likes. 
-        /// </summary>
-        /// <param name="data">The data for a message.</param>
-        /// <returns>The message.</returns>
-        [Obsolete("Use KafkaBinaryReader instead")]
-        public static Message ParseFrom(byte[] data)
-        {
-            int size = BitConverter.ToInt32(BitWorks.ReverseBytes(data.Take(4).ToArray()), 0);
-            byte magic = data[4];
-            byte[] checksum;
-            byte[] payload;
-            byte attributes;
-            if (magic == 1)
-            {
-                attributes = data[5];
-                checksum = data.Skip(6).Take(4).ToArray();
-                payload = data.Skip(10).Take(size).ToArray();
-                return new Message(payload, checksum, Messages.CompressionCodec.GetCompressionCodec(attributes & CompressionCodeMask));
-            }
-            else
-            {
-                checksum = data.Skip(5).Take(4).ToArray();
-                payload = data.Skip(9).Take(size).ToArray();
-                return new Message(payload, checksum);
-            }
         }
     }
 }

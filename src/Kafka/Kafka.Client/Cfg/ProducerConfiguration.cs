@@ -39,7 +39,7 @@ namespace Kafka.Client.Cfg
         public const string DefaultSerializer = "Kafka.Client.Serialization.StringEncoder";
         public const string DefaultSectionName = "kafkaProducer";
         public const int DefaultProducerRetries = 3;
-        public const int DefaultProducerRetryBackoffMiliseconds = 5;
+        public const int DefaultProducerRetryBackoffMiliseconds = 500;
 
         public static ProducerConfiguration Configure(string section)
         {
@@ -66,6 +66,7 @@ namespace Kafka.Client.Cfg
             this.QueueTime = AsyncProducerConfiguration.DefaultQueueTime;
             this.QueueSize = AsyncProducerConfiguration.DefaultQueueSize;
             this.BatchSize = AsyncProducerConfiguration.DefaultBatchSize;
+            this.EnqueueTimeoutMs = AsyncProducerConfiguration.DefaultEnqueueTimeoutMs;
         }
 
         public ProducerConfiguration(XElement xml) : this(ProducerConfigurationSection.FromXml(xml))
@@ -106,6 +107,7 @@ namespace Kafka.Client.Cfg
             this.QueueTime = config.QueueTime;
             this.QueueSize = config.QueueSize;
             this.BatchSize = config.BatchSize;
+            this.EnqueueTimeoutMs = config.EnqueueTimeoutMs;
             Validate(config);
             if (config.ZooKeeperServers.ElementInformation.IsPresent)
             {
@@ -231,6 +233,8 @@ namespace Kafka.Client.Cfg
         public int QueueSize { get; set; }
 
         public int BatchSize { get; set; }
+
+        public int EnqueueTimeoutMs { get; set; }
 
         private void SetZooKeeperServers(ZooKeeperConfigurationElement config)
         {

@@ -87,7 +87,7 @@ namespace Kafka.Client.Producers.Async
                 {
                     ProducerData<TKey, TData> currentQueueItem;
                     queue.TryTake(out currentQueueItem,
-                                  Math.Max(0, (lastSend + new TimeSpan(0, 0, 0, 0, queueTime) - DateTime.Now).Milliseconds));
+                                  Math.Max(0, Convert.ToInt32((lastSend.AddMilliseconds(queueTime) - DateTime.Now).TotalMilliseconds)));
                     if (currentQueueItem != null && this.IsShutdownCommand(currentQueueItem))
                     {
                         break;

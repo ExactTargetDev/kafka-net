@@ -252,55 +252,6 @@ namespace Kafka.Client.Messages
 
             return new BufferedMessageSet(messages, initialOffset);
         }
-
-        internal static IList<BufferedMessageSet> ParseMultiFrom(KafkaBinaryReader reader, int size, int count, List<long> initialOffsets)
-        {
-            var result = new List<BufferedMessageSet>();
-            if (size == 0)
-            {
-                return result;
-            }
-
-            int readed = 0;
-            short errorCode = reader.ReadInt16();
-            readed += 2;
-            if (errorCode != KafkaException.NoError)
-            {
-                throw new KafkaException(errorCode);
-            }
-
-            for (int i = 0; i < count; i++)
-            {
-                int partSize = reader.ReadInt32();
-                readed += 4;
-                var item = ParseFrom(reader, partSize, initialOffsets[i]);
-                readed += partSize;
-                result.Add(item);
-                var totalSetSize = item.SetSize + 2;// 2 is the size of int16 that is the error info
-                if (totalSetSize != partSize)
-                {
-                    break;
-                }
-            }
-
-            return result;
-        }
-
-        [Obsolete]
-        internal static BufferedMessageSet ParseFrom(byte[] bytes)
-        {
-            var messages = new List<Message>();
-            int processed = 0;
-            int length = bytes.Length - 4;
-            while (processed <= length)
-            {
-                int messageSize = BitConverter.ToInt32(BitWorks.ReverseBytes(bytes.Skip(processed).Take(4).ToArray()), 0);
-                messages.Add(Message.ParseFrom(bytes.Skip(processed).Take(messageSize + 4).ToArray()));
-                processed += 4 + messageSize;
-            }
-
-            return new BufferedMessageSet(messages);
-        }
         
         public IEnumerator<MessageAndOffset> GetEnumerator()
         {

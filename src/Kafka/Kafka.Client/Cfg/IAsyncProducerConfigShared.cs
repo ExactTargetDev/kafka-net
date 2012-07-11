@@ -28,5 +28,7 @@ namespace Kafka.Client.Cfg
         int QueueSize { get; set; }
 
         int BatchSize { get; set; }
+
+        int EnqueueTimeoutMs { get; set; }
     }
 }

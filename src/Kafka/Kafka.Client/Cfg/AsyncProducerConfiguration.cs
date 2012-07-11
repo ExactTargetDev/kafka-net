@@ -30,6 +30,7 @@ namespace Kafka.Client.Cfg
         public const int DefaultQueueTime = 5000;
         public const int DefaultQueueSize = 10000;
         public const int DefaultBatchSize = 200;
+        public const int DefaultEnqueueTimeoutMs = 0;
 
         public AsyncProducerConfiguration()
         {
@@ -37,6 +38,7 @@ namespace Kafka.Client.Cfg
             this.QueueTime = DefaultQueueTime;
             this.QueueSize = DefaultQueueSize;
             this.BatchSize = DefaultBatchSize;
+            this.EnqueueTimeoutMs = DefaultEnqueueTimeoutMs;
         }
 
         public AsyncProducerConfiguration(ProducerConfiguration config, int id, string host, int port) 
@@ -47,6 +49,7 @@ namespace Kafka.Client.Cfg
             this.QueueTime = config.QueueTime;
             this.QueueSize = config.QueueSize;
             this.BatchSize = config.BatchSize;
+            this.EnqueueTimeoutMs = config.EnqueueTimeoutMs;
         }
 
         public string SerializerClass { get; set; }
@@ -58,5 +61,7 @@ namespace Kafka.Client.Cfg
         public int QueueSize { get; set; }
 
         public int BatchSize { get; set; }
+
+        public int EnqueueTimeoutMs { get; set; }
     }
 }

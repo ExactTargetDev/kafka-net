@@ -178,7 +178,7 @@ namespace Kafka.Client.Cfg
 
         [ConfigurationProperty(
             "producerRetryBackoffMiliseconds",
-            DefaultValue = 5,
+            DefaultValue = 500,
             IsRequired = false)]
         public int ProducerRetryBackoffMiliseconds
         {
@@ -269,6 +269,18 @@ namespace Kafka.Client.Cfg
             get
             {
                 return (int)this["batchSize"];
+            }
+        }
+
+        [ConfigurationProperty(
+            "enqueueTimeoutMs",
+            DefaultValue = 0,
+            IsRequired = false)]
+        public int EnqueueTimeoutMs
+        {
+            get
+            {
+                return (int)this["enqueueTimeoutMs"];
             }
         }
 

@@ -56,176 +56,51 @@ namespace Kafka.Client.IntegrationTests
         private static int WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated_BackgorundThreadsDoneNr = 0;
 
         /// <summary>
-        /// Sends a pair of message to Kafka.
-        /// </summary>
-        [Test]
-        public void ProducerSendsMessage()
-        {
-            var prodConfig = this.SyncProducerConfig1;
-
-            string payload1 = "kafka 1.";
-            byte[] payloadData1 = Encoding.UTF8.GetBytes(payload1);
-            var msg1 = new Message(payloadData1);
-
-            string payload2 = "kafka 2.";
-            byte[] payloadData2 = Encoding.UTF8.GetBytes(payload2);
-            var msg2 = new Message(payloadData2);
-
-            using (var producer = new SyncProducer(prodConfig))
-            {
-                var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { msg1, msg2 });
-                producer.Send(producerRequest);
-            }
-        }
-
-        /// <summary>
-        /// Sends a message with long topic to Kafka.
-        /// </summary>
-        [Test]
-        public void ProducerSendsMessageWithLongTopic()
-        {
-            var prodConfig = this.SyncProducerConfig1;
-
-            var msg = new Message(Encoding.UTF8.GetBytes("test message"));
-            string topic = "ThisIsAVeryLongTopicThisIsAVeryLongTopicThisIsAVeryLongTopicThisIsAVeryLongTopicThisIsAVeryLongTopicThisIsAVeryLongTopic";
-            using (var producer = new SyncProducer(prodConfig))
-            {
-                var producerRequest = new ProducerRequest(topic, 0, new List<Message> { msg });
-                producer.Send(producerRequest);
-            }
-        }
-
-        /// <summary>
         /// Asynchronously sends many random messages to Kafka
         /// </summary>
         [Test]
         public void AsyncProducerSendsManyLongRandomMessagesAndConsumerConnectorGetsThemBack()
         {
             var prodConfig = this.ZooKeeperBasedAsyncProdConfig;
+            prodConfig.EnqueueTimeoutMs = 1000;
             var consConfig = this.ZooKeeperBasedConsumerConfig;
             List<string> messages = GenerateRandomMessageStrings(50);
 
             using (var producer = new Producer<int, string>(prodConfig))
             {
+                Thread.Sleep(2000);
                 string messageString = "ZkAwareProducerSends1Message - test message";
                 ProducerData<int, string> producerData = new ProducerData<int, string>(CurrentTestTopic, messages);
                 producer.Send(producerData);
-            }
 
-            using (var consumerConnector = new ZookeeperConsumerConnector(consConfig, true))
-            {
-                var decoder = new DefaultDecoder();
-                var topicCount = new Dictionary<string, int> { { CurrentTestTopic, 1 } };
-                var messageStreams = consumerConnector.CreateMessageStreams(topicCount, decoder);
-                var resultMessages = new List<Message>();
-                var sets = messageStreams[CurrentTestTopic];
-                try
+
+                Thread.Sleep(2000);
+
+                using (var consumerConnector = new ZookeeperConsumerConnector(consConfig, true))
                 {
-                    foreach (var set in sets)
+                    var decoder = new DefaultDecoder();
+                    var topicCount = new Dictionary<string, int> {{CurrentTestTopic, 1}};
+                    var messageStreams = consumerConnector.CreateMessageStreams(topicCount, decoder);
+                    var resultMessages = new List<Message>();
+                    var sets = messageStreams[CurrentTestTopic];
+                    try
                     {
-                        foreach (var message in set)
+                        foreach (var set in sets)
                         {
-                            resultMessages.Add(message);
+                            foreach (var message in set)
+                            {
+                                resultMessages.Add(message);
+                            }
                         }
                     }
+                    catch (ConsumerTimeoutException)
+                    {
+                        // do nothing, this is expected
+                    }
+                    Assert.AreEqual(messages.Count, resultMessages.Count);
                 }
-                catch (ConsumerTimeoutException)
-                {
-                    // do nothing, this is expected
-                }
-                Assert.AreEqual(messages.Count, resultMessages.Count);
             }
         }
-
-        /// <summary>
-        /// Asynchronously sends few short fixed messages to Kafka
-        /// </summary>
-        //[Test]
-        //public void AsyncProducerSendsFewShortFixedMessages()
-        //{
-        //    var prodConfig = this.AsyncProducerConfig1;
-
-        //    var messages = new List<Message>
-        //                                 {
-        //                                     new Message(Encoding.UTF8.GetBytes("Async Test Message 1")),
-        //                                     new Message(Encoding.UTF8.GetBytes("Async Test Message 2")),
-        //                                     new Message(Encoding.UTF8.GetBytes("Async Test Message 3")),
-        //                                     new Message(Encoding.UTF8.GetBytes("Async Test Message 4"))
-        //                                 };
-
-        //    using (var producer = new AsyncProducer(prodConfig))
-        //    {
-        //        producer.Send(CurrentTestTopic, 0, messages);
-        //    }
-        //}
-
-        /// <summary>
-        /// Asynchronously sends few short fixed messages to Kafka in separate send actions
-        /// </summary>
-        //[Test]
-        //public void AsyncProducerSendsFewShortFixedMessagesInSeparateSendActions()
-        //{
-        //    var prodConfig = this.AsyncProducerConfig1;
-
-        //    using (var producer = new AsyncProducer(prodConfig))
-        //    {
-        //        var req1 = new ProducerRequest(
-        //            CurrentTestTopic,
-        //            0,
-        //            new List<Message> { new Message(Encoding.UTF8.GetBytes("Async Test Message 1")) });
-        //        producer.Send(req1);
-
-        //        var req2 = new ProducerRequest(
-        //            CurrentTestTopic,
-        //            0,
-        //            new List<Message> { new Message(Encoding.UTF8.GetBytes("Async Test Message 2")) });
-        //        producer.Send(req2);
-
-        //        var req3 = new ProducerRequest(
-        //            CurrentTestTopic,
-        //            0,
-        //            new List<Message> { new Message(Encoding.UTF8.GetBytes("Async Test Message 3")) });
-        //        producer.Send(req3);
-        //    }
-        //}
-
-        //[Test]
-        //public void AsyncProducerSendsMessageWithCallbackClass()
-        //{
-        //    var prodConfig = this.AsyncProducerConfig1;
-
-        //    var messages = new List<Message>
-        //                                 {
-        //                                     new Message(Encoding.UTF8.GetBytes("Async Test Message 1")),
-        //                                 };
-        //    var myHandler = new TestCallbackHandler();
-        //    using (var producer = new AsyncProducer(prodConfig, myHandler))
-        //    {
-        //        producer.Send(CurrentTestTopic, 0, messages);
-        //    }
-
-        //    Thread.Sleep(1000);
-        //    Assert.IsTrue(myHandler.WasRun);
-        //}
-
-        //[Test]
-        //public void AsyncProducerSendsMessageWithCallback()
-        //{
-        //    var prodConfig = this.AsyncProducerConfig1;
-
-        //    var messages = new List<Message>
-        //                                 {
-        //                                     new Message(Encoding.UTF8.GetBytes("Async Test Message 1")),
-        //                                 };
-        //    var myHandler = new TestCallbackHandler();
-        //    using (var producer = new AsyncProducer(prodConfig))
-        //    {
-        //        producer.Send(CurrentTestTopic, 0, messages, myHandler.Handle);
-        //    }
-
-        //    Thread.Sleep(1000);
-        //    Assert.IsTrue(myHandler.WasRun);
-        //}
 
         private class TestCallbackHandler //: ICallbackHandler
         {
@@ -236,29 +111,6 @@ namespace Kafka.Client.IntegrationTests
                 WasRun = true;
             }
         }
-
-        /// <summary>
-        /// Generates messages for Kafka then gets them back.
-        /// </summary>
-        //[Test]
-        //public void ConsumerFetchMessage()
-        //{
-        //    var consumerConfig = this.ConsumerConfig1;
-        //    ProducerSendsMessage();
-        //    Thread.Sleep(1000);
-        //    IConsumer consumer = new Consumer(consumerConfig);
-        //    var request = new FetchRequest(CurrentTestTopic, 0, 0);
-        //    BufferedMessageSet response = consumer.Fetch(request);
-        //    Assert.NotNull(response);
-        //    int count = 0;
-        //    foreach (var message in response)
-        //    {
-        //        count++;
-        //        Console.WriteLine(message.Message);
-        //    }
-
-        //    Assert.AreEqual(2, count);
-        //}
 
         /// <summary>
         /// Gets offsets from Kafka.
@@ -277,98 +129,6 @@ namespace Kafka.Client.IntegrationTests
                 Console.Out.WriteLine(l);
             }
         }
-
-        /// <summary>
-        /// Synchronous Producer sends a single simple message and then a consumer consumes it
-        /// </summary>
-        //[Test]
-        //public void ProducerSendsAndConsumerReceivesSingleSimpleMessage()
-        //{
-        //    var prodConfig = this.SyncProducerConfig1;
-        //    var consumerConfig = this.ConsumerConfig1;
-
-        //    var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
-        //    long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
-        //    using (var producer = new SyncProducer(prodConfig))
-        //    {
-        //        var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { sourceMessage });
-        //        producer.Send(producerRequest);
-        //    }
-
-        //    IConsumer consumer = new Consumer(consumerConfig);
-        //    var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
-        //    BufferedMessageSet response;
-        //    int totalWaitTimeInMiliseconds = 0;
-        //    int waitSingle = 100;
-        //    while (true)
-        //    {
-        //        Thread.Sleep(waitSingle);
-        //        response = consumer.Fetch(request);
-        //        if (response != null && response.Messages.Count() > 0)
-        //        {
-        //            break;
-        //        }
-
-        //        totalWaitTimeInMiliseconds += waitSingle;
-        //        if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
-        //        {
-        //            break;
-        //        }
-        //    }
-
-        //    Assert.NotNull(response);
-        //    Assert.AreEqual(1, response.Messages.Count());
-        //    Message resultMessage = response.Messages.First();
-        //    Assert.AreEqual(sourceMessage.ToString(), resultMessage.ToString());
-        //}
-
-        /// <summary>
-        /// Asynchronous Producer sends a single simple message and then a consumer consumes it
-        /// </summary>
-        //[Test]
-        //public void AsyncProducerSendsAndConsumerReceivesSingleSimpleMessage()
-        //{
-        //    var prodConfig = this.AsyncProducerConfig1;
-        //    var consumerConfig = this.ConsumerConfig1;
-
-        //    var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
-        //    long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
-
-        //    using (var producer = new AsyncProducer(prodConfig))
-        //    {
-        //        var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { sourceMessage });
-        //        producer.Send(producerRequest);
-        //    }
-
-        //    Thread.Sleep(3000);
-
-            
-        //    IConsumer consumer = new Consumer(consumerConfig);
-        //    var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
-
-        //    BufferedMessageSet response;
-        //    int totalWaitTimeInMiliseconds = 0;
-        //    int waitSingle = 100;
-        //    while (true)
-        //    {
-        //        Thread.Sleep(waitSingle);
-        //        response = consumer.Fetch(request);
-        //        if (response != null && response.Messages.Count() > 0)
-        //        {
-        //            break;
-        //        }
-        //        totalWaitTimeInMiliseconds += waitSingle;
-        //        if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
-        //        {
-        //            break;
-        //        }
-        //    }
-
-        //    Assert.NotNull(response);
-        //    Assert.AreEqual(1, response.Messages.Count());
-        //    Message resultMessage = response.Messages.First();
-        //    Assert.AreEqual(sourceMessage.ToString(), resultMessage.ToString());
-        //}
 
         /// <summary>
         /// Gererates a random list of messages strings.
@@ -422,90 +182,28 @@ namespace Kafka.Client.IntegrationTests
             return builder.ToString();
         }
 
-        /// <summary>
-        /// Synchronous Producer sends a lots of simple messages and then a simple consumer consumes in several fetches
-        /// </summary>
-        //[Test]
-        //public void ProducerSendsAndConsumerReceivesLotsOfMessagesManyFetchesAndOffsetsShouldBeCorrect()
-        //{
-        //    var prodConfig = this.SyncProducerConfig1;
-        //    var consumerConfig = this.ConsumerConfig1;
-
-        //    var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message"));
-        //    long currentOffset = TestHelper.GetCurrentKafkaOffset(CurrentTestTopic, consumerConfig);
-
-        //    int nrOfMessages = 1000;
-
-        //    using (var producer = new SyncProducer(prodConfig))
-        //    {
-        //        for (int i = 0; i < nrOfMessages; i++)
-        //        {
-        //            var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> {sourceMessage});
-        //            producer.Send(producerRequest);
-        //        }
-        //    }
-
-        //    IConsumer consumer = new Consumer(consumerConfig);
-        //    int messagesCounter = 0;
-        //    long totalSizeDownloaded = 0;
-
-        //    while (messagesCounter < nrOfMessages)
-        //    {
-        //        var request = new FetchRequest(CurrentTestTopic, 0, currentOffset);
-        //        BufferedMessageSet response;
-        //        int totalWaitTimeInMiliseconds = 0;
-        //        int waitSingle = 100;
-        //        while (true)
-        //        {
-        //            Thread.Sleep(waitSingle);
-        //            response = consumer.Fetch(request);
-        //            if (response != null && response.Messages.Count() > 0)
-        //            {
-        //                break;
-        //            }
-
-        //            totalWaitTimeInMiliseconds += waitSingle;
-        //            if (totalWaitTimeInMiliseconds >= MaxTestWaitTimeInMiliseconds)
-        //            {
-        //                break;
-        //            }
-        //        }
-
-        //        Assert.NotNull(response);
-        //        long currentCheckOffset = currentOffset + 4 + sourceMessage.Size;
-        //        while (response.MoveNext())
-        //        {
-        //            Assert.AreEqual(currentCheckOffset, response.Current.Offset);
-        //            currentCheckOffset += 4 + response.Current.Message.Size;
-        //            messagesCounter++;
-        //            currentOffset = response.Current.Offset;
-        //            totalSizeDownloaded += response.Current.Message.Size + 4;
-        //        }
-        //    }
-
-        //    Assert.AreEqual(nrOfMessages, messagesCounter);
-        //    Assert.AreEqual(nrOfMessages * (4 + sourceMessage.Size), totalSizeDownloaded);
-        //}
-
-
         [Test]
         public void WhenConsumerConsumesAndLaterOthersJoinAndRebalanceOccursThenMessagesShouldNotBeDuplicated()
         {
-            var prodConfig = this.SyncProducerConfig1;
+            var prodConfig = this.ZooKeeperBasedSyncProdConfig;
             var consumerConfig = this.ZooKeeperBasedConsumerConfig;
-            consumerConfig.FetchSize = 256;
+            //consumerConfig.FetchSize = 256;
 
-            int originalNrOfMessages = 3000;
+            int originalNrOfMessages = 1000;
 
-            using (var producer = new SyncProducer(prodConfig))
+            using (var producer = new Producer<int, string>(prodConfig))
             {
+                List<string> messages = new List<string>();
                 for (int i = 0; i < originalNrOfMessages; i++)
                 {
-                    var sourceMessage = new Message(Encoding.UTF8.GetBytes("test message" + i));
-                    var producerRequest = new ProducerRequest(CurrentTestTopic, 0, new List<Message> { sourceMessage });
-                    producer.Send(producerRequest);
+                    messages.Add("test message" + i);
+
                 }
+                ProducerData<int, string> producerData = new ProducerData<int, string>(CurrentTestTopic, messages);
+                producer.Send(producerData);
             }
+
+            Thread.Sleep(10000);
 
             BackgroundWorker bw1 = new BackgroundWorker();
             bw1.WorkerSupportsCancellation = true;

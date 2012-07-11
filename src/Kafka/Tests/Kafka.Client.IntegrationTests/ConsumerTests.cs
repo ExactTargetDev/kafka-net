@@ -151,16 +151,13 @@ namespace Kafka.Client.IntegrationTests
             consumerConfiguration.Broker.BrokerId = broker.Id;
             consumerConfiguration.Broker.Host = broker.Host;
             consumerConfiguration.Broker.Port = broker.Port;
-            consumerConfiguration.BufferSize = 100000;
-            consumerConfiguration.Timeout = 60000;
-            consumerConfiguration.SocketTimeout = 60000;
 
             var consumer = new Consumer(consumerConfiguration);
-            var offsetInfo = new List<OffsetDetail> { new OffsetDetail(topic, new List<int>() { partitionMetadata.PartitionId }, new List<long> { 0 }, new List<int> { 256 }) };
+            var offsetInfo = new List<OffsetDetail> { new OffsetDetail(topic, new List<int>() { partitionMetadata.PartitionId }, new List<long> { 0 }, new List<int> { consumerConfiguration.FetchSize }) };
             var fetchRequest = new FetchRequest(FetchRequest.CurrentVersion, 0, "", broker.Id, 0, 0, offsetInfo);
 
             // giving the kafka server some time to process the message
-            Thread.Sleep(5000);//750 * numberOfMessages);
+            Thread.Sleep(750 * numberOfMessages);
 
             var fetchResponse = consumer.Fetch(fetchRequest);
             var fetchedMessageSet = fetchResponse.MessageSet(topic, partitionMetadata.PartitionId);

@@ -174,7 +174,6 @@
     <Compile Include="Messages\Compression\SnappyDecompress.cs" />
     <Compile Include="Messages\Compression\SnappyHelper.cs" />
     <Compile Include="Messages\MessageAndOffset.cs" />
-    <Compile Include="Producers\Async\AsyncProducerPool.cs" />
     <Compile Include="Producers\Async\DefaultCallbackHandler.cs" />
     <Compile Include="Producers\Async\MessageSent.cs" />
     <Compile Include="Producers\Async\ProducerSendAsyncWorker.cs" />
@@ -218,7 +217,6 @@
     <Compile Include="ZooKeeperAwareKafkaClientBase.cs" />
     <Compile Include="Messages\MessageSet.cs" />
     <Compile Include="Messages\BufferedMessageSet.cs" />
-    <Compile Include="Producers\Async\AsyncProducer.cs" />
     <Compile Include="Producers\Async\ICallbackHandler.cs" />
     <Compile Include="Producers\Partitioning\IBrokerPartitionInfo.cs" />
     <Compile Include="Producers\Partitioning\IPartitioner.cs" />

@@ -90,30 +90,6 @@ namespace Kafka.Client.Requests
         { 
         }
 
-        [Obsolete]
-        public ProducerRequest(string topic, int partition, BufferedMessageSet messages)
-        {
-            Guard.NotNull(messages, "messages");
-            this.Topic = topic;
-            this.Partition = partition;
-            this.MessageSet = messages;
-            int length = GetRequestLength();
-            this.RequestBuffer = new BoundedBuffer(length);
-            this.WriteTo(this.RequestBuffer);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the ProducerRequest class.
-        /// </summary>
-        /// <param name="topic">The topic to publish to.</param>
-        /// <param name="partition">The partition to publish to.</param>
-        /// <param name="messages">The list of messages to send.</param>
-        [Obsolete]
-        public ProducerRequest(string topic, int partition, IEnumerable<Message> messages)
-            : this(topic, partition, new BufferedMessageSet(messages))
-        {
-        }
-
         public BufferedMessageSet MessageSet { get; private set; }
 
         public override RequestTypes RequestType
@@ -177,11 +153,6 @@ namespace Kafka.Client.Requests
                     partitionData.Messages.WriteTo(writer);
                 }
             }
-
-            //writer.WriteShortString(this.Topic, DefaultEncoding);
-            //writer.Write(this.Partition);
-            //writer.Write(this.MessageSet.SetSize);
-            //this.MessageSet.WriteTo(writer);
         }
 
         public override string ToString()

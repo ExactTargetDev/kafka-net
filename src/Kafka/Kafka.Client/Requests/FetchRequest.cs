@@ -34,10 +34,6 @@ namespace Kafka.Client.Requests
     /// </summary>
     public class FetchRequest : AbstractRequest, IWritable
     {
-        /// <summary>
-        /// Maximum size.
-        /// </summary>
-        private static readonly int DefaultMaxSize = 1048576;
         public const byte DefaultTopicSizeSize = 2;
         public const byte DefaultPartitionSize = 4;
         public const byte DefaultOffsetSize = 8;
@@ -68,18 +64,11 @@ namespace Kafka.Client.Requests
                    DefaultRequestIdSize +
                    DefaultVersionIdSize +
                    DefaultCorrelationIdSize +
-                   BitWorks.GetShortStringLength(this.ClientId, AbstractRequest.DefaultEncoding) +
+                   BitWorks.GetShortStringLength(this.ClientId, DefaultEncoding) +
                    DefaultReplicaIdSize +
                    DefaultMaxWaitSize +
                    DefaultMinBytesSize +
                    DefaultOffsetInfoSizeSize + this.OffsetInfo.Sum(x => x.SizeInBytes);
-        }
-
-        [Obsolete]
-        public static int GetRequestAsPartOfMultirequestLength(string topic, string encoding = DefaultEncoding)
-        {
-            short topicLength = GetTopicLength(topic, encoding);
-            return topicLength + DefaultHeaderAsPartOfMultirequestSize;
         }
 
         public FetchRequest(short versionId, int correlationId, string clientId, int replicaId, int maxWait, int minBytes, IEnumerable<OffsetDetail> offsetInfo)
@@ -91,53 +80,10 @@ namespace Kafka.Client.Requests
             this.MaxWait = maxWait;
             this.MinBytes = minBytes;
             this.OffsetInfo = new List<OffsetDetail>(offsetInfo);
-
             int length = GetRequestLength();
             this.RequestBuffer = new BoundedBuffer(length);
             this.WriteTo(this.RequestBuffer);
         }
-
-        /// <summary>
-        /// Initializes a new instance of the FetchRequest class.
-        /// </summary>
-        /// <param name="topic">The topic to publish to.</param>
-        /// <param name="partition">The partition to publish to.</param>
-        /// <param name="offset">The offset in the topic/partition to retrieve from.</param>
-        [Obsolete]
-        public FetchRequest(string topic, int partition, long offset)
-            : this(topic, partition, offset, DefaultMaxSize)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the FetchRequest class.
-        /// </summary>
-        /// <param name="topic">The topic to publish to.</param>
-        /// <param name="partition">The partition to publish to.</param>
-        /// <param name="offset">The offset in the topic/partition to retrieve from.</param>
-        /// <param name="maxSize">The maximum size.</param>
-        [Obsolete]
-        public FetchRequest(string topic, int partition, long offset, int maxSize)
-        {
-            Topic = topic;
-            Partition = partition;
-            Offset = offset;
-            MaxSize = maxSize;
-
-            int length = this.GetRequestLength();
-            this.RequestBuffer = new BoundedBuffer(length);
-            this.WriteTo(this.RequestBuffer);
-        }
-
-        /// <summary>
-        /// Gets or sets the offset to request.
-        /// </summary>
-        public long Offset { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the maximum size to pass in the request.
-        /// </summary>
-        public int MaxSize { get; private set; }
 
         public override RequestTypes RequestType
         {

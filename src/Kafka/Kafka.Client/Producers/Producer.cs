@@ -247,7 +247,36 @@ using Kafka.Client.ZooKeeperIntegration;
         {
             foreach (ProducerData<TKey, TData> data in producerData)
             {
-                this.queue.Add(data);
+                bool added = false;
+                switch(config.EnqueueTimeoutMs)
+                {
+                    case 0:
+                        added = this.queue.TryAdd(data);
+                        break;
+                    default:
+                        try
+                        {
+                            if (config.EnqueueTimeoutMs < 0)
+                            {
+                                queue.Add(data);
+                                added = true;
+                            }
+                            else
+                            {
+                                added = this.queue.TryAdd(data, config.EnqueueTimeoutMs);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error("Error in AsyncSend", ex);
+                            added = false;
+                        }
+                        break;
+                }
+                if (added)
+                {
+                    Logger.InfoFormat("Added to send queue an event: {0}", data.ToString());
+                }
             }
         }
 

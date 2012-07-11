@@ -38,7 +38,7 @@ namespace Kafka.Client.Cfg
 
         public const int DefaultAutoCommitInterval = 10 * 1000;
 
-        public const int DefaultFetchSize = 300 * 1024;
+        public const int DefaultFetchSize = 1024 * 1024;
 
         public const int DefaultBackOffIncrement = 1000;
 

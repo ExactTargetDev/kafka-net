@@ -18,8 +18,6 @@ namespace Kafka.Client.IntegrationTests
         public void SyncProducerSendsTopicMetadataRequestWithOneTopic()
         {
             var prodConfig = this.SyncProducerConfig1;
-            int waitSingle = 100;
-            int totalWaitTimeInMiliseconds = 0;
 
             var topic = CurrentTestTopic;
 
@@ -40,8 +38,6 @@ namespace Kafka.Client.IntegrationTests
         public void SyncProducerSendsTopicMetadataRequestWithTwoTopics()
         {
             var prodConfig = this.SyncProducerConfig1;
-            int waitSingle = 100;
-            int totalWaitTimeInMiliseconds = 0;
 
             var topic1 = CurrentTestTopic + "_1";
             var topic2 = CurrentTestTopic + "_2";
@@ -66,8 +62,6 @@ namespace Kafka.Client.IntegrationTests
         public void SyncProducerGetsTopicMetadataAndSends1Message()
         {
             var prodConfig = this.SyncProducerConfig1;
-            int waitSingle = 100;
-            int totalWaitTimeInMiliseconds = 0;
 
             var topic = CurrentTestTopic;
 
