@@ -1,279 +1,273 @@
-﻿/**
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+﻿using System;
+using System.IO;
+using Kafka.Client.Common;
+using Kafka.Client.Extensions;
+using Kafka.Client.Serializers;
 
 namespace Kafka.Client.Messages
 {
-    using System;
-    using System.IO;
-    using System.Linq;
-    using System.Text;
-    using Kafka.Client.Exceptions;
-    using Kafka.Client.Serialization;
-    using Kafka.Client.Utils;
-
-    /// <summary>
-    /// Message send to Kafaka server
-    /// </summary>
-    /// <remarks>
-    /// Format:
-    /// 1 byte "magic" identifier to allow format changes
-    /// 4 byte CRC32 of the payload
-    /// N - 5 byte payload
-    /// </remarks>
-    public class Message : IWritable
+    public class Message
     {
-        private const byte DefaultMagicValue = 1;
-        private const byte DefaultMagicLength = 1;
-        private const byte DefaultCrcLength = 4;
-        private const int DefaultHeaderSize = DefaultMagicLength + DefaultCrcLength;
-        private const byte CompressionCodeMask = 3;
+        private const int CrcOffset = 0;
+        private const int CrcLength = 4;
+        private const int MagicOffset = CrcOffset + CrcLength;
+        private const int MagicLength = 1;
+        private const int AttributesOffset = MagicOffset + MagicLength;
+        private const int AttributesLength = 1;
+        private const int KeySizeOffset = AttributesOffset + AttributesLength;
+        private const int KeySizeLength = 4;
+        private const int KeyOffset = KeySizeOffset + KeySizeLength;
+        private const int ValueSizeLength = 4;
 
+
+        private const int MessageOverhead = KeyOffset + ValueSizeLength;
+        private const int MinHeaderSize = CrcLength + MagicLength + AttributesLength + KeySizeLength + ValueSizeLength;
+        private const byte CurrentMagicValue = 0;
+        private const byte CompressionCodeMask = 0x03;
+        private const int NoCompression = 0;
+
+        private readonly MemoryStream buffer;
+
+        public Message(MemoryStream buffer)
+        {
+            this.buffer = buffer;
+        }
+
+
+        public Message(byte[] bytes, byte[] key, CompressionCodecs codec, int payloadOffset, int payloadSize)
+        {
+            buffer = new MemoryStream(CrcLength +
+                                      MagicLength +
+                                      AttributesLength +
+                                      KeySizeLength +
+                                      ((key == null) ? 0 : key.Length) +
+                                      ValueSizeLength +
+                                      ((bytes == null)
+                                           ? 0
+                                           : ((payloadSize >= 0 ? payloadSize : bytes.Length - payloadOffset))));
+            using (var writer = new KafkaBinaryWriter(buffer))
+            {
+                writer.Seek(MagicOffset, SeekOrigin.Begin);
+                writer.Write(CurrentMagicValue);
+                byte attributes = 0;
+                if (codec != CompressionCodecs.NoCompressionCodec)
+                {
+                    attributes = Convert.ToByte(attributes | (CompressionCodeMask & Messages.CompressionCodec.GetCompressionCodecValue(codec)));
+                }
+                writer.Write(attributes);
+                if (key == null)
+                {
+                    writer.Write(-1);
+                }
+                else
+                {
+                    writer.Write(key.Length);
+                    writer.Write(key, 0, key.Length);
+                }
+                var size = (bytes == null)
+                               ? -1
+                               : (payloadSize >= 0) ? payloadSize : bytes.Length - payloadOffset;
+                writer.Write(size);
+                if (bytes != null)
+                {
+                    writer.Write(bytes, payloadOffset, size);
+                }
+                writer.Seek(0, SeekOrigin.Begin);
+            }
+
+            Utils.Utils.WriteUnsignedInt(buffer, CrcOffset, ComputeChecksum());
+
+        }
+
+        public Message(byte[] bytes, byte[] key, CompressionCodecs codec) : this(bytes, key, codec, 0, -1)
+        {
+            
+        }
+
+        public Message(byte[] bytes, CompressionCodecs codec) : this(bytes, null, codec)
+        {
+            
+        }
+
+        public Message(byte[] bytes, byte[] key) : this(bytes, key, CompressionCodecs.NoCompressionCodec)
+        {
+            
+        }
+
+        public Message(byte[] bytes) : this(bytes, null, CompressionCodecs.NoCompressionCodec)
+        {
+            
+        }
+
+        /// <summary>
+        /// Compute the checksum of the message from the message contents
+        /// </summary>
+        /// <returns></returns>
+        public long ComputeChecksum()
+        {
+            return Utils.Utils.Crc32(buffer.ToArray(), MagicOffset, (int)buffer.Length - MagicOffset);
+        }
+
+        /// <summary>
+        /// Retrieve the previously computed CRC for this message
+        /// </summary>
+        /// <returns></returns>
+        public long Checksum { get
+        {
+            return Utils.Utils.ReadUnsingedInt(buffer, CrcOffset);
+        }}
+
+        /// <summary>
+        /// Returns true if the crc stored with the message matches the crc computed off the message contents
+        /// </summary>
+        /// <returns></returns>
+        public bool IsValid
+        {
+            get { return Checksum == ComputeChecksum(); }
+        }
+
+
+        /// <summary>
+        /// Throw an InvalidMessageException if isValid is false for this message
+        /// </summary>
+        public void EnsureValid()
+        {
+            if (!IsValid)
+            {
+                throw new InvalidMessageException(String.Format("Message is corrupt (stored crc = {0}, computed crc = {1})", Checksum, ComputeChecksum()));
+            }
+        }
+
+        /// <summary>
+        /// The complete serialized size of this message in bytes (including crc, header attributes, etc)
+        /// </summary>
+        /// <returns></returns>
+        public long Size {
+            get { return this.buffer.Length; }
+        }
+
+        /// <summary>
+        /// The length of the key in bytes
+        /// </summary>
+        /// <returns></returns>
+        public int KeySize { get { return buffer.GetInt(Message.KeySizeOffset); } }
+
+        /// <summary>
+        /// Does the message have a key?
+        /// </summary>
+        /// <returns></returns>
+        public bool HasKey {
+            get { return KeySize >= 0; }
+        }
+
+        /// <summary>
+        /// The position where the payload size is stored
+        /// </summary>
+        /// <returns></returns>
+        private int PayloadSizeOffset
+        {
+            get { return KeyOffset + Math.Max(0, KeySize); }
+        }
+
+        /// <summary>
+        /// The length of the message value in bytes
+        /// </summary>
+        /// <returns></returns>
+        public int PayloadSize
+        {
+            get { return buffer.GetInt(PayloadSizeOffset); }
+        }
+
+        /// <summary>
+        ///  Is the payload of this message null
+        /// </summary>
+        /// <returns></returns>
+        public bool IsNull()
+        {
+            return PayloadSize < 0;
+        }
+
+        /// <summary>
+        /// The magic version of this message
+        /// </summary>
+        /// <returns></returns>
+        public byte Magic
+        {
+            get { return this.buffer.GetBuffer()[MagicOffset]; }
+        }
+
+        /// <summary>
+        /// The attributes stored with this message
+        /// </summary>
+        /// <returns></returns>
+        public byte Attributes
+        {
+            get { return this.buffer.GetBuffer()[AttributesOffset]; }
+        }
+
+        /// <summary>
+        /// The compression codec used with this message
+        /// </summary>
+        /// <returns></returns>
         public CompressionCodecs CompressionCodec
         {
             get
             {
-                switch (Magic)
-                {
-                    case 0:
-                        return CompressionCodecs.NoCompressionCodec;
-                    case 1:
-                        return Messages.CompressionCodec.GetCompressionCodec(Attributes & CompressionCodeMask);
-                    default:
-                        throw new KafkaException(KafkaException.InvalidMessageCode);
-                }
+                return Messages.CompressionCodec.GetCompressionCodec(buffer.GetBuffer()[AttributesOffset] &
+                                                                          CompressionCodeMask);
             }
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Message"/> class.
+        /// A ByteBuffer containing the content of the message
         /// </summary>
-        /// <param name="payload">
-        /// The payload.
-        /// </param>
-        /// <param name="checksum">
-        /// The checksum.
-        /// </param>
-        /// <remarks>
-        /// Initializes with default magic number
-        /// </remarks>
-        public Message(byte[] payload, byte[] checksum)
-            : this(payload, checksum, CompressionCodecs.NoCompressionCodec)
+        public MemoryStream Payload
         {
-            Guard.NotNull(payload, "payload");
-            Guard.NotNull(checksum, "checksum");
-            Guard.Count(checksum, 4, "checksum");
+            get { return this.SliceDelimited(PayloadSizeOffset); }
+        }
+
+        public MemoryStream Key
+        {
+            get { return this.SliceDelimited(KeySizeOffset);  }
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Message"/> class.
+        /// Read a size-delimited byte buffer starting at the given offset
         /// </summary>
-        /// <param name="payload">
-        /// The payload.
-        /// </param>
-        /// <remarks>
-        /// Initializes the magic number as default and the checksum as null. It will be automatically computed.
-        /// </remarks>
-        public Message(byte[] payload)
-            : this(payload, CompressionCodecs.NoCompressionCodec)
+        /// <param name="start"></param>
+        /// <returns></returns>
+        private MemoryStream SliceDelimited(int start)
         {
-            Guard.NotNull(payload, "payload");
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the Message class.
-        /// </summary>
-        /// <remarks>
-        /// Initializes the checksum as null.  It will be automatically computed.
-        /// </remarks>
-        /// <param name="payload">The data for the payload.</param>
-        /// <param name="magic">The magic identifier.</param>
-        public Message(byte[] payload, CompressionCodecs compressionCodec)
-            : this(payload, Crc32Hasher.Compute(payload), compressionCodec)
-        {
-            Guard.NotNull(payload, "payload");
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the Message class.
-        /// </summary>
-        /// <param name="payload">The data for the payload.</param>
-        /// <param name="magic">The magic identifier.</param>
-        /// <param name="checksum">The checksum for the payload.</param>
-        public Message(byte[] payload, byte[] checksum, CompressionCodecs compressionCodec)
-        {
-            Guard.NotNull(payload, "payload");
-            Guard.NotNull(checksum, "checksum");
-            Guard.Count(checksum, 4, "checksum");
-
-            int length = DefaultHeaderSize + payload.Length;
-            this.Payload = payload;
-            this.Magic = DefaultMagicValue;
-            
-            if (compressionCodec != CompressionCodecs.NoCompressionCodec)
+            int size = buffer.GetInt(start);
+            if (size < 0)
             {
-                this.Attributes |=
-                    (byte)(CompressionCodeMask & Messages.CompressionCodec.GetCompressionCodecValue(compressionCodec));
+                return null;
             }
-
-            if (Magic == 1)
-            {
-                length++;
-            }
-
-            this.Checksum = checksum;
-            this.Size = length;
+            return new MemoryStream(buffer.GetBuffer(), start + 4, size);
         }
 
-        /// <summary>
-        /// Gets the payload.
-        /// </summary>
-        public byte[] Payload { get; private set; }
-
-        /// <summary>
-        /// Gets the magic bytes.
-        /// </summary>
-        public byte Magic { get; private set; }
-
-        /// <summary>
-        /// Gets the CRC32 checksum for the payload.
-        /// </summary>
-        public byte[] Checksum { get; private set; }
-
-        /// <summary>
-        /// Gets the Attributes for the message.
-        /// </summary>
-        public byte Attributes { get; private set; }
-
-        /// <summary>
-        /// Gets the total size of message.
-        /// </summary>
-        public int Size { get; private set; }
-
-        /// <summary>
-        /// Gets the payload size.
-        /// </summary>
-        public int PayloadSize
-        {
-            get
-            {
-                return this.Payload.Length;
-            }
-        }
-
-        /// <summary>
-        /// Writes message data into given message buffer
-        /// </summary>
-        /// <param name="output">
-        /// The output.
-        /// </param>
-        public void WriteTo(MemoryStream output)
-        {
-            Guard.NotNull(output, "output");
-
-            using (var writer = new KafkaBinaryWriter(output))
-            {
-                this.WriteTo(writer);
-            }
-        }
-
-        /// <summary>
-        /// Writes message data using given writer
-        /// </summary>
-        /// <param name="writer">
-        /// The writer.
-        /// </param>
-        public void WriteTo(KafkaBinaryWriter writer)
-        {
-            Guard.NotNull(writer, "writer");
-            writer.Write(this.Magic);
-            writer.Write(this.Attributes);
-            writer.Write(this.Checksum);
-            writer.Write(this.Payload);
-        }
-
-        /// <summary>
-        /// Try to show the payload as decoded to UTF-8.
-        /// </summary>
-        /// <returns>The decoded payload as string.</returns>
         public override string ToString()
         {
-            var sb = new StringBuilder();
-            sb.Append("Magic: ");
-            sb.Append(this.Magic);
-            if (this.Magic == 1)
-            {
-                sb.Append(", Attributes: ");
-                sb.Append(this.Attributes);
-            }
-
-            sb.Append(", Checksum: ");
-            for (int i = 0; i < 4; i++)
-            {
-                sb.Append("[");
-                sb.Append(this.Checksum[i]);
-                sb.Append("]");
-            }
-
-            sb.Append(", topic: ");
-            try
-            {
-                sb.Append(Encoding.UTF8.GetString(this.Payload));
-            }
-            catch (Exception)
-            {
-                sb.Append("n/a");
-            }
-
-            return sb.ToString();
+            return string.Format("Magic: {0}, Attributes: {1}, Checksum: {2}, Payload: {3}, Key: {4}", Magic, Attributes, Checksum, Payload, Key);
         }
 
-        internal static Message ParseFrom(KafkaBinaryReader reader, int size)
+        protected bool Equals(Message other)
         {
-            Message result;
-            int readed = 0;
-            byte magic = reader.ReadByte();
-            readed++;
-            byte[] checksum;
-            byte[] payload;
-            if (magic == 1)
-            {
-                byte attributes = reader.ReadByte();
-                readed++;
-                checksum = reader.ReadBytes(4);
-                readed += 4;
-                payload = reader.ReadBytes(size - (DefaultHeaderSize + 1));
-                readed += size - (DefaultHeaderSize + 1);
-                result = new Message(payload, checksum, Messages.CompressionCodec.GetCompressionCodec(attributes & CompressionCodeMask));
-            }
-            else
-            {
-                checksum = reader.ReadBytes(4);
-                readed += 4;
-                payload = reader.ReadBytes(size - DefaultHeaderSize);
-                readed += size - DefaultHeaderSize;
-                result = new Message(payload, checksum);
-            }
-
-            if (size != readed)
-            {
-                throw new KafkaException(KafkaException.InvalidRetchSizeCode);
-            }
-
-            return result;
+            return Equals(buffer, other.buffer);
         }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((Message) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return this.buffer != null ? this.buffer.GetHashCode() : 0;
+        }
+
     }
 }

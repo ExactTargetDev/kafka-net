@@ -1,46 +1,34 @@
-﻿/**
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+﻿using System.Collections.Concurrent;
+using System.Globalization;
+using System.Reflection;
+using System.Threading;
+using Kafka.Client.Common.Imported;
+using Kafka.Client.Messages;
+using log4net;
 
 namespace Kafka.Client.Consumers
 {
-    using System.Collections.Concurrent;
-    using System.Globalization;
-    using System.Reflection;
-    using System.Threading;
-    using Kafka.Client.Cluster;
-    using Kafka.Client.Messages;
-    using log4net;
-
-    /// <summary>
-    /// Represents topic in brokers's partition.
-    /// </summary>
     internal class PartitionTopicInfo
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private readonly object consumedOffsetLock = new object();
-
-        private readonly object fetchedOffsetLock = new object();
-
         private readonly BlockingCollection<FetchedDataChunk> chunkQueue;
 
-        private long consumedOffset;
+        private AtomicLong consumedOffset;
 
-        private long fetchedOffset;
+        private AtomicLong fetchedOffset;
+
+        private AtomicInteger fetchSize;
+
+        private readonly string clientId;
+
+        public readonly long InvalidOffset = -1L;
+
+        public static bool IsOffsetInvalid(long offset)
+        {
+            return offset < 0L;
+        }
+        
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PartitionTopicInfo"/> class.
@@ -48,10 +36,7 @@ namespace Kafka.Client.Consumers
         /// <param name="topic">
         /// The topic.
         /// </param>
-        /// <param name="brokerId">
-        /// The broker ID.
-        /// </param>
-        /// <param name="partition">
+        /// <param name="partitionId">
         /// The broker's partition.
         /// </param>
         /// <param name="chunkQueue">
@@ -66,22 +51,24 @@ namespace Kafka.Client.Consumers
         /// <param name="fetchSize">
         /// The fetch size.
         /// </param>
+        /// <param name="clientId">Client id</param>
         public PartitionTopicInfo(
-            string topic, 
-            int brokerId, 
-            int partitionId, 
-            BlockingCollection<FetchedDataChunk> chunkQueue, 
-            long consumedOffset, 
-            long fetchedOffset, 
-            int fetchSize)
+            string topic,
+            int partitionId,
+            BlockingCollection<FetchedDataChunk> chunkQueue,
+            AtomicLong consumedOffset,
+            AtomicLong fetchedOffset,
+            AtomicInteger fetchSize,
+            string clientId)
         {
             this.Topic = topic;
             this.PartitionId = partitionId;
             this.chunkQueue = chunkQueue;
-            this.BrokerId = brokerId;
             this.consumedOffset = consumedOffset;
             this.fetchedOffset = fetchedOffset;
-            this.FetchSize = fetchSize;
+            this.fetchSize = fetchSize;
+            this.clientId = clientId;
+            consumerTopicStats = ConsumerTopicStatsRegistry.getConsumerTopicStat(clientId);
             if (Logger.IsDebugEnabled)
             {
                 Logger.DebugFormat(
@@ -90,16 +77,6 @@ namespace Kafka.Client.Consumers
                     CultureInfo.CurrentCulture, "initial fetch offset of {0} is {1}", this, fetchedOffset);
             }
         }
-
-        /// <summary>
-        /// Gets broker ID.
-        /// </summary>
-        public int BrokerId { get; private set; }
-
-        /// <summary>
-        /// Gets the fetch size.
-        /// </summary>
-        public int FetchSize { get; private set; }
 
         /// <summary>
         /// Gets the partition Id.
@@ -111,64 +88,21 @@ namespace Kafka.Client.Consumers
         /// </summary>
         public string Topic { get; private set; }
 
-        /// <summary>
-        /// Records the given number of bytes as having been consumed
-        /// </summary>
-        /// <param name="messageSize">
-        /// The message size.
-        /// </param>
-        public void Consumed(int messageSize)
-        {
-            long newOffset;
-            lock (this.consumedOffsetLock)
-            {
-                this.consumedOffset += messageSize;
-                newOffset = this.consumedOffset;
-            }
-
-            if (Logger.IsDebugEnabled)
-            {
-                Logger.DebugFormat(
-                    CultureInfo.CurrentCulture, "updated consume offset of {0} to {1}", this, newOffset);
-            }
-        }
-
-        public int Add(BufferedMessageSet messages, long fetchOffset)
-        {
-            int size = messages.SetSize;
-            if (size > 0)
-            {
-                Logger.InfoFormat("Updating fetch offset = {0} with size = {1}", this.fetchedOffset, size);
-                this.chunkQueue.Add(new FetchedDataChunk(messages, this, fetchOffset));
-                long newOffset = Interlocked.Add(ref this.fetchedOffset, size);
-                Logger.Debug("Updated fetch offset of " + this + " to " + newOffset);
-            }
-
-            return size;
-        }
+        private readonly ConsumerTopicStats consumerTopicStats;
 
         public long GetConsumeOffset()
         {
-            lock (this.consumedOffsetLock)
-            {
-                return this.consumedOffset;
-            }
+            return consumedOffset.Get();
         }
 
         public long GetFetchOffset()
         {
-            lock (this.fetchedOffsetLock)
-            {
-                return this.fetchedOffset;
-            }
+            return fetchedOffset.Get();
         }
 
         public void ResetConsumeOffset(long newConsumeOffset)
         {
-            lock (this.consumedOffsetLock)
-            {
-                this.consumedOffset = newConsumeOffset;
-            }
+            consumedOffset.Set(newConsumeOffset);
 
             if (Logger.IsDebugEnabled)
             {
@@ -179,15 +113,31 @@ namespace Kafka.Client.Consumers
 
         public void ResetFetchOffset(long newFetchOffset)
         {
-            lock (this.fetchedOffsetLock)
-            {
-                this.fetchedOffset = newFetchOffset;
-            }
+            fetchedOffset.Set(newFetchOffset);
 
             if (Logger.IsDebugEnabled)
             {
                 Logger.DebugFormat(
                     CultureInfo.CurrentCulture, "reset fetch offset of {0} to {1}", this, newFetchOffset);
+            }
+        }
+
+        public void Enqueue(ByteBufferMessageSet messages)
+        {
+            var size = messages.ValidBytes;
+            if (size > 0)
+            {
+                var next = messages.ShallowEnumerator().Last().NextOffset;
+                Logger.DebugFormat("Updating fetch offset = {0} to {1}", fetchedOffset.Get(), next);
+                chunkQueue.Add(new FetchedDataChunk(messages, this, fetchedOffset.Get()));
+                fetchedOffset.Set(next);
+                Logger.DebugFormat("Updated fetch offset of {0} to {1}", this, next);
+                consumerTopicStats.GetConsumerTopicStats(Topic).ByteRate.Mark(size);
+                consumerTopicStats.GetConsumerAllTopicStats().ByteRate.Mark(size);
+
+            } else if (messages.SizeInBytes > 0)
+            {
+                chunkQueue.Add(new FetchedDataChunk(messages, this, fetchedOffset.Get()));
             }
         }
 

@@ -15,11 +15,12 @@
  * limitations under the License.
  */
 
+using Kafka.Client.Common;
+
 namespace Kafka.Client.Messages
 {
     using System;
     using System.Globalization;
-    using Kafka.Client.Exceptions;
 
     public static class CompressionCodec
     {

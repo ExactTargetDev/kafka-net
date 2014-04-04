@@ -17,8 +17,9 @@
 namespace Kafka.Client.Cfg
 {
     using System.Configuration;
-    using Kafka.Client.Requests;
     using System.Xml.Linq;
+
+    using Kafka.Client.Api;
 
 
     public class ConsumerConfigurationSection : ConfigurationSection
@@ -50,7 +51,7 @@ namespace Kafka.Client.Cfg
             }
         }
 
-        [ConfigurationProperty("autoOffsetReset", IsRequired = false, DefaultValue = OffsetRequest.SmallestTime)]
+        [ConfigurationProperty("autoOffsetReset", IsRequired = false, DefaultValue = OffsetRequest.LargestTimeString)]
         public string AutoOffsetReset
         {
             get

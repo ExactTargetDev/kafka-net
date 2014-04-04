@@ -27,66 +27,6 @@ namespace Kafka.Client.Cfg
 
     public class ProducerConfigurationSection : ConfigurationSection
     {
-        [ConfigurationProperty(
-            "type",
-            DefaultValue = ProducerConfiguration.DefaultProducerType,
-            IsRequired = false)]
-        public ProducerTypes ProducerType
-        {
-            get
-            {
-                return (ProducerTypes)this["type"];
-            }
-        }
-
-        [ConfigurationProperty(
-            "bufferSize",
-            DefaultValue = SyncProducerConfiguration.DefaultBufferSize,
-            IsRequired = false)]
-        public int BufferSize
-        {
-            get
-            {
-                return (int)this["bufferSize"];
-            }
-        }
-
-        [ConfigurationProperty(
-            "connectionTimeout",
-            DefaultValue = SyncProducerConfiguration.DefaultConnectTimeout,
-            IsRequired = false)]
-        public int ConnectionTimeout
-        {
-            get
-            {
-                return (int)this["connectionTimeout"];
-            }
-        }
-
-        [ConfigurationProperty(
-            "socketTimeout",
-            DefaultValue = SyncProducerConfiguration.DefaultSocketTimeout,
-            IsRequired = false)]
-        public int SocketTimeout
-        {
-            get
-            {
-                return (int)this["socketTimeout"];
-            }
-        }
-
-        [ConfigurationProperty(
-            "maxMessageSize",
-            DefaultValue = SyncProducerConfiguration.DefaultMaxMessageSize,
-            IsRequired = false)]
-        public int MaxMessageSize
-        {
-            get
-            {
-                return (int)this["maxMessageSize"];
-            }
-        }
-
         [ConfigurationProperty("brokers", IsRequired = false, IsDefaultCollection = true)]
         [ConfigurationCollection(typeof(BrokerConfigurationElementCollection),
             AddItemName = "add",
@@ -100,31 +40,10 @@ namespace Kafka.Client.Cfg
             }
         }
 
-        [ConfigurationProperty("zookeeper", IsRequired = false, DefaultValue = null)]
-        public ZooKeeperConfigurationElement ZooKeeperServers
-        {
-            get 
-            { 
-                 return (ZooKeeperConfigurationElement)this["zookeeper"];
-            }
-        }
-
         [ConfigurationProperty(
-            "serializer",
-            DefaultValue = ProducerConfiguration.DefaultSerializer,
-            IsRequired = false)]
-        public string Serializer
-        {
-            get
-            {
-                return (string)this["serializer"];
-            }
-        }
-
-        [ConfigurationProperty(
-            "partitioner",
-            DefaultValue = ProducerConfiguration.DefaultPartitioner,
-            IsRequired = false)]
+           "partitioner",
+           DefaultValue = ProducerConfiguration.DefaultPartitioner,
+           IsRequired = false)]
         public string Partitioner
         {
             get
@@ -134,9 +53,21 @@ namespace Kafka.Client.Cfg
         }
 
         [ConfigurationProperty(
-            "compressionCodec",
-            DefaultValue = CompressionCodecs.DefaultCompressionCodec,
+            "type",
+            DefaultValue = ProducerConfiguration.DefaultProducerType,
             IsRequired = false)]
+        public ProducerTypes ProducerType
+        {
+            get
+            {
+                return (ProducerTypes)this["type"];
+            }
+        }
+
+        [ConfigurationProperty(
+                  "compressionCodec",
+                  DefaultValue = CompressionCodecs.DefaultCompressionCodec,
+                  IsRequired = false)]
         public CompressionCodecs CompressionCodec
         {
             get
@@ -144,11 +75,10 @@ namespace Kafka.Client.Cfg
                 return Messages.CompressionCodec.GetCompressionCodec((int)this["compressionCodec"]);
             }
         }
-
         [ConfigurationProperty(
-            "compressedTopics",
-            DefaultValue = null,
-            IsRequired = false)]
+           "compressedTopics",
+           DefaultValue = null,
+           IsRequired = false)]
         public List<string> CompressedTopics
         {
             get
@@ -159,51 +89,136 @@ namespace Kafka.Client.Cfg
                 {
                     return
                         new List<string>(
-                            ((string) this["compressedTopics"]).Split(',').Where(x => !string.IsNullOrEmpty(x)));
+                            ((string)this["compressedTopics"]).Split(',').Where(x => !string.IsNullOrEmpty(x)));
                 }
             }
         }
 
         [ConfigurationProperty(
-            "producerRetries",
-            DefaultValue = 3,
+            "messageSendMaxRetries",
+            DefaultValue = ProducerConfiguration.DefaultMessageSendRetries,
             IsRequired = false)]
-        public int ProducerRetries
+        public int MessageSendMaxRetries
         {
             get
             {
-                return (int)this["producerRetries"];
+                return (int)this["messageSendMaxRetries"];
             }
         }
 
         [ConfigurationProperty(
-            "producerRetryBackoffMiliseconds",
-            DefaultValue = 500,
+            "retryBackoffMs",
+            DefaultValue = ProducerConfiguration.DefaultRetryBackoffMs,
             IsRequired = false)]
-        public int ProducerRetryBackoffMiliseconds
+        public int RetryBackoffMs
         {
             get
             {
-                return (int)this["producerRetryBackoffMiliseconds"];
+                return (int)this["retryBackoffMs"];
             }
         }
 
         [ConfigurationProperty(
-            "correlationId",
-            DefaultValue = -1,
+            "topicMetadataRefreshIntervalMs",
+            DefaultValue = ProducerConfiguration.DefaultTopicMetadataRefreshIntervalMs,
             IsRequired = false)]
-        public int CorrelationId
+        public int TopicMetadataRefreshIntervalMs
         {
             get
             {
-                return (int)this["correlationId"];
+                return (int)this["topicMetadataRefreshIntervalMs"];
             }
         }
 
         [ConfigurationProperty(
-            "clientId",
-            DefaultValue = "",
+            "queueBufferingMaxMs",
+            DefaultValue = AsyncProducerConfiguration.DefaultQueueBufferingMaxMs,
             IsRequired = false)]
+        public int QueueBufferingMaxMs
+        {
+            get
+            {
+                return (int)this["QueueBufferingMaxMs"];
+            }
+        }
+
+        [ConfigurationProperty(
+            "queueBufferingMaxMessages",
+            DefaultValue = AsyncProducerConfiguration.DefaultQueueBufferingMaxMessages,
+            IsRequired = false)]
+        public int QueueBufferingMaxMessages
+        {
+            get
+            {
+                return (int)this["queueBufferingMaxMessages"];
+            }
+        }
+
+        [ConfigurationProperty(
+            "queueEnqueueTimeoutMs",
+            DefaultValue = AsyncProducerConfiguration.DefaultQueueEnqueueTimeoutMs,
+            IsRequired = false)]
+        public int QueueEnqueueTimeoutMs
+        {
+            get
+            {
+                return (int)this["queueEnqueueTimeoutMs"];
+            }
+        }
+
+
+        [ConfigurationProperty(
+            "batchNumMessages",
+            DefaultValue = AsyncProducerConfiguration.DefaultBatchNumMessages,
+            IsRequired = false)]
+        public int BatchNumMessages
+        {
+            get
+            {
+                return (int)this["batchNumMessages"];
+            }
+        }
+
+        [ConfigurationProperty(
+           "serializer",
+           DefaultValue = AsyncProducerConfiguration.DefaultSerializerClass,
+           IsRequired = false)]
+        public string Serializer
+        {
+            get
+            {
+                return (string)this["serializer"];
+            }
+        }
+
+        [ConfigurationProperty(
+           "keySerializer",
+           DefaultValue = AsyncProducerConfiguration.DefaultKeySerializerClass,
+           IsRequired = false)]
+        public string KeySerializer
+        {
+            get
+            {
+                return (string)this["keySerializer"];
+            }
+        }
+
+        [ConfigurationProperty(
+           "sendBufferBytes",
+           DefaultValue = SyncProducerConfiguration.DefaultSendBufferBytes,
+           IsRequired = false)]
+        public int SendBufferBytes
+        {
+            get
+            {
+                return (int)this["sendBufferBytes"];
+            }
+        }
+
+        [ConfigurationProperty(
+           "clientId",
+           DefaultValue = SyncProducerConfiguration.DefaultClientId,
+           IsRequired = false)]
         public string ClientId
         {
             get
@@ -213,74 +228,35 @@ namespace Kafka.Client.Cfg
         }
 
         [ConfigurationProperty(
-            "requiredAcks",
-            DefaultValue = (short)0,
-            IsRequired = false)]
-        public short RequiredAcks
+           "requestRequiredAcks",
+           DefaultValue = SyncProducerConfiguration.DefaultRequiredAcks,
+           IsRequired = false)]
+        public short RequestRequiredAcks
         {
             get
             {
-                return (short)this["requiredAcks"];
+                return (short)this["requestRequiredAcks"];
             }
         }
 
         [ConfigurationProperty(
-            "ackTimeout",
-            DefaultValue = 1,
-            IsRequired = false)]
-        public int AckTimeout
+           "requestTimeoutMs",
+           DefaultValue = SyncProducerConfiguration.DefaultAckTimeout,
+           IsRequired = false)]
+        public int RequestTimeoutMs
         {
             get
             {
-                return (int)this["ackTimeout"];
+                return (int)this["requestTimeoutMs"];
             }
         }
 
-        [ConfigurationProperty(
-            "queueTime",
-            DefaultValue = 5000,
-            IsRequired = false)]
-        public int QueueTime
+        [ConfigurationProperty("zookeeper", IsRequired = false, DefaultValue = null)]
+        public ZooKeeperConfigurationElement ZooKeeperServers
         {
-            get
-            {
-                return (int)this["queueTime"];
-            }
-        }
-
-        [ConfigurationProperty(
-            "queueSize",
-            DefaultValue = 10000,
-            IsRequired = false)]
-        public int QueueSize
-        {
-            get
-            {
-                return (int)this["queueSize"];
-            }
-        }
-
-        [ConfigurationProperty(
-            "batchSize",
-            DefaultValue = 200,
-            IsRequired = false)]
-        public int BatchSize
-        {
-            get
-            {
-                return (int)this["batchSize"];
-            }
-        }
-
-        [ConfigurationProperty(
-            "enqueueTimeoutMs",
-            DefaultValue = 0,
-            IsRequired = false)]
-        public int EnqueueTimeoutMs
-        {
-            get
-            {
-                return (int)this["enqueueTimeoutMs"];
+            get 
+            { 
+                 return (ZooKeeperConfigurationElement)this["zookeeper"];
             }
         }
 

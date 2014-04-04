@@ -18,7 +18,6 @@
 namespace Kafka.Client.Cfg
 {
     using System.Collections.Generic;
-    using Kafka.Client.Serialization;
     using Kafka.Client.Utils;
 
     /// <summary>
@@ -26,42 +25,52 @@ namespace Kafka.Client.Cfg
     /// </summary>
     public class AsyncProducerConfiguration : SyncProducerConfiguration, IAsyncProducerConfigShared
     {
+
+        public const int DefaultQueueBufferingMaxMs = 5000;
+
+        public const int DefaultQueueBufferingMaxMessages = 10000;
+
+        public const int DefaultQueueEnqueueTimeoutMs = -1;
+
+        public const int DefaultBatchNumMessages = 200;
+
         public const string DefaultSerializerClass = "Kafka.Client.Serialization.DefaultEncoder";
-        public const int DefaultQueueTime = 5000;
-        public const int DefaultQueueSize = 10000;
-        public const int DefaultBatchSize = 200;
-        public const int DefaultEnqueueTimeoutMs = 0;
+
+        public const string DefaultKeySerializerClass = DefaultSerializerClass;
+
 
         public AsyncProducerConfiguration()
         {
+            this.QueueBufferingMaxMs = DefaultQueueBufferingMaxMs;
+            this.QueueBufferingMaxMessages = DefaultQueueBufferingMaxMessages;
+            this.QueueEnqueueTimeoutMs = DefaultQueueEnqueueTimeoutMs;
+            this.BatchNumMessages = DefaultBatchNumMessages;
             this.SerializerClass = DefaultSerializerClass;
-            this.QueueTime = DefaultQueueTime;
-            this.QueueSize = DefaultQueueSize;
-            this.BatchSize = DefaultBatchSize;
-            this.EnqueueTimeoutMs = DefaultEnqueueTimeoutMs;
+            this.KeySerializerClass = DefaultKeySerializerClass;
         }
 
-        public AsyncProducerConfiguration(ProducerConfiguration config, int id, string host, int port) 
-            : base(config, id, host, port)
+        public AsyncProducerConfiguration(ProducerConfigurationSection config, string host, int port)
+            : base(config, host, port)
         {
-            Guard.NotNull(config, "config");
-            this.SerializerClass = config.SerializerClass;
-            this.QueueTime = config.QueueTime;
-            this.QueueSize = config.QueueSize;
-            this.BatchSize = config.BatchSize;
-            this.EnqueueTimeoutMs = config.EnqueueTimeoutMs;
+
+            this.QueueBufferingMaxMs = config.QueueBufferingMaxMs;
+            this.QueueBufferingMaxMessages = config.QueueBufferingMaxMessages;
+            this.QueueEnqueueTimeoutMs = config.QueueEnqueueTimeoutMs;
+            this.BatchNumMessages = config.BatchNumMessages;
+            this.SerializerClass = config.Serializer;
+            this.KeySerializerClass = config.KeySerializer;
         }
+
+        public int QueueBufferingMaxMs { get; set; }
+
+        public int QueueBufferingMaxMessages { get; set; }
+
+        public int QueueEnqueueTimeoutMs { get; set; }
+
+        public int BatchNumMessages { get; set; }
 
         public string SerializerClass { get; set; }
 
-        public string CallbackHandlerClass { get; set; }
-
-        public int QueueTime { get; set; }
-
-        public int QueueSize { get; set; }
-
-        public int BatchSize { get; set; }
-
-        public int EnqueueTimeoutMs { get; set; }
+        public string KeySerializerClass { get; set; }
     }
 }

@@ -16,8 +16,7 @@
  */
 namespace Kafka.Client.Cfg
 {
-    using Kafka.Client.Exceptions;
-    using Kafka.Client.Requests;
+    using Kafka.Client.Api;
     using System.Configuration;
     using System.Net;
     using System.Globalization;
@@ -28,6 +27,7 @@ namespace Kafka.Client.Cfg
     /// <summary>
     /// Configuration used by the consumer
     /// </summary>
+    /// TODO: review and update props
     public class ConsumerConfiguration
     {
         public const short DefaultNumberOfTries = 2;
@@ -54,7 +54,7 @@ namespace Kafka.Client.Cfg
         {
             this.NumberOfTries = DefaultNumberOfTries;
             this.Timeout = DefaultTimeout;
-            this.AutoOffsetReset = OffsetRequest.SmallestTime;
+            //TODO:this.AutoOffsetReset = OffsetRequest.SmallestTime;
             this.AutoCommit = DefaultAutoCommit;
             this.AutoCommitInterval = DefaultAutoCommitInterval;
             this.FetchSize = DefaultFetchSize;

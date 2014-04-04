@@ -21,69 +21,43 @@ namespace Kafka.Client.Cfg
 
     public class SyncProducerConfiguration : ISyncProducerConfigShared
     {
-        public const int DefaultBufferSize = 100 * 1024;
-
-        public const int DefaultConnectTimeout = 5 * 1000;
-
-        public const int DefaultSocketTimeout = 30 * 1000;
-
-        public const int DefaultReconnectInterval = 30 * 1000;
-
-        public const int DefaultMaxMessageSize = 1000 * 1000;
-
-        public const int DefaultCorrelationId = -1;
-
         public const string DefaultClientId = "";
 
         public const short DefaultRequiredAcks = 0;
 
-        public const int DefaultAckTimeout = 1;
+        public const int DefaultAckTimeout = 10000;
+
+        public const int DefaultSendBufferBytes = 100 * 1024;
 
         public SyncProducerConfiguration()
         {
-            this.BufferSize = DefaultBufferSize;
-            this.ConnectTimeout = DefaultConnectTimeout;
-            this.SocketTimeout = DefaultSocketTimeout;
-            this.MaxMessageSize = DefaultMaxMessageSize;
-            this.CorrelationId = DefaultCorrelationId;
+            this.SendBufferBytes = DefaultSendBufferBytes;
             this.ClientId = DefaultClientId;
-            this.RequiredAcks = DefaultRequiredAcks;
-            this.AckTimeout = DefaultAckTimeout;
+            this.RequestRequiredAcks = DefaultRequiredAcks;
+            this.RequestTimeoutMs = DefaultAckTimeout;
         }
 
-        public SyncProducerConfiguration(ProducerConfiguration config, int id, string host, int port) 
+        public SyncProducerConfiguration(ProducerConfigurationSection config, string host, int port) 
         {
-            Guard.NotNull(config, "config");
-
             this.Host = host;
             this.Port = port;
-            this.BrokerId = id;
-            this.BufferSize = config.BufferSize;
-            this.ConnectTimeout = config.ConnectTimeout;
-            this.SocketTimeout = config.SocketTimeout;
-            this.MaxMessageSize = config.MaxMessageSize;
+            this.SendBufferBytes = config.SendBufferBytes;
+            this.ClientId = config.ClientId;
+            this.RequestRequiredAcks = config.RequestRequiredAcks;
+            this.RequestTimeoutMs = config.RequestTimeoutMs;
         }
-
-        public int BufferSize { get; set; }
-
-        public int ConnectTimeout { get; set; }
-
-        public int SocketTimeout { get; set; }
-
-        public int MaxMessageSize { get; set; }
 
         public string Host { get; set; }
 
         public int Port { get; set; }
 
-        public int BrokerId { get; set; }
+        public int SendBufferBytes { get; set; }
 
-        public int CorrelationId{ get; set; }
+        public string ClientId { get; set; }
 
-        public string ClientId{ get; set; }
+        public short RequestRequiredAcks { get; set; }
 
-        public short RequiredAcks{ get; set; }
-
-        public int AckTimeout { get; set; }
+        public int RequestTimeoutMs { get; set; }
+       
     }
 }

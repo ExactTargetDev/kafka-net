@@ -19,20 +19,13 @@ namespace Kafka.Client.Cfg
 {
     internal interface ISyncProducerConfigShared
     {
-        int BufferSize { get; set; }
-
-        int ConnectTimeout { get; set; }
-
-        int SocketTimeout { get; set; }
-
-        int MaxMessageSize { get; set; }
-
-        int CorrelationId { get; set; }
+        int SendBufferBytes { get; set; }
 
         string ClientId { get; set; }
 
-        short RequiredAcks { get; set; }
+        short RequestRequiredAcks { get; set; }
 
-        int AckTimeout { get; set; }
+        int RequestTimeoutMs { get; set; }
+
     }
 }

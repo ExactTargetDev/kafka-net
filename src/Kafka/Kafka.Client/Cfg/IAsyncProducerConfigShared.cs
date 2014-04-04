@@ -19,16 +19,16 @@ namespace Kafka.Client.Cfg
 {
     internal interface IAsyncProducerConfigShared
     {
+        int QueueBufferingMaxMs { get; set; }
+
+        int QueueBufferingMaxMessages { get; set; }
+
+        int QueueEnqueueTimeoutMs { get; set; }
+
+        int BatchNumMessages { get; set; }
+
         string SerializerClass { get; set; }
 
-        string CallbackHandlerClass { get; set; }
-
-        int QueueTime { get; set; }
-
-        int QueueSize { get; set; }
-
-        int BatchSize { get; set; }
-
-        int EnqueueTimeoutMs { get; set; }
+        string KeySerializerClass { get; set; }
     }
 }
