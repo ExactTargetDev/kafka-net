@@ -14,7 +14,15 @@ namespace Kafka.Client.Messages
         {
             Buffer = buffer;
         }
+
         //TODO: impl me
+
+        public int ValidBytes { get; set; }
+
+        public IEnumerable<MessageAndOffset> ShallowEnumerator()
+        {
+            throw new System.NotImplementedException();
+        }
 
         public override IEnumerator<MessageAndOffset> GetEnumerator()
         {

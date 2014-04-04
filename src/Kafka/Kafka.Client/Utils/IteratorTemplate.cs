@@ -2,38 +2,78 @@
 
 namespace Kafka.Client.Utils
 {
+    using System;
     using System.Collections;
 
-    internal class IteratorTemplate<T> : IEnumerator<T>
+    internal abstract class IteratorTemplate<T> : IEnumerator<T>
     {
          
         private State state = State.NotReady;
-        private T nextItem = default (T);
 
-        public T Current { get; private set; }
+        private T nextItem;
 
         object IEnumerator.Current 
         {
             get
             {
-                return this.Current;
+                return this.nextItem;
             } 
+        }
+
+        public T Current 
+        { 
+            get
+            {
+                return this.nextItem;
+            }
         }
 
         public void Dispose()
         {
-            throw new System.NotImplementedException();
+            state = State.Done;
         }
 
         public bool MoveNext()
         {
-            throw new System.NotImplementedException();
+            if (this.state == State.Failed)
+            {
+                throw new InvalidOperationException("Iterator is in failed state");
+            }
+            if (this.state == State.Done)
+            {
+                return false;
+            }
+            return this.MaybeComputeNext();
         }
+
+        private bool MaybeComputeNext()
+        {
+            this.state = State.Failed;
+            this.nextItem = this.MakeNext();
+            if (state == State.Done)
+            {
+                return false;
+            }
+            this.state = State.Ready;
+
+
+            throw new NotImplementedException();
+        }
+
+        protected T AllDone()
+        {
+            this.state = State.Done;
+            return default(T);
+        }
+
+        protected abstract T MakeNext();
 
         public void Reset()
         {
-            throw new System.NotImplementedException();
+            this.state = State.NotReady;
         }
+
+
     }
 
 

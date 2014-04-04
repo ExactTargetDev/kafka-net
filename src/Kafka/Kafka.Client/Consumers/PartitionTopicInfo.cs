@@ -8,6 +8,8 @@ using log4net;
 
 namespace Kafka.Client.Consumers
 {
+    using System.Linq;
+
     internal class PartitionTopicInfo
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -68,7 +70,7 @@ namespace Kafka.Client.Consumers
             this.fetchedOffset = fetchedOffset;
             this.fetchSize = fetchSize;
             this.clientId = clientId;
-            consumerTopicStats = ConsumerTopicStatsRegistry.getConsumerTopicStat(clientId);
+            consumerTopicStats = ConsumerTopicStatsRegistry.GetConsumerTopicStat(clientId);
             if (Logger.IsDebugEnabled)
             {
                 Logger.DebugFormat(
@@ -132,8 +134,8 @@ namespace Kafka.Client.Consumers
                 chunkQueue.Add(new FetchedDataChunk(messages, this, fetchedOffset.Get()));
                 fetchedOffset.Set(next);
                 Logger.DebugFormat("Updated fetch offset of {0} to {1}", this, next);
-                consumerTopicStats.GetConsumerTopicStats(Topic).ByteRate.Mark(size);
-                consumerTopicStats.GetConsumerAllTopicStats().ByteRate.Mark(size);
+                //TODO: consumerTopicStats.GetConsumerTopicStats(Topic).ByteRate.Mark(size);
+                //TODO:consumerTopicStats.GetConsumerAllTopicStats().ByteRate.Mark(size);
 
             } else if (messages.SizeInBytes > 0)
             {

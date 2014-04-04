@@ -132,6 +132,7 @@
     <Compile Include="Cfg\ZooKeeperServerConfigurationElement.cs" />
     <Compile Include="Cfg\ZooKeeperServerConfigurationElementCollection.cs" />
     <Compile Include="Common\Imported\AtomicBoolean.cs" />
+    <Compile Include="Common\Imported\AtomicReference.cs" />
     <Compile Include="Common\KafkaException.cs" />
     <Compile Include="Common\Imported\AtomicInteger.cs" />
     <Compile Include="Common\Imported\AtomicLong.cs" />
@@ -154,6 +155,7 @@
     <Compile Include="Messages\MessageAndOffset.cs" />
     <Compile Include="Messages\MessageSet.cs" />
     <Compile Include="Producers\Async\IEventHandler.cs" />
+    <Compile Include="Producers\Async\IllegalQueueStateException.cs" />
     <Compile Include="Producers\Async\ProducerSendThread.cs" />
     <Compile Include="Producers\KeyedMessage.cs" />
     <Compile Include="Producers\Producer.cs" />

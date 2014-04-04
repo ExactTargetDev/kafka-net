@@ -16,9 +16,14 @@
         /// Compute the offset of the next message in the log
         /// </summary>
         /// <returns></returns>
-        public long NextOffset()
+        /// 
+        
+        public long NextOffset
         {
-            return Offset + 1;
+            get
+            {
+                return this.Offset + 1;
+            }
         }
          
     }

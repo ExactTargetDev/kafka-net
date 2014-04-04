@@ -1,6 +1,7 @@
 ﻿namespace Kafka.Client.Producers.Async
 {
     using System;
+    using System.Collections.Generic;
 
     /// <summary>
     /// Handler that dispatches the batched data from the queue.
@@ -13,7 +14,7 @@
         /// Callback to dispatch the batched data and send it to a Kafka server
         /// </summary>
         /// <param name="events"></param>
-        void Handle(KeyedMessage<TKey, TValue>[] events);
+        void Handle(IEnumerable<KeyedMessage<TKey, TValue>> events);
 
     }
 }

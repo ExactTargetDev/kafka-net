@@ -66,11 +66,11 @@
 
                 if (sync)
                 {
-                    eventHandler.handle(messages);
+                    eventHandler.Handle(messages);
                 }
                 else
                 {
-                    asyncSend(messages);
+                    this.AsyncSend(messages);
                 }
             }
         }
