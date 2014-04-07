@@ -5,6 +5,8 @@ using Kafka.Client.Common;
 
 namespace Kafka.Client.Messages
 {
+    using System.Linq;
+
     /// <summary>
     /// A set of messages with offsets. A message set has a fixed serialized form, though the container
     /// for the bytes could be either in-memory or on disk. The format of each message is
@@ -16,6 +18,26 @@ namespace Kafka.Client.Messages
     /// </summary>
     internal abstract class MessageSet : IEnumerable<MessageAndOffset>
     {
+
+        public const int MessageSizeLength = 4;
+
+        public const int OffsetLength = 8;
+
+        public const int LogOverhead = MessageSizeLength + OffsetLength;
+
+        public static ByteBufferMessageSet Empty = new ByteBufferMessageSet(new MemoryStream());
+
+        public static int MessageSetSize(IEnumerable<Message> messages)
+        {
+            return messages.Aggregate(
+                0, (i, message) =>  i + EntrySize(message));
+        }
+
+        public static int EntrySize(Message message)
+        {
+            return LogOverhead + message.Size;
+        }
+
         /// <summary>
         /// Write the messages in this set to the given channel starting at the given offset byte. 
         /// Less than the complete amount may be written, but no more than maxSize can be. The number

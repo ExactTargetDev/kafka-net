@@ -1,7 +1,9 @@
 ﻿namespace Kafka.Client.Api
 {
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
+    using System.Security.Principal;
 
     using Kafka.Client.Cluster;
     using Kafka.Client.Common;
@@ -17,6 +19,11 @@
         internal IEnumerable<Broker> Isr { get; private set; }
 
         public short ErrorCode { get; private set; }
+
+        public static PartitionMetadata ReadFrom(MemoryStream buffer, Dictionary<int, Broker> brokers)
+        {
+            throw new IdentityNotMappedException();
+        }
 
         public PartitionMetadata(int partitionId, Broker leader, IEnumerable<Broker> replicas, IEnumerable<Broker> isr = null, short errorCode = ErrorMapping.NoError)
         {

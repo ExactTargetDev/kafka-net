@@ -54,7 +54,7 @@ namespace Kafka.Client.Cfg
             return new ProducerConfiguration(config);
         }
 
-        private ProducerConfiguration()
+        public ProducerConfiguration()
         {
             this.ProducerType = DefaultProducerType;
             this.PartitionerClass = DefaultPartitioner;
@@ -84,11 +84,11 @@ namespace Kafka.Client.Cfg
             this.TopicMetadataRefreshIntervalMs = config.TopicMetadataRefreshIntervalMs;
             Validate(config);
 
+            this.PartitionerClass = config.Partitioner;
 
             if (config.ZooKeeperServers.ElementInformation.IsPresent)
             {
                 this.SetZooKeeperServers(config.ZooKeeperServers);
-                this.PartitionerClass = config.Partitioner;
             }
             else
             {
@@ -121,12 +121,6 @@ namespace Kafka.Client.Cfg
 
             set
             {
-                if (value != null)
-                {
-                    this.zooKeeper = null;
-                    this.partitionerClass = null;
-                }
-
                 this.broker = value;
             }
         }
@@ -162,14 +156,6 @@ namespace Kafka.Client.Cfg
 
             set
             {
-                if (value != null)
-                {
-                    if (this.broker != null)
-                    {
-                        throw new ConfigurationErrorsException("IPartitioner cannot be used when broker list is set");
-                    }
-                }
-
                 this.partitionerClass = value;
             }
         }

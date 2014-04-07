@@ -15,7 +15,7 @@
 
         internal static TopicMetadata ReadFrom(MemoryStream buffer, Dictionary<int, Broker> brokers)
         {
-            var errorCode = ApiUtils.ReadShortInRange(buffer, "error code", Tuple.Create(-1, short.MaxValue));
+            var errorCode = ApiUtils.ReadShortInRange(buffer, "error code", Tuple.Create((short)-1, short.MaxValue));
             var topic = ApiUtils.ReadShortString(buffer);
             var numPartitions = ApiUtils.ReadIntInRange(buffer, "number of partitions", Tuple.Create(0, int.MaxValue));
 

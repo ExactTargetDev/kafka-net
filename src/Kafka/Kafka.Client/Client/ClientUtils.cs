@@ -1,7 +1,10 @@
 ﻿namespace Kafka.Client.Client
 {
+    using System;
     using System.Collections.Generic;
 
+    using Kafka.Client.Api;
+    using Kafka.Client.Cfg;
     using Kafka.Client.Cluster;
 
     using System.Linq;
@@ -13,8 +16,20 @@
     /// </summary>
     public static class ClientUtils
     {
-        //TODO: fetchTopicMetadata
-        //TODO: fetchTopicMetadata
+
+        public static TopicMetadataResponse FetchTopicMetadata(
+            ISet<string> topics, IList<Broker> brokers, ProducerConfiguration producerConfig, int correlationId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static TopicMetadataResponse FetchTopicMetadata(
+            ISet<string> topics, List<Broker> brokers, string clientId, int timeoutMs, int correlationId = 0)
+        {
+
+            throw new NotImplementedException();
+        }
+
 
 
         /// <summary>
@@ -22,19 +37,9 @@
         /// </summary>
         /// <param name="brokerListStr"></param>
         /// <returns></returns>
-        public static IList<Broker> ParseBrokerList(string brokerListStr)
+        public static IList<Broker> ParseBrokerList(IList<BrokerConfiguration> brokerListStr)
         {
-             IList<string> brokersStr = Util.ParseCsvList(brokerListStr);
-            brokersStr.Select(
-                (s, i) =>
-                    {
-                        var brokerStr = s;
-                        var brokerId = i;
-                        var brokerInfos = brokerStr.Split(':');
-                        var hostName = brokerInfos[0];
-                        var port = int.Parse(brokerInfos[1]);
-                        return new Broker(brokerId, hostName, port);
-                    });
+            return brokerListStr.Select(conf => new Broker(conf.BrokerId, conf.Host, conf.Port)).ToList();
         }  
     }
 }

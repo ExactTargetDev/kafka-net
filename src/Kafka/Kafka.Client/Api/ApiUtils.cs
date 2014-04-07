@@ -1,5 +1,6 @@
 ﻿namespace Kafka.Client.Api
 {
+    using System;
     using System.IO;
     using System.Text;
 
@@ -68,6 +69,59 @@
             }
         }
 
-        //TODO: finish me
+        /// <summary>
+        ///  Read an integer out of the MemoryStream from the current position and check that it falls within the given
+        /// range. If not, throw KafkaException.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="name"></param>
+        /// <param name="range"></param>
+        /// <returns></returns>
+        public static int ReadIntInRange(MemoryStream buffer, string name, Tuple<int, int> range)
+        {
+            var value = buffer.GetInt();
+            if (value < range.Item1 || value > range.Item2)
+            {
+                throw new KafkaException(string.Format("{0} has value {1} which is not in the range {2}", name, value, range));
+            }
+            return value;
+        }
+
+        /// <summary>
+        ///  Read an short out of the MemoryStream from the current position and check that it falls within the given
+        /// range. If not, throw KafkaException.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="name"></param>
+        /// <param name="range"></param>
+        /// <returns></returns>
+        public static short ReadShortInRange(MemoryStream buffer, string name, Tuple<short, short> range)
+        {
+            var value = buffer.GetShort();
+            if (value < range.Item1 || value > range.Item2)
+            {
+                throw new KafkaException(string.Format("{0} has value {1} which is not in the range {2}", name, value, range));
+            }
+            return value;
+        }
+
+
+        /// <summary>
+        ///  Read an long out of the MemoryStream from the current position and check that it falls within the given
+        /// range. If not, throw KafkaException.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="name"></param>
+        /// <param name="range"></param>
+        /// <returns></returns>
+        public static long ReadLongInRange(MemoryStream buffer, string name, Tuple<long, long> range)
+        {
+            var value = buffer.GetLong();
+            if (value < range.Item1 || value > range.Item2)
+            {
+                throw new KafkaException(string.Format("{0} has value {1} which is not in the range {2}", name, value, range));
+            }
+            return value;
+        }
     }
 }

@@ -24,5 +24,10 @@ namespace Kafka.Client.Common.Imported
         {
             Interlocked.Exchange(ref value, newValue);
         }
+
+        public long GetAndIncrement()
+        {
+            return Interlocked.Increment(ref this.value);
+        }
     }
 }

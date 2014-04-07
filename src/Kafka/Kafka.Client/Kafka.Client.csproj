@@ -117,7 +117,13 @@
     <Compile Include="Api\ApiUtils.cs" />
     <Compile Include="Api\OffsetRequest.cs" />
     <Compile Include="Api\PartitionMetadata.cs" />
+    <Compile Include="Api\ProducerRequest.cs" />
+    <Compile Include="Api\ProducerResponse.cs" />
+    <Compile Include="Api\ProducerResponseStatus.cs" />
+    <Compile Include="Api\RequestKeys.cs" />
+    <Compile Include="Api\RequestOrResponse.cs" />
     <Compile Include="Api\TopicMetadata.cs" />
+    <Compile Include="Api\TopicMetadataResponse.cs" />
     <Compile Include="Cfg\AsyncProducerConfiguration.cs" />
     <Compile Include="Cfg\BrokerConfiguration.cs" />
     <Compile Include="Cfg\BrokerConfigurationElement.cs" />
@@ -152,6 +158,7 @@
     <Compile Include="Common\NoBrokersForPartitionException.cs" />
     <Compile Include="Common\ProducerClosedException.cs" />
     <Compile Include="Common\TopicAndPartition.cs" />
+    <Compile Include="Common\UnavailableProducerException.cs" />
     <Compile Include="Common\UnknownCodecException.cs" />
     <Compile Include="Common\UnknownTopicOrPartitionException.cs" />
     <Compile Include="Consumers\ConsumerIterator.cs" />
@@ -164,12 +171,16 @@
     <Compile Include="Consumers\ZookeeperConsumerConnector.cs" />
     <Compile Include="Extensions\MemoryStreamExtensions.cs" />
     <Compile Include="Messages\ByteBufferMessageSet.cs" />
+    <Compile Include="Messages\ByteBufferMessageSetEnumerator.cs" />
     <Compile Include="Messages\CompressionCodec.cs" />
     <Compile Include="Messages\CompressionCodecs.cs" />
+    <Compile Include="Messages\CompressionFactory.cs" />
     <Compile Include="Messages\Message.cs" />
     <Compile Include="Messages\MessageAndMetadata.cs" />
     <Compile Include="Messages\MessageAndOffset.cs" />
     <Compile Include="Messages\MessageSet.cs" />
+    <Compile Include="Network\RequestChannelRequest.cs" />
+    <Compile Include="Network\RequestChannel.cs" />
     <Compile Include="Producers\Async\DefaultEventHandler.cs" />
     <Compile Include="Producers\Async\IEventHandler.cs" />
     <Compile Include="Producers\Async\IllegalQueueStateException.cs" />
@@ -181,6 +192,7 @@
     <Compile Include="Producers\PartitionAndLeader.cs" />
     <Compile Include="Producers\Producer.cs" />
     <Compile Include="Producers\ProducerPool.cs" />
+    <Compile Include="Producers\SyncProducer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Serializers\DefaultDecoder.cs" />
     <Compile Include="Serializers\DefaultEncoder.cs" />

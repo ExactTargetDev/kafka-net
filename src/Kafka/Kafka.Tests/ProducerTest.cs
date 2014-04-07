@@ -16,7 +16,7 @@
         {
             Console.WriteLine(typeof(DefaultPartitioner).FullName);
 
-            var section = ConfigurationManager.GetSection("kafkaProducer") as ProducerConfigurationSection;
+            var section = ConfigurationManager.GetSection("kafkaProducer3") as ProducerConfigurationSection;
             var config = new ProducerConfiguration(section);
             var producer = new Producer<byte[], byte[]>(config);
 

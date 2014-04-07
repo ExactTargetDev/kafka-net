@@ -48,6 +48,8 @@
             }
         }
 
+
+        /* TODO: not necessary ?
         public static Broker CreateBroker(int id, string brokerInfoString)
         {
             //TODO: check this method!
@@ -65,14 +67,14 @@
                 }
                 else
                 {
-                    throw new ArgumentException(String.Format(CultureInfo.CurrentCulture, "{0} is not a valid integer", brokerInfo[2]));
+                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, "{0} is not a valid integer", brokerInfo[2]));
                 }
             }
             else
             {
-                throw new ArgumentException(String.Format(CultureInfo.CurrentCulture, "{0} is not a valid BrokerInfoString", brokerInfoString));
+                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, "{0} is not a valid BrokerInfoString", brokerInfoString));
             }
-        }
+        }*/
 
         internal static Broker ParseFrom(MemoryStream buffer)
         {

@@ -12,7 +12,7 @@
 
     using log4net;
 
-    public class BrokerPartitionInfo
+    internal class BrokerPartitionInfo
     {
 
         private ProducerConfiguration producerConfig;
@@ -46,10 +46,11 @@
         public IList<PartitionAndLeader> GetBrokerPartitionInfo(string topic, int correlationId)
         {
             Logger.DebugFormat("Getting broker partition info for topic {0}", topic);
-            //check if the cache has metadata for this topic
+
+            // check if the cache has metadata for this topic
             if (!this.topicPartitionInfo.ContainsKey(topic))
             {
-                //refresh the topic metadata cache
+                // refresh the topic metadata cache
                 this.UpdateInfo(new HashSet<string> {topic}, correlationId);
                 if (!this.topicPartitionInfo.ContainsKey(topic))
                 {
@@ -84,7 +85,7 @@
                     return new PartitionAndLeader(topic, m.PartitionId, null);
                 }
             }
-                ).OrderBy(x => x.PartitionId);
+                ).OrderBy(x => x.PartitionId).ToList();
         }
 
         /// <summary>
@@ -94,9 +95,9 @@
         /// <param name="correlationId"></param>
         public void UpdateInfo(ISet<string> topics, int correlationId)
         {
-            HashSet<TopicMetadata> topicsMetadata = null;
-            var topicMetadataResponse = ClientUtils.FetchTopicMetadata(topics, brokers, producerConfig, correlationId);
-            topicsMetadata = topicMetadataResponse.topicsMetadata;
+            List<TopicMetadata> topicsMetadata = null;
+            var topicMetadataResponse = ClientUtils.FetchTopicMetadata(topics, this.brokers, this.producerConfig, correlationId);
+            topicsMetadata = topicMetadataResponse.TopicsMetadata;
 
             /* TODO
              * topicsMetadata.foreach(tmd =>{

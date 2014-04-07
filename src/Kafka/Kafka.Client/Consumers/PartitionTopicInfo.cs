@@ -30,7 +30,7 @@ namespace Kafka.Client.Consumers
         {
             return offset < 0L;
         }
-        
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PartitionTopicInfo"/> class.
@@ -129,17 +129,19 @@ namespace Kafka.Client.Consumers
             var size = messages.ValidBytes;
             if (size > 0)
             {
-                var next = messages.ShallowEnumerator().Last().NextOffset;
-                Logger.DebugFormat("Updating fetch offset = {0} to {1}", fetchedOffset.Get(), next);
-                chunkQueue.Add(new FetchedDataChunk(messages, this, fetchedOffset.Get()));
+
+                var next = 0; //TODO: var next = messages.ShallowEnumerator().Last().NextOffset;
+                Logger.DebugFormat("Updating fetch offset = {0} to {1}", this.fetchedOffset.Get(), next);
+                chunkQueue.Add(new FetchedDataChunk(messages, this, this.fetchedOffset.Get()));
                 fetchedOffset.Set(next);
                 Logger.DebugFormat("Updated fetch offset of {0} to {1}", this, next);
                 //TODO: consumerTopicStats.GetConsumerTopicStats(Topic).ByteRate.Mark(size);
                 //TODO:consumerTopicStats.GetConsumerAllTopicStats().ByteRate.Mark(size);
 
-            } else if (messages.SizeInBytes > 0)
+            }
+            else if (messages.SizeInBytes > 0)
             {
-                chunkQueue.Add(new FetchedDataChunk(messages, this, fetchedOffset.Get()));
+                this.chunkQueue.Add(new FetchedDataChunk(messages, this, this.fetchedOffset.Get()));
             }
         }
 

@@ -16,7 +16,7 @@
 
     using System.Linq;
 
-    public class DefaultEventHandler<TKey, TValue> : IEventHandler<TKey, TValue>
+    internal class DefaultEventHandler<TKey, TValue> : IEventHandler<TKey, TValue>
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -99,15 +99,13 @@
                     {
                         brokerPartitionInfo.UpdateInfo(
                             new HashSet<string>(topicMetadataToRefresh), correlationId.GetAndIncrement());
-                        sendPartitionPerTopicCache.Clear();
-                        topicMetadataToRefresh.Clear();
-                        lastTopicMetadataRefeshTime = DateTime.Now;
-
                     }
                     catch
                     {
-                        
                     }
+                    sendPartitionPerTopicCache.Clear();
+                    topicMetadataToRefresh.Clear();
+                    lastTopicMetadataRefeshTime = DateTime.Now;
                 }
 
                 outstandingProduceRequests = this.DispatchSerializedData(outstandingProduceRequests);
@@ -144,7 +142,7 @@
             }
         }
 
-        private IEnumerable<KeyedMessage<TKey, Message>> DispatchSerializedData(List<KeyedMessage<TKey, Message>> messages)
+        private List<KeyedMessage<TKey, Message>> DispatchSerializedData(List<KeyedMessage<TKey, Message>> messages)
         {
             var partitionedData = this.PartitionAndCollate(messages);
             if (partitionedData == null)
@@ -182,7 +180,7 @@
             return failedProduceRequests;
         }
 
-        private IEnumerable<KeyedMessage<TKey, Message>> Serialize(IEnumerable<KeyedMessage<TKey, TValue>> events)
+        private List<KeyedMessage<TKey, Message>> Serialize(IEnumerable<KeyedMessage<TKey, TValue>> events)
         {
 
             return events.Select(
@@ -214,10 +212,11 @@
                             else
                             {
                                 Logger.ErrorFormat("Error serializing message for topic {0}", e.Topic, ex);
+                                return null;
                             }
                         }
 
-                    });
+                    }).ToList();
         }
 
         private IDictionary<int, Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>> PartitionAndCollate(List<KeyedMessage<TKey, Message>> messages)
@@ -269,7 +268,7 @@
         private IList<PartitionAndLeader> GetPartitionListForTopic(KeyedMessage<TKey, Message> m)
         {
             var topicPartitionsList = this.brokerPartitionInfo.GetBrokerPartitionInfo(m.Topic, correlationId.GetAndIncrement());
-            Logger.DebugFormat("Broker partitions registered for topic: {0} are {1}", m.Topic, string.Join(",", topicPartitionsList.Select(p => p.PartitonId.ToString())));
+            Logger.DebugFormat("Broker partitions registered for topic: {0} are {1}", m.Topic, string.Join(",", topicPartitionsList.Select(p => p.PartitionId.ToString())));
             var totalNumPartitions = topicPartitionsList.Count();
             if (totalNumPartitions == 0)
             {
@@ -407,7 +406,7 @@
            
         }
 
-        private IDictionary<TopicAndPartition, ByteBufferMessageSet> GroupMessagesToSet(IDictionary<TopicAndPartition, IEnumerable<KeyedMessage<TKey, Message>>> eventsPerTopicAndPartition)
+        private IDictionary<TopicAndPartition, ByteBufferMessageSet> GroupMessagesToSet(IDictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>> eventsPerTopicAndPartition)
         {
             /** enforce the compressed.topics config here.
               *  If the compression codec is anything other than NoCompressionCodec,
@@ -421,7 +420,7 @@
             foreach (var keyValuePair in eventsPerTopicAndPartition)
             {
                 var topicAndPartition = keyValuePair.Key;
-                var messages = keyValuePair.Value;
+                var messages = keyValuePair.Value.Select(m => m.Message);
                 switch (this.config.CompressionCodec)
                 {
                     case CompressionCodecs.NoCompressionCodec:

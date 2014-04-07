@@ -32,7 +32,7 @@ namespace Kafka.Client.Messages
 
 
         private const int MessageOverhead = KeyOffset + ValueSizeLength;
-        private const int MinHeaderSize = CrcLength + MagicLength + AttributesLength + KeySizeLength + ValueSizeLength;
+        public const int MinHeaderSize = CrcLength + MagicLength + AttributesLength + KeySizeLength + ValueSizeLength;
         private const byte CurrentMagicValue = 0;
         private const byte CompressionCodeMask = 0x03;
         private const int NoCompression = 0;
@@ -42,6 +42,13 @@ namespace Kafka.Client.Messages
         public Message(MemoryStream buffer)
         {
             this.buffer = buffer;
+        }
+
+        public MemoryStream Buffer { 
+            get
+            {
+                return this.buffer;
+            } 
         }
 
 
@@ -153,8 +160,8 @@ namespace Kafka.Client.Messages
         /// The complete serialized size of this message in bytes (including crc, header attributes, etc)
         /// </summary>
         /// <returns></returns>
-        public long Size {
-            get { return this.buffer.Length; }
+        public int Size {
+            get { return (int)this.buffer.Length; }
         }
 
         /// <summary>
