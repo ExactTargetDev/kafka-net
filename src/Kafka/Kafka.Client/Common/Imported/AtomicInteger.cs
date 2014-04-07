@@ -1,5 +1,7 @@
 ﻿namespace Kafka.Client.Common.Imported
 {
+    using System.Threading;
+
     public class AtomicInteger
     {
         private int value;
@@ -18,5 +20,10 @@
         {
             return value;
         } 
+
+        public int GetAndIncrement()
+        {
+            return Interlocked.Increment(ref this.value);
+        }
     }
 }

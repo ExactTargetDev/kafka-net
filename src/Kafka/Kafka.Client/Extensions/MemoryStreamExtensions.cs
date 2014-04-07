@@ -16,6 +16,22 @@ namespace Kafka.Client.Extensions
              }
          }
 
+        public static int GetShort(this MemoryStream stream)
+        {
+            using (var reader = new KafkaBinaryReader(stream))
+            {
+                return reader.ReadInt16();
+            }
+        }
+
+        public static void PutShort(this MemoryStream stream, short value)
+        {
+            using (var writer = new KafkaBinaryWriter(stream))
+            {
+                writer.Write(value);
+            }
+        }
+
         public static int GetInt(this MemoryStream stream, int index)
         {
            throw new NotImplementedException(); //TODO:
@@ -28,6 +44,8 @@ namespace Kafka.Client.Extensions
                 writer.Write(value);
             }
         }
+
+
 
         public static void PutInt(this MemoryStream stream, int index, int value)
         {

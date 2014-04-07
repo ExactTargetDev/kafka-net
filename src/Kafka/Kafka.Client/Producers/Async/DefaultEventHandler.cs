@@ -63,7 +63,7 @@
 
         private HashSet<string> topicMetadataToRefresh = new HashSet<string>();  
 
-        private Dictionary<string, int>  sendPartitionPerTopicCache = new Dictionary<string, int>();
+        private Dictionary<string, int> sendPartitionPerTopicCache = new Dictionary<string, int>();
 
         //TODO: private val producerStats = ProducerStatsRegistry.getProducerStats(config.clientId)
         //TODO: private val producerTopicStats = ProducerTopicStatsRegistry.getProducerTopicStats(config.clientId)*/
@@ -84,7 +84,7 @@
             var remainingRetries = this.config.MessageSendMaxRetries + 1;
             var correlationIdStart = this.correlationId.Get();
 
-            Logger.DebugFormat("Handling {0} events", events.Count);
+            Logger.DebugFormat("Handling {0} events", events.Count());
 
             while (remainingRetries > 0 && outstandingProduceRequests.Count() > 0)
             {
@@ -92,7 +92,7 @@
                 {
                     topicMetadataToRefresh.Add(el.Topic);
                 }
-                if (topicMetadataRefreshInterval >= 0
+                if (topicMetadataRefreshInterval >= TimeSpan.MinValue
                     && (DateTime.Now - lastTopicMetadataRefeshTime) > topicMetadataRefreshInterval)
                 {
                     try
@@ -103,7 +103,11 @@
                         topicMetadataToRefresh.Clear();
                         lastTopicMetadataRefeshTime = DateTime.Now;
 
-                    } catch { }
+                    }
+                    catch
+                    {
+                        
+                    }
                 }
 
                 outstandingProduceRequests = this.DispatchSerializedData(outstandingProduceRequests);
@@ -115,7 +119,7 @@
                     try
                     {
                         brokerPartitionInfo.UpdateInfo(
-                            outstandingProduceRequests.Select(r => r.Topic), correlationId.GetAndIncrement());
+                            new HashSet<string>(outstandingProduceRequests.Select(r => r.Topic)), correlationId.GetAndIncrement());
                         sendPartitionPerTopicCache.Clear();
                         remainingRetries -= 1;
                         //TODO: producerStats.resendRate.mark();
@@ -134,10 +138,10 @@
             {
                 //TODO: proproducerStats.failedSendRate.mark()
                 var correlationIdEnd = correlationId.Get();
-                Logger.ErrorFormat("Failed to send requests for topics {0} with correlation ids in [{1}, {2}]", outstandingProduceRequests.Select(r=>r.Topic).Join(","), correlationIdStart, correlationIdEnd);
+                Logger.ErrorFormat("Failed to send requests for topics {0} with correlation ids in [{1}, {2}]", string.Join(",", outstandingProduceRequests.Select(r => r.Topic)), correlationIdStart, correlationIdEnd);
 
                 throw new FailedToSendMessageException(
-                    "Failed to send messages after " + config.MessageSendMaxRetries + " tries");
+                    "Failed to send messages after " + this.config.MessageSendMaxRetries + " tries");
             }
         }
 
@@ -151,7 +155,7 @@
             var failedProduceRequests = new List<KeyedMessage<TKey, Message>>();
             try
             {
-                foreach (KeyValuePair<int, Dictionary<Tuple<string, int>, IEnumerable<KeyedMessage<TKey, Message>>>> keyValuePair in partitionedData)
+                foreach (var keyValuePair in partitionedData)
                 {
                     var brokerId = keyValuePair.Key;
                     var messagesPerBrokerMap = keyValuePair.Value;
