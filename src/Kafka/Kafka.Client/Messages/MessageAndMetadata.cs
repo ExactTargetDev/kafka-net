@@ -24,12 +24,12 @@ namespace Kafka.Client.Messages
 
         public K Key { get 
         {
-            return rawMessage.Key != null ? KeyDecoder.FromBytes(Utils.Utils.ReadBytes(rawMessage.Key)) : default(K);
+            return rawMessage.Key != null ? KeyDecoder.FromBytes(Utils.Util.ReadBytes(rawMessage.Key)) : default(K);
         }}
 
         public V Message
         {
-            get { return rawMessage.IsNull() ? default(V) : ValueDecoder.FromBytes(Utils.Utils.ReadBytes(rawMessage.Payload)); }
+            get { return rawMessage.IsNull() ? default(V) : ValueDecoder.FromBytes(Utils.Util.ReadBytes(rawMessage.Payload)); }
         }
     }
 }

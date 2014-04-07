@@ -6,6 +6,17 @@ using Kafka.Client.Serializers;
 
 namespace Kafka.Client.Messages
 {
+
+    /// <summary>
+    /// A message. The format of an N byte message is the following:
+    /// 1. 4 byte CRC32 of the message
+    /// 2. 1 byte "magic" identifier to allow format changes, value is 2 currently
+    /// 3. 1 byte "attributes" identifier to allow annotations on the message independent of the version (e.g. compression enabled, type of codec used)
+    /// 4. 4 byte key length, containing length K
+    /// 5. K byte key
+    /// 6. 4 byte payload length, containing length V
+    /// 7. V byte payload
+    /// </summary>
     public class Message
     {
         private const int CrcOffset = 0;
@@ -75,7 +86,7 @@ namespace Kafka.Client.Messages
                 writer.Seek(0, SeekOrigin.Begin);
             }
 
-            Utils.Utils.WriteUnsignedInt(buffer, CrcOffset, ComputeChecksum());
+            Utils.Util.WriteUnsignedInt(buffer, CrcOffset, ComputeChecksum());
 
         }
 
@@ -105,7 +116,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public long ComputeChecksum()
         {
-            return Utils.Utils.Crc32(buffer.ToArray(), MagicOffset, (int)buffer.Length - MagicOffset);
+            return Utils.Util.Crc32(buffer.ToArray(), MagicOffset, (int)buffer.Length - MagicOffset);
         }
 
         /// <summary>
@@ -114,7 +125,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public long Checksum { get
         {
-            return Utils.Utils.ReadUnsingedInt(buffer, CrcOffset);
+            return Utils.Util.ReadUnsingedInt(buffer, CrcOffset);
         }}
 
         /// <summary>

@@ -4,7 +4,14 @@ using Kafka.Client.Extensions;
 
 namespace Kafka.Client.Utils
 {
-    public static class Utils
+    using System.Reflection;
+
+    using Kafka.Client.Producers;
+
+    /// <summary>
+    /// Original name: Utils
+    /// </summary>
+    public static class Util
     {
      /// <summary>
         ///  Read the given byte buffer into a byte array
@@ -83,6 +90,11 @@ namespace Kafka.Client.Utils
         {
             var crc = new Crc32();
             return BitConverter.ToInt32(crc.ComputeHash(bytes, offset, size), 0);
+        }
+
+        public static T CreateObject<T>(string type, params object[] args)
+        {
+            return (T)Activator.CreateInstance(Type.GetType(type), args);
         }
 
     }

@@ -27,8 +27,8 @@ namespace Kafka.Client.Cfg
 
         int BatchNumMessages { get; set; }
 
-        string SerializerClass { get; set; }
+        string Serializer { get; set; }
 
-        string KeySerializerClass { get; set; }
+        string KeySerializer { get; set; }
     }
 }

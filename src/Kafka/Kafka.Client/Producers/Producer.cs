@@ -8,6 +8,8 @@
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Producers.Async;
+    using Kafka.Client.Serializers;
+    using Kafka.Client.Utils;
 
     using log4net;
 
@@ -18,6 +20,14 @@
         private readonly ProducerConfiguration config;
 
         private readonly IEventHandler<TKey, TValue> eventHandler;
+
+        public Producer(ProducerConfiguration config) : this(config, new DefaultEventHandler<TKey, TValue>(config, 
+                Util.CreateObject<IPartitioner>(config.PartitionerClass, config), 
+                Util.CreateObject<IEncoder<TValue>>(config.Serializer, config),
+                Util.CreateObject<IEncoder<TKey>>(config.KeySerializer, config),
+                new ProducerPool(config))) 
+        {
+        }
 
         public Producer(ProducerConfiguration config, IEventHandler<TKey, TValue> eventHandler)
          {
@@ -45,9 +55,9 @@
 
         /* TODO public Producer(ProducerConfig config) : this(config, new DefaultEventHandler<TKey, TValue>(
             config,
-                                      Utils.createObject<Partitioner>(config.partitionerClass, config.props),
-                                      Utils.createObject<IEncoder<V>>(config.serializerClass, config.props),
-                                      Utils.createObject<IEncoder<K>>(config.keySerializerClass, config.props),
+                                      Util.createObject<IPartitioner>(config.partitionerClass, config.props),
+                                      Util.createObject<IEncoder<V>>(config.serializerClass, config.props),
+                                      Util.createObject<IEncoder<K>>(config.keySerializerClass, config.props),
                                       new ProducerPool(config))
             ))
         {

@@ -34,7 +34,7 @@ namespace Kafka.Client.Cfg
     /// </summary>
     public class ProducerConfiguration : AsyncProducerConfiguration, ISyncProducerConfigShared, IAsyncProducerConfigShared
     {
-        public const string DefaultPartitioner = "Kafka.Client.Producers.Partitioning.DefaultPartitioner`1";
+        public const string DefaultPartitioner = "Kafka.Client.Producers.DefaultPartitioner";
 
         public const ProducerTypes DefaultProducerType = ProducerTypes.Sync;
 
@@ -166,7 +166,7 @@ namespace Kafka.Client.Cfg
                 {
                     if (this.broker != null)
                     {
-                        throw new ConfigurationErrorsException("Partitioner cannot be used when broker list is set");
+                        throw new ConfigurationErrorsException("IPartitioner cannot be used when broker list is set");
                     }
                 }
 
@@ -254,7 +254,7 @@ namespace Kafka.Client.Cfg
             if (config.Brokers.ElementInformation.IsPresent
                 && config.Partitioner != DefaultPartitioner)
             {
-                throw new ConfigurationErrorsException("Partitioner cannot be used when broker list is set");
+                throw new ConfigurationErrorsException("IPartitioner cannot be used when broker list is set");
             }
         }
 

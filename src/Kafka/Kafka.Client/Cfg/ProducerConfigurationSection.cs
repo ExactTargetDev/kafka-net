@@ -138,7 +138,7 @@ namespace Kafka.Client.Cfg
         {
             get
             {
-                return (int)this["QueueBufferingMaxMs"];
+                return (int)this["queueBufferingMaxMs"];
             }
         }
 

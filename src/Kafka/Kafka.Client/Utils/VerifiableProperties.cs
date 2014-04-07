@@ -167,7 +167,7 @@ namespace Kafka.Client.Utils
  //  */
  // def getMap(name: String, valid: String => Boolean = s => true): Map[String, String] = {
  //   try {
- //     val m = Utils.parseCsvMap(getString(name, ""))
+ //     val m = Util.parseCsvMap(getString(name, ""))
  //     m.foreach {
  //       case(key, value) => 
  //         if(!valid(value))

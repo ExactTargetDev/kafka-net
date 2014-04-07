@@ -115,6 +115,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\OffsetRequest.cs" />
+    <Compile Include="Api\TopicMetadata.cs" />
     <Compile Include="Cfg\AsyncProducerConfiguration.cs" />
     <Compile Include="Cfg\BrokerConfiguration.cs" />
     <Compile Include="Cfg\BrokerConfigurationElement.cs" />
@@ -137,7 +138,10 @@
     <Compile Include="Common\Imported\AtomicInteger.cs" />
     <Compile Include="Common\Imported\AtomicLong.cs" />
     <Compile Include="Common\InvalidMessageException.cs" />
+    <Compile Include="Common\MessageSizeTooLargeException.cs" />
+    <Compile Include="Common\NoBrokersForPartitionException.cs" />
     <Compile Include="Common\ProducerClosedException.cs" />
+    <Compile Include="Common\TopicAndPartition.cs" />
     <Compile Include="Common\UnknownCodecException.cs" />
     <Compile Include="Consumers\ConsumerIterator.cs" />
     <Compile Include="Consumers\ConsumerTopicMetrics.cs" />
@@ -146,6 +150,7 @@
     <Compile Include="Consumers\FetchedDataChunk.cs" />
     <Compile Include="Consumers\KafkaStream.cs" />
     <Compile Include="Consumers\PartitionTopicInfo.cs" />
+    <Compile Include="Consumers\ZookeeperConsumerConnector.cs" />
     <Compile Include="Extensions\MemoryStreamExtensions.cs" />
     <Compile Include="Messages\ByteBufferMessageSet.cs" />
     <Compile Include="Messages\CompressionCodec.cs" />
@@ -154,21 +159,27 @@
     <Compile Include="Messages\MessageAndMetadata.cs" />
     <Compile Include="Messages\MessageAndOffset.cs" />
     <Compile Include="Messages\MessageSet.cs" />
+    <Compile Include="Producers\Async\DefaultEventHandler.cs" />
     <Compile Include="Producers\Async\IEventHandler.cs" />
     <Compile Include="Producers\Async\IllegalQueueStateException.cs" />
     <Compile Include="Producers\Async\ProducerSendThread.cs" />
+    <Compile Include="Producers\DefaultPartitioner.cs" />
     <Compile Include="Producers\KeyedMessage.cs" />
+    <Compile Include="Producers\IPartitioner.cs" />
     <Compile Include="Producers\Producer.cs" />
+    <Compile Include="Producers\ProducerPool.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Serializers\DefaultDecoder.cs" />
+    <Compile Include="Serializers\DefaultEncoder.cs" />
     <Compile Include="Serializers\IDecoder.cs" />
+    <Compile Include="Serializers\IEncoder.cs" />
     <Compile Include="Serializers\KafkaBinaryReader.cs" />
     <Compile Include="Serializers\KafkaBinaryWriter.cs" />
     <Compile Include="Serializers\StringDecoder.cs" />
     <Compile Include="Utils\Crc32.cs" />
     <Compile Include="Utils\IteratorTemplate.cs" />
     <Compile Include="Utils\Pool.cs" />
-    <Compile Include="Utils\Utils.cs" />
+    <Compile Include="Utils\Util.cs" />
     <Compile Include="Utils\VerifiableProperties.cs" />
   </ItemGroup>
   <ItemGroup>

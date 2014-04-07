@@ -5,7 +5,7 @@ namespace Kafka.Client.Utils
     using System;
     using System.Collections;
 
-    internal abstract class IteratorTemplate<T> : IEnumerator<T>
+    public abstract class IteratorTemplate<T> : IEnumerator<T>
     {
          
         private State state = State.NotReady;
@@ -16,14 +16,15 @@ namespace Kafka.Client.Utils
         {
             get
             {
-                return this.nextItem;
+                return this.Current;
             } 
         }
 
-        public T Current 
+        public virtual T Current 
         { 
             get
             {
+                
                 return this.nextItem;
             }
         }
@@ -55,9 +56,7 @@ namespace Kafka.Client.Utils
                 return false;
             }
             this.state = State.Ready;
-
-
-            throw new NotImplementedException();
+            return true;
         }
 
         protected T AllDone()

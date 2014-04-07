@@ -34,7 +34,7 @@ namespace Kafka.Client.Cfg
 
         public const int DefaultBatchNumMessages = 200;
 
-        public const string DefaultSerializerClass = "Kafka.Client.Serialization.DefaultEncoder";
+        public const string DefaultSerializerClass = "Kafka.Client.Serializers.DefaultEncoder";
 
         public const string DefaultKeySerializerClass = DefaultSerializerClass;
 
@@ -45,8 +45,8 @@ namespace Kafka.Client.Cfg
             this.QueueBufferingMaxMessages = DefaultQueueBufferingMaxMessages;
             this.QueueEnqueueTimeoutMs = DefaultQueueEnqueueTimeoutMs;
             this.BatchNumMessages = DefaultBatchNumMessages;
-            this.SerializerClass = DefaultSerializerClass;
-            this.KeySerializerClass = DefaultKeySerializerClass;
+            this.Serializer = DefaultSerializerClass;
+            this.KeySerializer = DefaultKeySerializerClass;
         }
 
         public AsyncProducerConfiguration(ProducerConfigurationSection config, string host, int port)
@@ -57,8 +57,8 @@ namespace Kafka.Client.Cfg
             this.QueueBufferingMaxMessages = config.QueueBufferingMaxMessages;
             this.QueueEnqueueTimeoutMs = config.QueueEnqueueTimeoutMs;
             this.BatchNumMessages = config.BatchNumMessages;
-            this.SerializerClass = config.Serializer;
-            this.KeySerializerClass = config.KeySerializer;
+            this.Serializer = config.Serializer;
+            this.KeySerializer = config.KeySerializer;
         }
 
         public int QueueBufferingMaxMs { get; set; }
@@ -69,8 +69,8 @@ namespace Kafka.Client.Cfg
 
         public int BatchNumMessages { get; set; }
 
-        public string SerializerClass { get; set; }
+        public string Serializer { get; set; }
 
-        public string KeySerializerClass { get; set; }
+        public string KeySerializer { get; set; }
     }
 }
