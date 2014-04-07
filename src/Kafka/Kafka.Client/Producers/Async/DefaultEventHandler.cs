@@ -129,8 +129,7 @@
                     }
                 }
 
-                
-                this.brokerPartitionInfo.UpdateInfo();
+                this.sendPartitionPerTopicCache.Clear();
                 remainingRetries -= 1;
             }
 
@@ -145,7 +144,7 @@
             }
         }
 
-        private IEnumerable<KeyedMessage<TKey, Message>> DispatchSerializedData(IEnumerable<KeyedMessage<TKey, Message>> messages)
+        private IEnumerable<KeyedMessage<TKey, Message>> DispatchSerializedData(List<KeyedMessage<TKey, Message>> messages)
         {
             var partitionedData = this.PartitionAndCollate(messages);
             if (partitionedData == null)
@@ -221,9 +220,9 @@
                     });
         }
 
-        private IDictionary<int, Dictionary<TopicAndPartition, IEnumerable<KeyedMessage<TKey, Message>>>> PartitionAndCollate(IEnumerable<KeyedMessage<TKey, Message>> messages)
+        private IDictionary<int, Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>> PartitionAndCollate(List<KeyedMessage<TKey, Message>> messages)
         {
-            var ret = new Dictionary<int, Dictionary<TopicAndPartition, IEnumerable<KeyedMessage<TKey, Message>>>>();
+            var ret = new Dictionary<int, Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>>();
             foreach (var message in messages)
             {
                 var topicPartitionsList = this.GetPartitionListForTopic(message);
@@ -231,16 +230,16 @@
                 var brokerPartition = topicPartitionsList.ElementAt(partitionIndex);
 
                 // postpone the failure until the send operation, so that requests for other brokers are handled correctly
-                var leaderBrokerId = brokerPartition.LeaderBrokerId ?? -1;
+                var leaderBrokerId = brokerPartition.LeaderBrokerIdOpt ?? -1;
 
-                Dictionary<TopicAndPartition, IEnumerable<KeyedMessage<TKey, Message>>> dataPerBroker = null;
+                Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>> dataPerBroker = null;
                 if (ret.ContainsKey(leaderBrokerId))
                 {
                     dataPerBroker = ret[leaderBrokerId];
                 }
                 else
                 {
-                    dataPerBroker = new Dictionary<TopicAndPartition, IEnumerable<KeyedMessage<TKey, Message>>>();
+                    dataPerBroker = new Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>();
                     ret.Add(leaderBrokerId, dataPerBroker);
                 }
 
@@ -267,7 +266,7 @@
     }*/
         }
 
-        private IEnumerable<PartitionAndLeader> GetPartitionListForTopic(KeyedMessage<TKey, Message> m)
+        private IList<PartitionAndLeader> GetPartitionListForTopic(KeyedMessage<TKey, Message> m)
         {
             var topicPartitionsList = this.brokerPartitionInfo.GetBrokerPartitionInfo(m.Topic, correlationId.GetAndIncrement());
             Logger.DebugFormat("Broker partitions registered for topic: {0} are {1}", m.Topic, string.Join(",", topicPartitionsList.Select(p => p.PartitonId.ToString())));
@@ -305,7 +304,7 @@
                 }
                 else
                 {
-                    var availablePartitons = topicPartitionList.Where(p => p.LeaderBorkerId.IsDefined());
+                    var availablePartitons = topicPartitionList.Where(p => p.LeaderBrokerIdOpt.HasValue).ToList();
                     if (availablePartitons.Count() == 0)
                     {
                         throw new LeaderNotAvailableException(
@@ -313,7 +312,7 @@
                     }
                     var index = random.Next(availablePartitons.Count());
                     var partitionId = availablePartitons[index].PartitionId;
-                    sendPartitionPerTopicCache[index] = partitionId;
+                    this.sendPartitionPerTopicCache[topic] = partitionId;
                     partition = partitionId;
                 }
             }

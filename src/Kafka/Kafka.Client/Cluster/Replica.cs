@@ -1,7 +1,7 @@
 ﻿namespace Kafka.Client.Cluster
 {
     using System;
-
+    /* TODO Do we need it? 
     public class Replica
     {
         public int BrokerId { get; private set; }
@@ -21,5 +21,5 @@
             this.initialHighWatermarkValue = initialHighWatermarkValue;
         }
         //TODO: finish me!
-    }
+    }*/
 }

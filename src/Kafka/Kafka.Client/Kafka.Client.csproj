@@ -114,7 +114,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Api\ApiUtils.cs" />
     <Compile Include="Api\OffsetRequest.cs" />
+    <Compile Include="Api\PartitionMetadata.cs" />
     <Compile Include="Api\TopicMetadata.cs" />
     <Compile Include="Cfg\AsyncProducerConfiguration.cs" />
     <Compile Include="Cfg\BrokerConfiguration.cs" />
@@ -132,17 +134,26 @@
     <Compile Include="Cfg\ZooKeeperConfigurationElement.cs" />
     <Compile Include="Cfg\ZooKeeperServerConfigurationElement.cs" />
     <Compile Include="Cfg\ZooKeeperServerConfigurationElementCollection.cs" />
+    <Compile Include="Client\ClientUtils.cs" />
+    <Compile Include="Cluster\Broker.cs" />
+    <Compile Include="Cluster\Partition.cs" />
+    <Compile Include="Cluster\Replica.cs" />
+    <Compile Include="Common\BrokerNotAvailableException.cs" />
+    <Compile Include="Common\ErrorMapping.cs" />
+    <Compile Include="Common\FailedToSendMessageException.cs" />
     <Compile Include="Common\Imported\AtomicBoolean.cs" />
     <Compile Include="Common\Imported\AtomicReference.cs" />
     <Compile Include="Common\KafkaException.cs" />
     <Compile Include="Common\Imported\AtomicInteger.cs" />
     <Compile Include="Common\Imported\AtomicLong.cs" />
     <Compile Include="Common\InvalidMessageException.cs" />
+    <Compile Include="Common\LeaderNotAvailableException.cs" />
     <Compile Include="Common\MessageSizeTooLargeException.cs" />
     <Compile Include="Common\NoBrokersForPartitionException.cs" />
     <Compile Include="Common\ProducerClosedException.cs" />
     <Compile Include="Common\TopicAndPartition.cs" />
     <Compile Include="Common\UnknownCodecException.cs" />
+    <Compile Include="Common\UnknownTopicOrPartitionException.cs" />
     <Compile Include="Consumers\ConsumerIterator.cs" />
     <Compile Include="Consumers\ConsumerTopicMetrics.cs" />
     <Compile Include="Consumers\ConsumerTopicStats.cs" />
@@ -163,9 +174,11 @@
     <Compile Include="Producers\Async\IEventHandler.cs" />
     <Compile Include="Producers\Async\IllegalQueueStateException.cs" />
     <Compile Include="Producers\Async\ProducerSendThread.cs" />
+    <Compile Include="Producers\BrokerPartitionInfo.cs" />
     <Compile Include="Producers\DefaultPartitioner.cs" />
     <Compile Include="Producers\KeyedMessage.cs" />
     <Compile Include="Producers\IPartitioner.cs" />
+    <Compile Include="Producers\PartitionAndLeader.cs" />
     <Compile Include="Producers\Producer.cs" />
     <Compile Include="Producers\ProducerPool.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

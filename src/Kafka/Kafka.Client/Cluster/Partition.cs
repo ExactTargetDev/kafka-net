@@ -5,6 +5,8 @@
     /// <summary>
     /// Data structure that represents a topic partition. The leader maintains the AR, ISR, CUR, RAR
     /// </summary>
+    /// 
+    /* TODO: Do we need it? 
     public class Partition
     {
         public string Topic { get; private set; }
@@ -33,5 +35,5 @@
 
         //TODO: finish me
 
-    }
+    }*/
 }

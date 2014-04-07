@@ -6,6 +6,7 @@
 
     using Kafka.Client.Api;
     using Kafka.Client.Cfg;
+    using Kafka.Client.Client;
     using Kafka.Client.Cluster;
     using Kafka.Client.Common;
 
@@ -33,7 +34,7 @@
             this.topicPartitionInfo = topicPartitionInfo;
 
             this.brokerList = producerConfig.Brokers;
-            this.brokers = ClientUtils.parseBrokerList(this.brokerList);
+            this.brokers = ClientUtils.ParseBrokerList(this.brokerList);
         }
 
 
@@ -42,7 +43,7 @@
         /// </summary>
         /// <param name="topic"></param>
         /// <returns></returns>
-        public IEnumerable<PartitionAndLeader> GetBrokerPartitionInfo(string topic, int correlationId)
+        public IList<PartitionAndLeader> GetBrokerPartitionInfo(string topic, int correlationId)
         {
             Logger.DebugFormat("Getting broker partition info for topic {0}", topic);
             //check if the cache has metadata for this topic

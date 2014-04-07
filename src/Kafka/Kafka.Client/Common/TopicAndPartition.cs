@@ -22,6 +22,8 @@
         {
         }
 
+        /*TODO
+         * Do we need it?
         public TopicAndPartition(Partition partition)
             : this(partition.Topic, partition.PartitionId)
         {
@@ -31,7 +33,7 @@
         public TopicAndPartition(Replica replica) : this(replica.Topic, replica.PartitonId)
         {
             
-        }
+        }*/
 
         public override string ToString()
         {
