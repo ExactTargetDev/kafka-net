@@ -14,7 +14,7 @@
     internal class ProducerPool : IDisposable
     {
 
-        private ProducerConfiguration config;
+        private ProducerConfig config;
 
         private Dictionary<int, SyncProducer> syncProducers;
 
@@ -23,13 +23,13 @@
         private object @lock = new object();
 
 
-        public ProducerPool(ProducerConfiguration config)
+        public ProducerPool(ProducerConfig config)
         {
             this.config = config;
             this.syncProducers = new Dictionary<int, SyncProducer>();
         }
 
-        public static SyncProducer CreateSyncProducer(ProducerConfigurationSection config, Broker broker)
+        public static SyncProducer CreateSyncProducer(ProducerConfig config, Broker broker)
         {
             return new SyncProducer(new SyncProducerConfiguration(config, broker.Host, broker.Port));
         }

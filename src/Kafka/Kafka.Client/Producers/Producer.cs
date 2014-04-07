@@ -17,11 +17,11 @@
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private readonly ProducerConfiguration config;
+        private readonly ProducerConfig config;
 
         private readonly IEventHandler<TKey, TValue> eventHandler;
 
-        public Producer(ProducerConfiguration config) : this(config, new DefaultEventHandler<TKey, TValue>(config, 
+        public Producer(ProducerConfig config) : this(config, new DefaultEventHandler<TKey, TValue>(config, 
                 Util.CreateObject<IPartitioner>(config.PartitionerClass, config), 
                 Util.CreateObject<IEncoder<TValue>>(config.Serializer, config),
                 Util.CreateObject<IEncoder<TKey>>(config.KeySerializer, config),
@@ -29,7 +29,7 @@
         {
         }
 
-        public Producer(ProducerConfiguration config, IEventHandler<TKey, TValue> eventHandler)
+        public Producer(ProducerConfig config, IEventHandler<TKey, TValue> eventHandler)
          {
              this.config = config;
              this.eventHandler = eventHandler;

@@ -12,12 +12,12 @@
     public class ProducerTest
     {
         [Fact]
-         public void Produce()
+        public void Produce()
         {
             Console.WriteLine(typeof(DefaultPartitioner).FullName);
 
             var section = ConfigurationManager.GetSection("kafkaProducer3") as ProducerConfigurationSection;
-            var config = new ProducerConfiguration(section);
+            var config = new ProducerConfig(section);
             var producer = new Producer<byte[], byte[]>(config);
 
             var msg = new KeyedMessage<byte[], byte[]>("topic1", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("value1"));

@@ -42,7 +42,7 @@ namespace Kafka.Client.Cfg
 
         [ConfigurationProperty(
            "partitioner",
-           DefaultValue = ProducerConfiguration.DefaultPartitioner,
+           DefaultValue = ProducerConfig.DefaultPartitioner,
            IsRequired = false)]
         public string Partitioner
         {
@@ -54,7 +54,7 @@ namespace Kafka.Client.Cfg
 
         [ConfigurationProperty(
             "type",
-            DefaultValue = ProducerConfiguration.DefaultProducerType,
+            DefaultValue = ProducerConfig.DefaultProducerType,
             IsRequired = false)]
         public ProducerTypes ProducerType
         {
@@ -96,7 +96,7 @@ namespace Kafka.Client.Cfg
 
         [ConfigurationProperty(
             "messageSendMaxRetries",
-            DefaultValue = ProducerConfiguration.DefaultMessageSendRetries,
+            DefaultValue = ProducerConfig.DefaultMessageSendRetries,
             IsRequired = false)]
         public int MessageSendMaxRetries
         {
@@ -108,7 +108,7 @@ namespace Kafka.Client.Cfg
 
         [ConfigurationProperty(
             "retryBackoffMs",
-            DefaultValue = ProducerConfiguration.DefaultRetryBackoffMs,
+            DefaultValue = ProducerConfig.DefaultRetryBackoffMs,
             IsRequired = false)]
         public int RetryBackoffMs
         {
@@ -120,7 +120,7 @@ namespace Kafka.Client.Cfg
 
         [ConfigurationProperty(
             "topicMetadataRefreshIntervalMs",
-            DefaultValue = ProducerConfiguration.DefaultTopicMetadataRefreshIntervalMs,
+            DefaultValue = ProducerConfig.DefaultTopicMetadataRefreshIntervalMs,
             IsRequired = false)]
         public int TopicMetadataRefreshIntervalMs
         {

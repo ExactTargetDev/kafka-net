@@ -15,7 +15,7 @@
     internal class BrokerPartitionInfo
     {
 
-        private ProducerConfiguration producerConfig;
+        private ProducerConfig producerConfig;
 
         private ProducerPool producerPool;
 
@@ -27,7 +27,7 @@
 
         private IList<Broker> brokers;
 
-        public BrokerPartitionInfo(ProducerConfiguration producerConfig, ProducerPool producerPool, Dictionary<string, TopicMetadata> topicPartitionInfo)
+        public BrokerPartitionInfo(ProducerConfig producerConfig, ProducerPool producerPool, Dictionary<string, TopicMetadata> topicPartitionInfo)
         {
             this.producerConfig = producerConfig;
             this.producerPool = producerPool;

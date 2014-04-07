@@ -7,7 +7,7 @@
     /// </summary>
     public class DefaultEncoder : IEncoder<byte[]>
     {
-        public DefaultEncoder(ProducerConfiguration config)
+        public DefaultEncoder(ProducerConfig config)
         {
             
         }

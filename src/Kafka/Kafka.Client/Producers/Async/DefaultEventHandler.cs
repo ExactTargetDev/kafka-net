@@ -22,7 +22,7 @@
 
         private Random random = new Random();
 
-        public ProducerConfiguration config { get; set; }
+        public ProducerConfig config { get; set; }
 
         private IPartitioner partitioner;
 
@@ -34,7 +34,7 @@
 
         private Dictionary<string, TopicMetadata> topicPartitionInfos = new Dictionary<string, TopicMetadata>();
 
-        public DefaultEventHandler(ProducerConfiguration config, IPartitioner partitioner, IEncoder<TValue> encoder, IEncoder<TKey> keyEncoder, ProducerPool producerPool)
+        public DefaultEventHandler(ProducerConfig config, IPartitioner partitioner, IEncoder<TValue> encoder, IEncoder<TKey> keyEncoder, ProducerPool producerPool)
         {
             this.config = config;
             this.partitioner = partitioner;

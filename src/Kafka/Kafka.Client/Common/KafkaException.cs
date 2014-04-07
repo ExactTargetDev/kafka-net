@@ -16,5 +16,10 @@ namespace Kafka.Client.Common
             : base(message)
         {
         }
+
+        public KafkaException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+        }
     }
 }

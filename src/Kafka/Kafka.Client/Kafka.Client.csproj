@@ -123,6 +123,7 @@
     <Compile Include="Api\RequestKeys.cs" />
     <Compile Include="Api\RequestOrResponse.cs" />
     <Compile Include="Api\TopicMetadata.cs" />
+    <Compile Include="Api\TopicMetadataRequest.cs" />
     <Compile Include="Api\TopicMetadataResponse.cs" />
     <Compile Include="Cfg\AsyncProducerConfiguration.cs" />
     <Compile Include="Cfg\BrokerConfiguration.cs" />
@@ -132,7 +133,7 @@
     <Compile Include="Cfg\ConsumerConfigurationSection.cs" />
     <Compile Include="Cfg\IAsyncProducerConfigShared.cs" />
     <Compile Include="Cfg\ISyncProducerConfigShared.cs" />
-    <Compile Include="Cfg\ProducerConfiguration.cs" />
+    <Compile Include="Cfg\ProducerConfig.cs" />
     <Compile Include="Cfg\ProducerConfigurationSection.cs" />
     <Compile Include="Cfg\ProducerTypes.cs" />
     <Compile Include="Cfg\SyncProducerConfiguration.cs" />
@@ -169,6 +170,7 @@
     <Compile Include="Consumers\KafkaStream.cs" />
     <Compile Include="Consumers\PartitionTopicInfo.cs" />
     <Compile Include="Consumers\ZookeeperConsumerConnector.cs" />
+    <Compile Include="Extensions\ListExtensions.cs" />
     <Compile Include="Extensions\MemoryStreamExtensions.cs" />
     <Compile Include="Messages\ByteBufferMessageSet.cs" />
     <Compile Include="Messages\ByteBufferMessageSetEnumerator.cs" />
@@ -179,6 +181,7 @@
     <Compile Include="Messages\MessageAndMetadata.cs" />
     <Compile Include="Messages\MessageAndOffset.cs" />
     <Compile Include="Messages\MessageSet.cs" />
+    <Compile Include="Network\BlockingChannel.cs" />
     <Compile Include="Network\RequestChannelRequest.cs" />
     <Compile Include="Network\RequestChannel.cs" />
     <Compile Include="Producers\Async\DefaultEventHandler.cs" />

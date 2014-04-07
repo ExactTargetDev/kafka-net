@@ -6,7 +6,7 @@
 
     public class DefaultPartitioner : IPartitioner
     {
-        public DefaultPartitioner(ProducerConfiguration config)
+        public DefaultPartitioner(ProducerConfig config)
         {
             
         }
