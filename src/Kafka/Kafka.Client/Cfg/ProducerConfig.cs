@@ -74,7 +74,8 @@ namespace Kafka.Client.Cfg
             this.Brokers = brokersConfig;
         }
 
-        public ProducerConfig(ProducerConfigurationSection config) : base(config, string.Empty, 0)
+        //TODO: pass parent config
+        public ProducerConfig(ProducerConfigurationSection config) : base(new ProducerConfig(), string.Empty, 0)
         {
             this.ProducerType = config.ProducerType;
             this.CompressionCodec = config.CompressionCodec;

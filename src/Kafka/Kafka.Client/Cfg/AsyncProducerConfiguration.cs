@@ -49,7 +49,7 @@ namespace Kafka.Client.Cfg
             this.KeySerializer = DefaultKeySerializerClass;
         }
 
-        public AsyncProducerConfiguration(ProducerConfigurationSection config, string host, int port)
+        public AsyncProducerConfiguration(ProducerConfig config, string host, int port)
             : base(config, host, port)
         {
 

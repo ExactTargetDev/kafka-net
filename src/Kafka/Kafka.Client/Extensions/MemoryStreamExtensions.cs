@@ -3,6 +3,7 @@
 namespace Kafka.Client.Extensions
 {
     using System;
+    using System.Net;
 
     using Kafka.Client.Serializers;
 
@@ -10,18 +11,32 @@ namespace Kafka.Client.Extensions
     {
          public static int GetInt(this MemoryStream stream)
          {
-             using (var reader = new KafkaBinaryReader(stream))
+             var buffer = new byte[4];
+
+             var read = stream.Read(buffer, 0, 4);
+             if (read != 4)
              {
-                 return reader.ReadInt32();
+                 throw new InvalidDataException("Expected 4 bytes in stream, got: " + read);
              }
+
+             var value = (int)(buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24);
+
+             return IPAddress.NetworkToHostOrder(value);
          }
 
         public static short GetShort(this MemoryStream stream)
         {
-            using (var reader = new KafkaBinaryReader(stream))
+            var buffer = new byte[2];
+
+            var read = stream.Read(buffer, 0, 2);
+            if (read != 2)
             {
-                return reader.ReadInt16();
+                throw new InvalidDataException("Expected 2 bytes in stream, got: " + read);
             }
+
+            var value = (short)(buffer[0] | buffer[1] << 8);
+
+            return IPAddress.NetworkToHostOrder(value);
         }
 
         public static long GetLong(this MemoryStream stream)
@@ -34,10 +49,10 @@ namespace Kafka.Client.Extensions
 
         public static void PutShort(this MemoryStream stream, short value)
         {
-            using (var writer = new KafkaBinaryWriter(stream))
-            {
-                writer.Write(value);
-            }
+            value = IPAddress.HostToNetworkOrder(value);
+
+            stream.WriteByte((byte) value);
+            stream.WriteByte((byte)(value >> 8));
         }
 
         public static int GetInt(this MemoryStream stream, int index)
@@ -47,21 +62,33 @@ namespace Kafka.Client.Extensions
 
         public static void PutInt(this MemoryStream stream, int value)
         {
-            using (var writer = new KafkaBinaryWriter(stream))
-            {
-                writer.Write(value);
-            }
+            var buffer= new byte[4];
+            value = IPAddress.HostToNetworkOrder(value);
+
+            buffer[0] = (byte)value;
+            buffer[1] = (byte)(value >> 8);
+            buffer[2] = (byte)(value >> 16);
+            buffer[3] = (byte)(value >> 24);
+
+            stream.Write(buffer, 0, 4);
         }
 
         public static void PutLong(this MemoryStream stream, long value)
         {
-            using (var writer = new KafkaBinaryWriter(stream))
-            {
-                writer.Write(value);
-            }
+            var buffer = new byte[8];
+            value = IPAddress.HostToNetworkOrder(value);
+
+            buffer[0] = (byte)value;
+            buffer[1] = (byte)(value >> 8);
+            buffer[2] = (byte)(value >> 16);
+            buffer[3] = (byte)(value >> 24);
+            buffer[4] = (byte)(value >> 32);
+            buffer[5] = (byte)(value >> 40);
+            buffer[6] = (byte)(value >> 48);
+            buffer[7] = (byte)(value >> 56);
+
+            stream.Write(buffer, 0, 8);
         }
-
-
 
         public static void PutInt(this MemoryStream stream, int index, int value)
         {

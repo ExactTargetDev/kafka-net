@@ -42,6 +42,7 @@
 
             TopicMetadataResponse topicMetadataResponse = null;
             Exception t = null;
+
             // shuffle the list of brokers before sending metadata requests so that most requests don't get routed to the
             // same broker
 
@@ -77,12 +78,12 @@
             {
                 throw new KafkaException(
                     string.Format(
-                        "fetching topic metadata for topics [{0}] from broker [{1}] failed", topics, shuffledBrokers),
+                        "fetching topic metadata for topics [{0}] from broker [{1}] failed", string.Join(",", topics), string.Join(", ", shuffledBrokers)),
                     t);
             }
             else
             {
-                Logger.DebugFormat("Successfully fetched metadata for {0} topic(s) {1}", topics.Count(), topics);
+                Logger.DebugFormat("Successfully fetched metadata for {0} topic(s) {1}", topics.Count(), string.Join(",",  topics));
             }
             return topicMetadataResponse;
         }

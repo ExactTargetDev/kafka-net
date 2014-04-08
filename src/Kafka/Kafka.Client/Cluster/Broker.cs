@@ -76,7 +76,7 @@
             }
         }*/
 
-        internal static Broker ParseFrom(MemoryStream buffer)
+        internal static Broker ReadFrom(MemoryStream buffer)
         {
             var id = buffer.GetInt();
             var host = ApiUtils.ReadShortString(buffer);

@@ -8,26 +8,26 @@ namespace Kafka.Client.Utils
         /// </summary>
         internal class Crc32 : HashAlgorithm
         {
-            public const UInt32 DefaultPolynomial = 0xedb88320;
-            public const UInt32 DefaultSeed = 0xffffffff;
+            public const uint DefaultPolynomial = 0xedb88320;
+            public const uint DefaultSeed = 0xffffffff;
 
-            private UInt32 hash;
-            private UInt32 seed;
-            private UInt32[] table;
+            private uint hash;
+            private uint seed;
+            private uint[] table;
             private static UInt32[] defaultTable;
 
             public Crc32()
             {
                 table = InitializeTable(DefaultPolynomial);
                 seed = DefaultSeed;
-                Initialize();
+                this.Initialize();
             }
 
-            public Crc32(UInt32 polynomial, UInt32 seed)
+            public Crc32(uint polynomial, uint seed)
             {
                 table = InitializeTable(polynomial);
                 this.seed = seed;
-                Initialize();
+                this.Initialize();
             }
 
             public override void Initialize()
@@ -37,12 +37,12 @@ namespace Kafka.Client.Utils
 
             protected override void HashCore(byte[] buffer, int start, int length)
             {
-                hash = CalculateHash(table, hash, buffer, start, length);
+                hash = CalculateHash(this.table, hash, buffer, start, length);
             }
 
             protected override byte[] HashFinal()
             {
-                byte[] hashBuffer = UInt32ToBigEndianBytes(~hash);
+                byte[] hashBuffer = this.UInt32ToBigEndianBytes(~hash);
                 this.HashValue = hashBuffer;
                 return hashBuffer;
             }
@@ -59,15 +59,15 @@ namespace Kafka.Client.Utils
                 return hash;
             }
 
-            private static UInt32[] InitializeTable(UInt32 polynomial)
+            private static uint[] InitializeTable(uint polynomial)
             {
                 if (polynomial == DefaultPolynomial && defaultTable != null)
                     return defaultTable;
 
-                uint[] createTable = new UInt32[256];
+                uint[] createTable = new uint[256];
                 for (int i = 0; i < 256; i++)
                 {
-                    UInt32 entry = (UInt32)i;
+                    uint entry = (uint)i;
                     for (int j = 0; j < 8; j++)
                         if ((entry & 1) == 1)
                             entry = (entry >> 1) ^ polynomial;
@@ -82,7 +82,7 @@ namespace Kafka.Client.Utils
                 return createTable;
             }
 
-            private static UInt32 CalculateHash(UInt32[] table, UInt32 seed, byte[] buffer, int start, int size)
+            private static uint CalculateHash(uint[] table, uint seed, byte[] buffer, int start, int size)
             {
                 uint crc = seed;
                 for (var i = start; i < size; i++)
@@ -93,14 +93,14 @@ namespace Kafka.Client.Utils
                 return crc;
             }
 
-            private byte[] UInt32ToBigEndianBytes(UInt32 x)
+            private byte[] UInt32ToBigEndianBytes(uint x)
             {
-                return new byte[] {
+                return new [] {
                     (byte)((x >> 24) & 0xff),
                     (byte)((x >> 16) & 0xff),
                     (byte)((x >> 8) & 0xff),
                     (byte)(x & 0xff)
-		    };
+		        };
             }
         }
 }

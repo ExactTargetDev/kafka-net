@@ -43,6 +43,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BitOrder.cs" />
     <Compile Include="IteratorTemplateTests.cs" />
     <Compile Include="ProducerTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

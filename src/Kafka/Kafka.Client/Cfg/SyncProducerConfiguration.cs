@@ -37,7 +37,7 @@ namespace Kafka.Client.Cfg
             this.RequestTimeoutMs = DefaultAckTimeout;
         }
 
-        public SyncProducerConfiguration(ProducerConfigurationSection config, string host, int port) 
+        public SyncProducerConfiguration(ProducerConfig config, string host, int port) 
         {
             this.Host = host;
             this.Port = port;

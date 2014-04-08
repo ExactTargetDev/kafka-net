@@ -35,6 +35,15 @@
 
         private object @lock = new object();
 
+        public BlockingChannel(string host, int port, int readBufferSize, int writeBufferSize, int readTimeoutMs)
+        {
+            this.Host = host;
+            this.Port = port;
+            this.ReadBufferSize = readBufferSize;
+            this.WriteBufferSize = writeBufferSize;
+            this.ReadTimeoutMs = readTimeoutMs;
+        }
+
         public void Connect()
         {
             lock (@lock)
@@ -48,8 +57,8 @@
                 {
                     this.channel.SendBufferSize = WriteBufferSize;
                 }
-                channel.ReceiveTimeout(ReadTimeoutMs);
-                channel.NoDelay(true);
+                channel.ReceiveTimeout = ReadTimeoutMs;
+                channel.NoDelay = true;
                 //TODO: channel.configureBlocking(true)
                 //TODO: channel.socket.setKeepAlive(true)
 
@@ -86,7 +95,8 @@
                         Logger.Warn(e.Message, e);
                     }
 
-                    channel = null, readChannel = null,
+                    channel = null;
+                    readChannel = null;
                     writeChannel = null;
                     conneted = false;
                 }
@@ -109,7 +119,7 @@
             }
 
             var send = new BoundedByteBufferSend(request);
-            send.WriteCompletely(writeChannel);
+            return send.WriteCompletely(writeChannel);
         }
 
         public Receive Receive()

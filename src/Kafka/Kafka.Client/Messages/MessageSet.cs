@@ -30,7 +30,7 @@ namespace Kafka.Client.Messages
         public static int MessageSetSize(IEnumerable<Message> messages)
         {
             return messages.Aggregate(
-                0, (i, message) =>  i + EntrySize(message));
+                0, (i, message) => i + EntrySize(message));
         }
 
         public static int EntrySize(Message message)

@@ -182,8 +182,14 @@
     <Compile Include="Messages\MessageAndOffset.cs" />
     <Compile Include="Messages\MessageSet.cs" />
     <Compile Include="Network\BlockingChannel.cs" />
+    <Compile Include="Network\BoundedByteBufferReceive.cs" />
+    <Compile Include="Network\BoundedByteBufferSend.cs" />
+    <Compile Include="Network\InvalidRequestException.cs" />
+    <Compile Include="Network\Receive.cs" />
     <Compile Include="Network\RequestChannelRequest.cs" />
     <Compile Include="Network\RequestChannel.cs" />
+    <Compile Include="Network\Send.cs" />
+    <Compile Include="Network\Transmission.cs" />
     <Compile Include="Producers\Async\DefaultEventHandler.cs" />
     <Compile Include="Producers\Async\IEventHandler.cs" />
     <Compile Include="Producers\Async\IllegalQueueStateException.cs" />

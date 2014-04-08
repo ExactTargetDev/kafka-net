@@ -9,7 +9,7 @@
     {
         public Dictionary<TopicAndPartition, ProducerResponseStatus> Status { get; private set; }
 
-        public ProducerResponse(Dictionary<TopicAndPartition, ProducerResponseStatus> status , int correlationId)
+        public ProducerResponse(Dictionary<TopicAndPartition, ProducerResponseStatus> status, int correlationId)
             : base(null, correlationId)
         {
             this.Status = status;

@@ -54,7 +54,7 @@ namespace Kafka.Client.Consumers
         {
             get
             {
-                var item =  base.Current;
+                var item = base.Current;
                 if (consumedOffset < 0)
                 {
                     throw new KafkaException(string.Format("Offset returned by the message set is invalid {0}", consumedOffset));

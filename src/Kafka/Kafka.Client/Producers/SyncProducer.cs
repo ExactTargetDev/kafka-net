@@ -6,6 +6,7 @@
 
     using Kafka.Client.Api;
     using Kafka.Client.Cfg;
+    using Kafka.Client.Network;
 
     using log4net;
 
@@ -126,7 +127,6 @@
                 this.Disconnect();
                 shutdown = true;
             }
-            throw new NotImplementedException();
         }
 
         /// <summary>
