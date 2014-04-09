@@ -157,20 +157,24 @@
                     var brokerId = keyValuePair.Key;
                     var messagesPerBrokerMap = keyValuePair.Value;
 
-                    /*TODO: 
-                     * if (logger.isTraceEnabled)
-              messagesPerBrokerMap.foreach(partitionAndEvent =>
-                trace("Handling event for Topic: %s, Broker: %d, Partitions: %s".format(partitionAndEvent._1, brokerid, partitionAndEvent._2)))*/
+                    if (Logger.IsDebugEnabled)
+                    {
+                        foreach (var partitionAndEvent in messagesPerBrokerMap)
+                        {
+                            Logger.DebugFormat("Handling event for Topic: {0}, Broker: {1}, Partitions: {2}", partitionAndEvent.Key, brokerId, partitionAndEvent.Value);
+                        }
+                    }
+
                     var messageSetPerBroker = this.GroupMessagesToSet(messagesPerBrokerMap);
                     var failedTopicPartitions = this.Send(brokerId, messageSetPerBroker);
-
-                   /* TODO:
-                    * failedTopicPartitions.foreach(topicPartition => {
-              messagesPerBrokerMap.get(topicPartition) match {
-                case Some(data) => failedProduceRequests.appendAll(data)
-                case None => // nothing
-              }
-                })*/
+                    foreach (var topicPartiton in failedTopicPartitions)
+                    {
+                        List<KeyedMessage<TKey, Message>> data = null;
+                        if (messagesPerBrokerMap.TryGetValue(topicPartiton, out data))
+                        {
+                            failedProduceRequests.AddRange(data);
+                        }
+                    }
                 }
             }
             catch (Exception)
@@ -239,7 +243,7 @@
                 else
                 {
                     dataPerBroker = new Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>();
-                    ret.Add(leaderBrokerId, dataPerBroker);
+                    ret[leaderBrokerId] = dataPerBroker;
                 }
 
                 var topicAndPartition = new TopicAndPartition(message.Topic, brokerPartition.PartitionId);
@@ -251,7 +255,7 @@
                 else
                 {
                     dataPerTopicPartition = new List<KeyedMessage<TKey, Message>>();
-                    dataPerBroker.Add(topicAndPartition, dataPerTopicPartition);
+                    dataPerBroker[topicAndPartition] = dataPerTopicPartition;
                 }
                 dataPerTopicPartition.Add(message);
             }
@@ -420,13 +424,12 @@
             foreach (var keyValuePair in eventsPerTopicAndPartition)
             {
                 var topicAndPartition = keyValuePair.Key;
-                var messages = keyValuePair.Value.Select(m => m.Message);
+                var messages = keyValuePair.Value.Select(m => m.Message).ToList();
                 switch (this.config.CompressionCodec)
                 {
                     case CompressionCodecs.NoCompressionCodec:
                         Logger.DebugFormat("Sending {0} messages with no compression to {1}", messages.Count(), topicAndPartition);
-                        messagesPerTopicPartition.Add(new KeyValuePair
-                            <TopicAndPartition, ByteBufferMessageSet>(
+                        messagesPerTopicPartition.Add(new KeyValuePair<TopicAndPartition, ByteBufferMessageSet>(
                             topicAndPartition,
                             new ByteBufferMessageSet(
                                 CompressionCodecs.NoCompressionCodec,

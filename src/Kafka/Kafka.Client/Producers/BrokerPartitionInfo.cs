@@ -99,22 +99,29 @@
             var topicMetadataResponse = ClientUtils.FetchTopicMetadata(topics, this.brokers, this.producerConfig, correlationId);
             topicsMetadata = topicMetadataResponse.TopicsMetadata;
 
-            /* TODO
-             * topicsMetadata.foreach(tmd =>{
-      trace("Metadata for topic %s is %s".format(tmd.topic, tmd))
-      if(tmd.errorCode == ErrorMapping.NoError) {
-        topicPartitionInfo.put(tmd.topic, tmd)
-      } else
-        warn("Error while fetching metadata [%s] for topic [%s]: %s ".format(tmd, tmd.topic, ErrorMapping.exceptionFor(tmd.errorCode).getClass))
-      tmd.partitionsMetadata.foreach(pmd =>{
-        if (pmd.errorCode != ErrorMapping.NoError && pmd.errorCode == ErrorMapping.LeaderNotAvailableCode) {
-          warn("Error while fetching metadata %s for topic partition [%s,%d]: [%s]".format(pmd, tmd.topic, pmd.partitionId,
-            ErrorMapping.exceptionFor(pmd.errorCode).getClass))
-        } // any other error code (e.g. ReplicaNotAvailable) can be ignored since the producer does not need to access the replica and isr metadata
-      })
-    }) */
-            this.producerPool.UpdateProducer(topicsMetadata);
+            foreach (var tmd in topicsMetadata)
+            {
+                Logger.DebugFormat("Metadata for topic {0} is {1}", tmd.Topic, tmd);
+                if (tmd.ErrorCode == ErrorMapping.NoError)
+                {
+                    this.topicPartitionInfo[tmd.Topic] = tmd;
+                }
+                else
+                {
+                    Logger.WarnFormat("Error while fetch metadata [{0}] for topic [{1}]: {2}", tmd, tmd.Topic, ErrorMapping.ExceptionFor(tmd.ErrorCode).GetType());
+                    foreach (var pmd in tmd.PartitionsMetadata)
+                    {
+                        if (pmd.ErrorCode != ErrorMapping.NoError
+                            && pmd.ErrorCode == ErrorMapping.LeaderNotAvailableCode)
+                        {
+                            Logger.WarnFormat("Error while fetching metadata {0} for topic partiton [{1},{2}]:[{3}]", pmd, tmd.Topic, pmd.PartitionId, ErrorMapping.ExceptionFor(pmd.ErrorCode).GetType());
+                            //// any other error code (e.g. ReplicaNotAvailable) can be ignored since the producer does not need to access the replica and isr metadata
+                        }
+                    }
+                }
+            }
 
+            this.producerPool.UpdateProducer(topicsMetadata);
         }
     }
 }

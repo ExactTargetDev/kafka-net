@@ -34,7 +34,7 @@ namespace Kafka.Client.Messages
             Buffer = buffer;
         }
 
-        public ByteBufferMessageSet(CompressionCodecs compressionCodec, IEnumerable<Message> messages) : this(ByteBufferMessageSet.Create(new AtomicLong(0), compressionCodec, messages))
+        public ByteBufferMessageSet(CompressionCodecs compressionCodec, IEnumerable<Message> messages) : this(Create(new AtomicLong(0), compressionCodec, messages))
         {
         }
 
@@ -122,7 +122,8 @@ namespace Kafka.Client.Messages
             if (messages.Count() == 0)
             {
                 return Empty.Buffer;
-            } else if (CompressionCodecs.NoCompressionCodec == compressionCodec)
+            } 
+            else if (CompressionCodecs.NoCompressionCodec == compressionCodec)
             {
                 var buffer = new MemoryStream(MessageSetSize(messages));
                 foreach (var message in messages)
@@ -134,9 +135,9 @@ namespace Kafka.Client.Messages
             }
             else
             {
-                byte[] bytes = new byte[MessageSetSize(messages)];
-                var byteArrayStream = new MemoryStream(bytes);
+                var byteArrayStream = new MemoryStream(MessageSetSize(messages));
                 var offset = -1L;
+
                 using (var output = new KafkaBinaryWriter(CompressionFactory.BuildWriter(compressionCodec, byteArrayStream)))
                 {
                     
@@ -149,7 +150,7 @@ namespace Kafka.Client.Messages
                     }
                 }
 
-                var msg = new Message(bytes, compressionCodec);
+                var msg = new Message(byteArrayStream.ToArray(), compressionCodec);
                 var result = new MemoryStream(msg.Size + MessageSet.LogOverhead);
                 WriteMessage(result, msg, offset);
                 result.Position = 0;

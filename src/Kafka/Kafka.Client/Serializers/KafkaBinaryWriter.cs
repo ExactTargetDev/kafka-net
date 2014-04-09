@@ -48,18 +48,6 @@ namespace Kafka.Client.Serializers
         }
 
         /// <summary>
-        /// Flushes data into stream and resets position pointer.
-        /// </summary>
-        /// <param name="disposing">
-        /// Not used
-        /// </param>
-        protected override void Dispose(bool disposing)
-        {
-            this.Flush();
-            this.OutStream.Position = 0;
-        }
-
-        /// <summary>
         /// Writes four-bytes signed integer to the current stream using big endian bytes order 
         /// and advances the stream position by four bytes
         /// </summary>

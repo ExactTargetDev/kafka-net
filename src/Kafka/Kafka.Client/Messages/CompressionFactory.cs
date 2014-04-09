@@ -12,9 +12,9 @@
              switch (compressionCodec)
              {
                  case CompressionCodecs.DefaultCompressionCodec:
-                     return new GZipStream(stream, CompressionMode.Compress);
+                     return new GZipStream(stream, CompressionMode.Compress, true);
                  case CompressionCodecs.GZIPCompressionCodec:
-                     return new GZipStream(stream, CompressionMode.Compress);
+                     return new GZipStream(stream, CompressionMode.Compress, true);
                  case CompressionCodecs.SnappyCompressionCodec:
                      //return new SnappyStreeam(stream); //TODO:
                  default:

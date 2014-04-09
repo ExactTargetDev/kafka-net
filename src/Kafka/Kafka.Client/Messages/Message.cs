@@ -6,6 +6,7 @@ using Kafka.Client.Serializers;
 
 namespace Kafka.Client.Messages
 {
+    using System.Collections;
 
     /// <summary>
     /// A message. The format of an N byte message is the following:
@@ -63,37 +64,36 @@ namespace Kafka.Client.Messages
                                       ((bytes == null)
                                            ? 0
                                            : ((payloadSize >= 0 ? payloadSize : bytes.Length - payloadOffset))));
-            using (var writer = new KafkaBinaryWriter(buffer))
+            this.buffer.Position = MagicOffset;
+            this.buffer.WriteByte(CurrentMagicValue);
+            byte attributes = 0;
+            if (codec != CompressionCodecs.NoCompressionCodec)
             {
-                writer.Seek(MagicOffset, SeekOrigin.Begin);
-                writer.Write(CurrentMagicValue);
-                byte attributes = 0;
-                if (codec != CompressionCodecs.NoCompressionCodec)
-                {
-                    attributes = Convert.ToByte(attributes | (CompressionCodeMask & Messages.CompressionCodec.GetCompressionCodecValue(codec)));
-                }
-                writer.Write(attributes);
-                if (key == null)
-                {
-                    writer.Write(-1);
-                }
-                else
-                {
-                    writer.Write(key.Length);
-                    writer.Write(key, 0, key.Length);
-                }
-                var size = (bytes == null)
+                attributes =
+                    Convert.ToByte(
+                        attributes | (CompressionCodeMask & Messages.CompressionCodec.GetCompressionCodecValue(codec)));
+            }
+            this.buffer.WriteByte(attributes);
+            if (key == null)
+            {
+                this.buffer.PutInt(-1);
+            }
+            else
+            {
+                this.buffer.PutInt(key.Length);
+                this.buffer.Write(key, 0, key.Length);
+            }
+            var size = (bytes == null)
                                ? -1
                                : (payloadSize >= 0) ? payloadSize : bytes.Length - payloadOffset;
-                writer.Write(size);
-                if (bytes != null)
-                {
-                    writer.Write(bytes, payloadOffset, size);
-                }
-                writer.Seek(0, SeekOrigin.Begin);
+            this.buffer.PutInt(size);
+            if (bytes != null)
+            {
+                this.buffer.Write(bytes, payloadOffset, size);
             }
+            this.buffer.Position = 0;
 
-            Utils.Util.WriteUnsignedInt(buffer, CrcOffset, ComputeChecksum());
+            Utils.Util.WriteUnsignedInt(buffer, CrcOffset, this.ComputeChecksum());
 
         }
 
@@ -261,7 +261,7 @@ namespace Kafka.Client.Messages
             {
                 return null;
             }
-            return new MemoryStream(buffer.GetBuffer(), start + 4, size);
+            return new MemoryStream(buffer.GetBuffer(), start + 4, size, false);
         }
 
         public override string ToString()
@@ -271,7 +271,7 @@ namespace Kafka.Client.Messages
 
         protected bool Equals(Message other)
         {
-            return Equals(buffer, other.buffer);
+            return StructuralComparisons.StructuralEqualityComparer.Equals(buffer, other.buffer);
         }
 
         public override bool Equals(object obj)

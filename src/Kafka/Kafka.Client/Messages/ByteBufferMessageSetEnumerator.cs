@@ -51,8 +51,9 @@
             }
 
             // read the current message and check correctness
-            var newMessage = new Message(new MemoryStream(topIter.GetBuffer(), (int)topIter.Position, size));
-            topIter.Position += size;
+            byte[] messagePayload = new byte[size];
+            topIter.Read(messagePayload, 0, messagePayload.Length);
+            var newMessage = new Message(new MemoryStream(messagePayload));
 
             if (isShallow)
             {

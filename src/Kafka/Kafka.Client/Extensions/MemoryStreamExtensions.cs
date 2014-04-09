@@ -41,10 +41,19 @@ namespace Kafka.Client.Extensions
 
         public static long GetLong(this MemoryStream stream)
         {
-            using (var reader = new KafkaBinaryReader(stream))
+            var buffer = new byte[8];
+
+            var read = stream.Read(buffer, 0, 8);
+            if (read != 8)
             {
-                return reader.ReadInt64();
+                throw new InvalidDataException("Expected 8 bytes in stream, got: " + read);
             }
+            var lo = (uint)(buffer[0] | buffer[1] << 8 |
+                             buffer[2] << 16 | buffer[3] << 24);
+            var hi = (uint)(buffer[4] | buffer[5] << 8 |
+                             buffer[6] << 16 | buffer[7] << 24);
+            return IPAddress.NetworkToHostOrder((long)((ulong)hi) << 32 | lo);
+
         }
 
         public static void PutShort(this MemoryStream stream, short value)
@@ -57,7 +66,11 @@ namespace Kafka.Client.Extensions
 
         public static int GetInt(this MemoryStream stream, int index)
         {
-           throw new NotImplementedException(); //TODO:
+            var buffer = stream.GetBuffer();
+
+            var value = (int)(buffer[index + 0] | buffer[index + 1] << 8 | buffer[index + 2] << 16 | buffer[index + 3] << 24);
+
+            return IPAddress.NetworkToHostOrder(value);
         }
 
         public static void PutInt(this MemoryStream stream, int value)
@@ -92,15 +105,12 @@ namespace Kafka.Client.Extensions
 
         public static void PutInt(this MemoryStream stream, int index, int value)
         {
+            value = IPAddress.HostToNetworkOrder(value);
             byte[] buffer = stream.GetBuffer();
             buffer[index] = (byte)value;
             buffer[index + 1] = (byte)(value >> 8);
             buffer[index + 2] = (byte)(value >> 16);
             buffer[index + 3] = (byte)(value >> 24);
-            buffer[index + 4] = (byte)(value >> 32);
-            buffer[index + 5] = (byte)(value >> 40);
-            buffer[index + 6] = (byte)(value >> 48);
-            buffer[index + 7] = (byte)(value >> 56);
 
         }
     }

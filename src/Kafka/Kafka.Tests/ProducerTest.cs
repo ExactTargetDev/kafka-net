@@ -20,7 +20,7 @@
             var config = new ProducerConfig(section);
             var producer = new Producer<byte[], byte[]>(config);
 
-            var msg = new KeyedMessage<byte[], byte[]>("topic1", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("value1"));
+            var msg = new KeyedMessage<byte[], byte[]>("topic2", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("value1"));
 
             producer.Send(msg);
 

@@ -24,6 +24,7 @@
             this.Port = port;
         }
 
+
         public override string ToString()
         {
             return string.Format("Id: {0}, Host: {1}, Port: {2}", this.Id, this.Host, this.Port);
@@ -75,6 +76,39 @@
                 throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, "{0} is not a valid BrokerInfoString", brokerInfoString));
             }
         }*/
+
+        protected bool Equals(Broker other)
+        {
+            return this.Id == other.Id && string.Equals(this.Host, other.Host) && this.Port == other.Port;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+            return Equals((Broker)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = this.Id;
+                hashCode = (hashCode * 397) ^ (this.Host != null ? this.Host.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ this.Port;
+                return hashCode;
+            }
+        }
 
         internal static Broker ReadFrom(MemoryStream buffer)
         {

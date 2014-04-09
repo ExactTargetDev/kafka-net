@@ -36,7 +36,33 @@
 
         public void UpdateProducer(List<TopicMetadata> topicMetadata)
         {
-            //TODO: finish me
+            var newBrokers = new HashSet<Broker>();
+            foreach (var tmd in topicMetadata)
+            {
+                foreach (var pmd in tmd.PartitionsMetadata)
+                {
+                    if (pmd.Leader != null)
+                    {
+                        newBrokers.Add(pmd.Leader);
+                    }
+                }
+            }
+
+            lock (@lock)
+            {
+                foreach (var b in newBrokers)
+                {
+                    if (this.syncProducers.ContainsKey(b.Id))
+                    {
+                        this.syncProducers[b.Id].Dispose();
+                        this.syncProducers[b.Id] = CreateSyncProducer(config, b);
+                    }
+                    else
+                    {
+                        this.syncProducers[b.Id] = CreateSyncProducer(config, b);
+                    }
+                }
+            }
         }
 
         public SyncProducer GetProducer(int brokerId)
