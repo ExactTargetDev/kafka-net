@@ -88,8 +88,7 @@ namespace Kafka.Client.Utils
 
         public static long Crc32(byte[] bytes, int offset, int size)
         {
-            var crc = new Crc32();
-            return BitConverter.ToInt32(crc.ComputeHash(bytes, offset, size), 0);
+            return Utils.Crc32.Compute(bytes, offset, size);
         }
 
         public static T CreateObject<T>(string type, params object[] args)

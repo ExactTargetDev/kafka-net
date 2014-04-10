@@ -2,8 +2,11 @@
 {
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
 
     using Kafka.Client.Common;
+
+    using Kafka.Client.Extensions;
 
     public class ProducerResponse : RequestOrResponse
     {
@@ -15,11 +18,32 @@
             this.Status = status;
         }
 
-        //TODO: finish me!
+        public static ProducerResponse ReadFrom(MemoryStream buffer)
+        {
+            var correlationId = buffer.GetInt();
+            var topicCount = buffer.GetInt();
+            var statusPairs = Enumerable.Range(0, topicCount).SelectMany(
+                _ =>
+                    {
+                        var topic = ApiUtils.ReadShortString(buffer);
+                        var partitionCount = buffer.GetInt();
+                        return Enumerable.Range(0, partitionCount).Select(
+                            __ =>
+                                {
+                                    var partition = buffer.GetInt();
+                                    var error = buffer.GetShort();
+                                    var offset = buffer.GetLong();
+                                    return new KeyValuePair<TopicAndPartition, ProducerResponseStatus>(
+                                        new TopicAndPartition(topic, partition), new ProducerResponseStatus(error, offset));
+                                });
+                    });
+
+            return new ProducerResponse(statusPairs.ToDictionary(x => x.Key, x => x.Value), correlationId);
+        }
 
         public override string Describe(bool details)
         {
-            throw new System.NotImplementedException();
+            return this.ToString();
         }
 
         public override int SizeInBytes
@@ -35,6 +59,5 @@
             throw new System.NotImplementedException();
         }
 
-        //TODO: 
     }
 }

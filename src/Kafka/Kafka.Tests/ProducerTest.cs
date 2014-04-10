@@ -6,6 +6,7 @@
 
     using Kafka.Client.Cfg;
     using Kafka.Client.Producers;
+    using Kafka.Client.Utils;
 
     using Xunit;
 
@@ -18,13 +19,18 @@
 
             var section = ConfigurationManager.GetSection("kafkaProducer3") as ProducerConfigurationSection;
             var config = new ProducerConfig(section);
-            var producer = new Producer<byte[], byte[]>(config);
+            using (var producer = new Producer<byte[], byte[]>(config))
+            {
+                for (int i = 0; i < 50; i++)
+                {
+                    var msg = new KeyedMessage<byte[], byte[]>(
+                        "topic2", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("value" + i));
 
-            var msg = new KeyedMessage<byte[], byte[]>("topic2", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("value1"));
 
-            producer.Send(msg);
+                    producer.Send(msg);
+                }
+            }
 
-            //TODO finish me
         }
     }
 }

@@ -123,7 +123,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public long ComputeChecksum()
         {
-            return Utils.Util.Crc32(buffer.ToArray(), MagicOffset, (int)buffer.Length - MagicOffset);
+            return Utils.Util.Crc32(buffer.GetBuffer(), MagicOffset, (int)buffer.Length - MagicOffset);
         }
 
         /// <summary>
@@ -271,7 +271,7 @@ namespace Kafka.Client.Messages
 
         protected bool Equals(Message other)
         {
-            return StructuralComparisons.StructuralEqualityComparer.Equals(buffer, other.buffer);
+            return StructuralComparisons.StructuralEqualityComparer.Equals(buffer.GetBuffer(), other.Buffer.GetBuffer());
         }
 
         public override bool Equals(object obj)

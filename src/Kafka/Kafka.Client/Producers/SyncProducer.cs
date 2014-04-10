@@ -67,7 +67,7 @@
             lock (@lock)
             {
                 this.VerifyRequest(request);
-                GetOrMakeConnection();
+                this.GetOrMakeConnection();
 
                 Receive response = null;
                 try
@@ -75,7 +75,7 @@
                     blockingChannel.Send(request);
                     if (readResponse)
                     {
-                        response = blockingChannel.Receive();
+                        response = this.blockingChannel.Receive();
                     }
                     else
                     {
@@ -94,24 +94,22 @@
 
         public ProducerResponse Send(ProducerRequest producerRequest)
         {
-            throw new NotImplementedException();
-          /* TODO
-           * val requestSize = producerRequest.sizeInBytes
-    producerRequestStats.getProducerRequestStats(brokerInfo).requestSizeHist.update(requestSize)
-    producerRequestStats.getProducerRequestAllBrokersStats.requestSizeHist.update(requestSize)
+            var requestSize = producerRequest.SizeInBytes;
+            //TODO: producerRequestStats.getProducerRequestStats(brokerInfo).requestSizeHist.update(requestSize)
+            // TODO: producerRequestStats.getProducerRequestAllBrokersStats.requestSizeHist.update(requestSize)
 
-    var response: Receive = null
-    val specificTimer = producerRequestStats.getProducerRequestStats(brokerInfo).requestTimer
-    val aggregateTimer = producerRequestStats.getProducerRequestAllBrokersStats.requestTimer
-    aggregateTimer.time {
-      specificTimer.time {
-        response = doSend(producerRequest, if(producerRequest.requiredAcks == 0) false else true)
-      }
-    }
-    if(producerRequest.requiredAcks != 0)
-      ProducerResponse.readFrom(response.buffer)
-    else
-      null*/
+            Receive response = null;
+            //TODO timer
+            response = this.DoSend(producerRequest, producerRequest.RequiredAcks != 0);
+
+            if (producerRequest.RequiredAcks != 0)
+            {
+                return ProducerResponse.ReadFrom(response.Buffer);
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public TopicMetadataResponse Send(TopicMetadataRequest request)
@@ -137,10 +135,10 @@
         {
             try
             {
-                if (blockingChannel.IsConnected)
+                if (this.blockingChannel.IsConnected)
                 {
                     Logger.InfoFormat("Disconnecting from {0}:{1}", Config.Host, Config.Port);
-                    blockingChannel.Disconnect();
+                    this.blockingChannel.Disconnect();
                 }
             } catch (Exception e) {
                 Logger.ErrorFormat("Error on disconnect", e);
@@ -149,11 +147,11 @@
 
         private BlockingChannel Connect()
         {
-            if (!blockingChannel.IsConnected && !shutdown)
+            if (!this.blockingChannel.IsConnected && !shutdown)
             {
                 try
                 {
-                    blockingChannel.Connect();
+                    this.blockingChannel.Connect();
                     Logger.InfoFormat("Connected to {0}:{1} for producing", Config.Host, Config.Port);
                 }
                 catch (Exception e)
@@ -163,18 +161,17 @@
                     throw e;
                 }
             }
-            return blockingChannel;
+            return this.blockingChannel;
         }
 
         private void GetOrMakeConnection()
         {
-            if (!blockingChannel.IsConnected)
+            if (!this.blockingChannel.IsConnected)
             {
                 this.Connect();
             }
         }
 
 
-        //TODO: 
     }
 }
