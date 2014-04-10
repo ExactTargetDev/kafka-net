@@ -19,7 +19,7 @@
         public void CreateMessage()
         {
             var msg = new Message(
-                Encoding.UTF8.GetBytes("acd"), Encoding.UTF8.GetBytes("key1"), CompressionCodecs.NoCompressionCodec);
+                Encoding.UTF8.GetBytes("abcd"), Encoding.UTF8.GetBytes("key1"), CompressionCodecs.NoCompressionCodec);
 
 
             Assert.True(msg.IsValid);

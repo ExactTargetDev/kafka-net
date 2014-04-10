@@ -107,7 +107,7 @@
         {
             var crc = new Crc32();
             crc.Update(data, offset, size);
-            return crc.Value;
+            return (int)(~crc.Value & 0xffffffffL);
         }
 
         static public int Compute(byte[] data)
