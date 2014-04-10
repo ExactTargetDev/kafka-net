@@ -88,7 +88,7 @@ namespace Kafka.Client.Utils
 
         public static long Crc32(byte[] bytes, int offset, int size)
         {
-            return Utils.Crc32.Compute(bytes, offset, size);
+            return Utils.Crc32.Compute(bytes, offset, size) & 0xffffffffL;
         }
 
         public static T CreateObject<T>(string type, params object[] args)

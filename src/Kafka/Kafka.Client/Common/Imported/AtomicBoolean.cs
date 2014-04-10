@@ -28,7 +28,9 @@
 
         public bool CompareAndSet(bool current, bool newValue)
         {
-            return Interlocked.CompareExchange(ref this.value, current ? 1 : 0, newValue ? 1 : 0) == 1;
+            int c = current ? 1 : 0;
+            int n = newValue ? 1 : 0;
+            return Interlocked.CompareExchange(ref this.value, n, c) == c;
         }
     }
 }

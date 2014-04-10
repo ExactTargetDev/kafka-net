@@ -5,6 +5,7 @@
     using System.IO;
     using System.Text;
 
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Messages;
     using Kafka.Client.Utils;
 
@@ -35,5 +36,16 @@
             var element = iter.Current;
             Console.WriteLine(element);
         } 
+
+        [Fact]
+        public void TestAtomicBoolean()
+        {
+            var atomic = new AtomicBoolean();
+            Assert.Equal(true, atomic.CompareAndSet(false, true));
+            Assert.Equal(false, atomic.CompareAndSet(false, true));
+            Assert.Equal(true, atomic.CompareAndSet(true, false));
+            Assert.Equal(false, atomic.CompareAndSet(true, false));
+
+        }
     }
 }
