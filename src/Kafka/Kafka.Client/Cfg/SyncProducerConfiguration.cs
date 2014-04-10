@@ -47,6 +47,16 @@ namespace Kafka.Client.Cfg
             this.RequestTimeoutMs = config.RequestTimeoutMs;
         }
 
+        public SyncProducerConfiguration(ProducerConfigurationSection config, string host, int port)
+        {
+            this.Host = host;
+            this.Port = port;
+            this.SendBufferBytes = config.SendBufferBytes;
+            this.ClientId = config.ClientId;
+            this.RequestRequiredAcks = config.RequestRequiredAcks;
+            this.RequestTimeoutMs = config.RequestTimeoutMs;
+        }
+
         public string Host { get; set; }
 
         public int Port { get; set; }

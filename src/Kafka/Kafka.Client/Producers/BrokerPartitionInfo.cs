@@ -62,12 +62,14 @@
 
             if (partitionMetadata.Count() == 0)
             {
-              /* TODO
-               * if(metadata.errorCode != ErrorMapping.NoError) {
-        throw new KafkaException(ErrorMapping.exceptionFor(metadata.errorCode))
-      } else {
-        throw new KafkaException("Topic metadata %s has empty partition metadata and no error code".format(metadata))
-      }*/
+                if (metadata.ErrorCode != ErrorMapping.NoError)
+                {
+                    throw new KafkaException("Unable to get broker partition info", ErrorMapping.ExceptionFor(metadata.ErrorCode));
+                }
+                else
+                {
+                    throw new KafkaException(string.Format("Topic metadata {0} has empty partition metadata and no error code", metadata));
+                }
             }
 
             return partitionMetadata.Select(m =>
@@ -80,7 +82,8 @@
                 else
                 {
                     Logger.DebugFormat(
-                        "Partition [{0}, {1}] does not have a leader yet", topic,
+                        "Partition [{0}, {1}] does not have a leader yet", 
+                        topic,
                         m.PartitionId);
                     return new PartitionAndLeader(topic, m.PartitionId, null);
                 }
@@ -108,7 +111,7 @@
                 }
                 else
                 {
-                    Logger.WarnFormat("Error while fetch metadata [{0}] for topic [{1}]: {2}", tmd, tmd.Topic, ErrorMapping.ExceptionFor(tmd.ErrorCode).GetType());
+                    Logger.WarnFormat("Error while fetch metadata [{0}] for topic [{1}]: {2}", tmd, tmd.Topic, ErrorMapping.ExceptionFor(tmd.ErrorCode).GetType().Name);
                     foreach (var pmd in tmd.PartitionsMetadata)
                     {
                         if (pmd.ErrorCode != ErrorMapping.NoError

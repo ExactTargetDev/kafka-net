@@ -161,7 +161,7 @@
                     {
                         foreach (var partitionAndEvent in messagesPerBrokerMap)
                         {
-                            Logger.DebugFormat("Handling event for Topic: {0}, Broker: {1}, Partitions: {2}", partitionAndEvent.Key, brokerId, partitionAndEvent.Value);
+                            Logger.DebugFormat("Handling event for Topic: {0}, Broker: {1}, Partitions: {2}", partitionAndEvent.Key, brokerId, string.Join(",", partitionAndEvent.Value));
                         }
                     }
 
@@ -394,12 +394,16 @@
                     {
                         return new HashSet<TopicAndPartition>();
                     }
-                } catch (Exception e) {
-                            Logger.WarnFormat(
-                                "Failed to send producer request with correlation id {0} to broker {1} with data for partitions {2}",
-                                currentCorrelationId,
-                                brokerId,
-                                string.Join(",", messagesPerTopic.Select(m => m.Key)));
+                } 
+                catch (Exception e) 
+                {
+                            Logger.Warn(
+                                string.Format(
+                                    "Failed to send producer request with correlation id {0} to broker {1} with data for partitions {2}",
+                                    currentCorrelationId,
+                                    brokerId,
+                                    string.Join(",", messagesPerTopic.Select(m => m.Key))),
+                                e);
                             return new HashSet<TopicAndPartition>(messagesPerTopic.Keys);
                 }
             }

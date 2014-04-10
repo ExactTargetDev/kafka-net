@@ -61,6 +61,18 @@ namespace Kafka.Client.Cfg
             this.KeySerializer = config.KeySerializer;
         }
 
+        public AsyncProducerConfiguration(ProducerConfigurationSection config, string host, int port)
+            : base(config, host, port)
+        {
+
+            this.QueueBufferingMaxMs = config.QueueBufferingMaxMs;
+            this.QueueBufferingMaxMessages = config.QueueBufferingMaxMessages;
+            this.QueueEnqueueTimeoutMs = config.QueueEnqueueTimeoutMs;
+            this.BatchNumMessages = config.BatchNumMessages;
+            this.Serializer = config.Serializer;
+            this.KeySerializer = config.KeySerializer;
+        }
+
         public int QueueBufferingMaxMs { get; set; }
 
         public int QueueBufferingMaxMessages { get; set; }

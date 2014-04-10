@@ -70,7 +70,7 @@
         public override string ToString()
         {
             var topicMetadataInfo = new StringBuilder();
-            topicMetadataInfo.AppendFormat("{TopicMetadata for topic {0} -> ", this.Topic);
+            topicMetadataInfo.AppendFormat("[TopicMetadata for topic {0} -> ", this.Topic);
             switch (this.ErrorCode)
             {
                 case ErrorMapping.NoError:
@@ -112,7 +112,7 @@
                     break;
             }
 
-            topicMetadataInfo.Append("}");
+            topicMetadataInfo.Append("]");
             return topicMetadataInfo.ToString();
         }
     }

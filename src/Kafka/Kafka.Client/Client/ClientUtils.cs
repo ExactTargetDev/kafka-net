@@ -45,7 +45,7 @@
             while (i < shuffledBrokers.Count() && !fetchMetaDataSucceeded)
             {
                 var producer = ProducerPool.CreateSyncProducer(producerConfig, shuffledBrokers[i]);
-                Logger.InfoFormat("Fetching metadata from broker {0} with correlation id {1} for {2} topic(s) {3}", shuffledBrokers[i], correlationId, topics.Count, topics);
+                Logger.InfoFormat("Fetching metadata from broker {0} with correlation id {1} for {2} topic(s) {3}", shuffledBrokers[i], correlationId, topics.Count, string.Join(",", topics));
                 try
                 {
                     topicMetadataResponse = producer.Send(topicMetadataRequest);

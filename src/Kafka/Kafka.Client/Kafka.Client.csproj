@@ -219,6 +219,7 @@
     <Compile Include="Serializers\KafkaBinaryReader.cs" />
     <Compile Include="Serializers\KafkaBinaryWriter.cs" />
     <Compile Include="Serializers\StringDecoder.cs" />
+    <Compile Include="Serializers\StringEncoder.cs" />
     <Compile Include="Utils\Crc32.cs" />
     <Compile Include="Utils\IteratorTemplate.cs" />
     <Compile Include="Utils\Pool.cs" />

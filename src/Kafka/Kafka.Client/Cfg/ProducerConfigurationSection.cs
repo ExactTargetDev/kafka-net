@@ -199,7 +199,7 @@ namespace Kafka.Client.Cfg
         {
             get
             {
-                return (string)this["keySerializer"];
+                return (string)(this["keySerializer"] ?? this["serializer"]);
             }
         }
 

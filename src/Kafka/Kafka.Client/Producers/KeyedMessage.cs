@@ -99,5 +99,10 @@
                 return hashCode;
             }
         }
+
+        public override string ToString()
+        {
+            return string.Format("Topic: {0}, Key: {1}, PartKey: {2}, Message: {3}", this.Topic, this.Key, this.PartKey, this.Message);
+        }
     }
 }
