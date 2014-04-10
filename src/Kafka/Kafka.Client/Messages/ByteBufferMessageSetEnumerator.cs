@@ -51,11 +51,11 @@
             }
 
             // read the current message and check correctness
-            byte[] messagePayload = new byte[size];
-            topIter.Read(messagePayload, 0, messagePayload.Length);
+            var messagePayload = new byte[size];
+            this.topIter.Read(messagePayload, 0, messagePayload.Length);
             var newMessage = new Message(new MemoryStream(messagePayload, 0, messagePayload.Length, true, true));
 
-            if (isShallow)
+            if (this.isShallow)
             {
                 return new MessageAndOffset(newMessage, offset);
             }
@@ -72,6 +72,7 @@
                         {
                             this.innerIter = null;
                         }
+
                         return this.MakeNext();
                 }
             }

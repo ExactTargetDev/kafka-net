@@ -7,14 +7,17 @@
     using Kafka.Client.Common;
     using Kafka.Client.Extensions;
 
+    /// <summary>
+    /// Helper functions specific to parsing or serializing requests and responses
+    /// </summary>
     public class ApiUtils
     {
-        public const string protocolEncoding = "UTF-8";
+        public const string ProtocolEncoding = "UTF-8";
 
         /// <summary>
         /// Read size prefixed string where the size is stored as a 2 byte short.
         /// </summary>
-        /// <param name="buffer"></param>
+        /// <param name="buffer">The buffer to read from</param>
         /// <returns></returns>
         public static string ReadShortString(MemoryStream buffer)
         {
@@ -23,11 +26,17 @@
             {
                 return null;
             }
+
             var bytes = new byte[size];
             buffer.Read(bytes, 0, bytes.Length);
             return Encoding.UTF8.GetString(bytes);
         }
 
+        /// <summary>
+        /// Write a size prefixed string where the size is stored as a 2 byte short
+        /// </summary>
+        /// <param name="buffer">The buffer to write to</param>
+        /// <param name="string">The string to write</param>
         public static void WriteShortString(MemoryStream buffer, string @string)
         {
             if (@string == null)
@@ -41,32 +50,31 @@
                 {
                     throw new KafkaException(string.Format("String exceeds the maximum size of {0}", short.MaxValue));
                 }
-                else
-                {
-                    buffer.PutShort((short)encodedString.Length);
-                    buffer.Write(encodedString, 0, encodedString.Length);
-                }
+
+                buffer.PutShort((short)encodedString.Length);
+                buffer.Write(encodedString, 0, encodedString.Length);
             }
         }
 
+        /// <summary>
+        /// Return size of a size prefixed string where the size is stored as a 2 byte short
+        /// </summary>
+        /// <param name="string">The string to write</param>
+        /// <returns></returns>
         public static int ShortStringLength(string @string)
         {
             if (@string == null)
             {
                 return 2;
             }
-            else
+
+            var encodedString = Encoding.UTF8.GetBytes(@string);
+            if (encodedString.Length > short.MaxValue)
             {
-                var encodedString = Encoding.UTF8.GetBytes(@string);
-                if (encodedString.Length > short.MaxValue)
-                {
-                    throw new KafkaException(string.Format("String exceeds the maximum size of {0}", short.MaxValue));
-                }
-                else
-                {
-                    return 2 + encodedString.Length;
-                }
+                throw new KafkaException(string.Format("String exceeds the maximum size of {0}", short.MaxValue));
             }
+
+            return 2 + encodedString.Length;
         }
 
         /// <summary>
@@ -84,6 +92,7 @@
             {
                 throw new KafkaException(string.Format("{0} has value {1} which is not in the range {2}", name, value, range));
             }
+
             return value;
         }
 
@@ -102,9 +111,9 @@
             {
                 throw new KafkaException(string.Format("{0} has value {1} which is not in the range {2}", name, value, range));
             }
+
             return value;
         }
-
 
         /// <summary>
         ///  Read an long out of the MemoryStream from the current position and check that it falls within the given
@@ -121,6 +130,7 @@
             {
                 throw new KafkaException(string.Format("{0} has value {1} which is not in the range {2}", name, value, range));
             }
+
             return value;
         }
     }

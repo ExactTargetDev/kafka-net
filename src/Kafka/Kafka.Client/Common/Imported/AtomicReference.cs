@@ -6,9 +6,9 @@
     {
         private T value;
 
-        public void Set(T value)
+        public void Set(T newValue)
         {
-            Interlocked.Exchange(ref this.value, value);
+            Interlocked.Exchange(ref this.value, newValue);
         }
 
         public AtomicReference(T initial)

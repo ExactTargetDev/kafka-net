@@ -1,14 +1,15 @@
-﻿using System.Collections.Concurrent;
-using System.Globalization;
-using System.Reflection;
-using System.Threading;
-using Kafka.Client.Common.Imported;
-using Kafka.Client.Messages;
-using log4net;
-
-namespace Kafka.Client.Consumers
+﻿namespace Kafka.Client.Consumers
 {
+    using System.Collections.Concurrent;
+    using System.Globalization;
     using System.Linq;
+    using System.Reflection;
+    using System.Threading;
+
+    using Kafka.Client.Common.Imported;
+    using Kafka.Client.Messages;
+
+    using log4net;
 
     internal class PartitionTopicInfo
     {
@@ -94,17 +95,17 @@ namespace Kafka.Client.Consumers
 
         public long GetConsumeOffset()
         {
-            return consumedOffset.Get();
+            return this.consumedOffset.Get();
         }
 
         public long GetFetchOffset()
         {
-            return fetchedOffset.Get();
+            return this.fetchedOffset.Get();
         }
 
         public void ResetConsumeOffset(long newConsumeOffset)
         {
-            consumedOffset.Set(newConsumeOffset);
+            this.consumedOffset.Set(newConsumeOffset);
 
             if (Logger.IsDebugEnabled)
             {
@@ -115,7 +116,7 @@ namespace Kafka.Client.Consumers
 
         public void ResetFetchOffset(long newFetchOffset)
         {
-            fetchedOffset.Set(newFetchOffset);
+            this.fetchedOffset.Set(newFetchOffset);
 
             if (Logger.IsDebugEnabled)
             {

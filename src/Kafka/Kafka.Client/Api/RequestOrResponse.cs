@@ -20,7 +20,7 @@
             this.CorrelationId = correlationId;
         }
 
-        private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        protected static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public abstract int SizeInBytes { get; }
 
@@ -28,7 +28,7 @@
 
         public virtual void HandleError(Exception e, RequestChannel requestChannel, RequestChannelRequest request)
         {
-            
+            throw new NotImplementedException("Handle error is not used in client");
         }
 
         /// <summary>
@@ -38,7 +38,5 @@
         /// <param name="details">If this is false, omit the parts of the request description that are proportional to the number of topics or partitions. This is mainly to control the amount of request logging. </param>
         /// <returns></returns>
         public abstract string Describe(bool details);
-
-
     }
 }

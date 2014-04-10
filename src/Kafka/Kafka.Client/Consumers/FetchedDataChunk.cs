@@ -1,8 +1,9 @@
-﻿using System;
-using Kafka.Client.Messages;
-
-namespace Kafka.Client.Consumers
+﻿namespace Kafka.Client.Consumers
 {
+    using System;
+
+    using Kafka.Client.Messages;
+
     internal class FetchedDataChunk : IEquatable<FetchedDataChunk>
     {
         public ByteBufferMessageSet Messages { get; set; }
@@ -24,10 +25,12 @@ namespace Kafka.Client.Consumers
             {
                 return false;
             }
+
             if (ReferenceEquals(this, other))
             {
                 return true;
             }
+
             return Equals(this.Messages, other.Messages) && Equals(this.TopicInfo, other.TopicInfo) && this.FetchOffset == other.FetchOffset;
         }
 
@@ -41,18 +44,14 @@ namespace Kafka.Client.Consumers
             {
                 return true;
             }
-            if (obj.GetType() != this.GetType())
-            {
-                return false;
-            }
-            return Equals((FetchedDataChunk)obj);
+            return obj.GetType() == this.GetType() && this.Equals((FetchedDataChunk)obj);
         }
 
         public override int GetHashCode()
         {
             unchecked
             {
-                int hashCode = (this.Messages != null ? this.Messages.GetHashCode() : 0);
+                int hashCode = this.Messages != null ? this.Messages.GetHashCode() : 0;
                 hashCode = (hashCode * 397) ^ (this.TopicInfo != null ? this.TopicInfo.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ this.FetchOffset.GetHashCode();
                 return hashCode;

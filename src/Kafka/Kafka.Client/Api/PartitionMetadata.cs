@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Security.Principal;
+    using System.Text;
 
     using Kafka.Client.Cluster;
     using Kafka.Client.Common;
@@ -27,7 +27,7 @@
         {
             var errorCode = ApiUtils.ReadShortInRange(
                 buffer, "error code", Tuple.Create<short, short>(-1, short.MaxValue));
-            var partitionId = ApiUtils.ReadIntInRange(buffer, "partition id", Tuple.Create(0, int.MaxValue)); //partition id
+            var partitionId = ApiUtils.ReadIntInRange(buffer, "partition id", Tuple.Create(0, int.MaxValue)); // partition id
             var leaderId = buffer.GetInt();
             var leader = brokers[leaderId];
 
@@ -50,6 +50,7 @@
             {
                 isr = Enumerable.Empty<Broker>();
             }
+
             this.PartitionId = partitionId;
             this.Leader = leader;
             this.Replicas = replicas;
@@ -61,18 +62,56 @@
         {
             get
             {
-                return 2 /* error code */ + 4 /* partition id */ + 4 /* leader */+ 4 + 4 * Replicas.Count()
-                    /* replica array */+ 4 + 4 * Isr.Count(); /* isr array */;
+                return 2 + /* error code */
+                    4 /* partition id */ + 
+                    4 /* leader */ + 
+                    4 + 
+                    4 * this.Replicas.Count() /* replica array */ + 
+                    4 + 
+                    4 * Isr.Count(); /* isr array */;
             }
         }
 
-        //TODO: write to
+        public void WriteTo(MemoryStream buffer)
+        {
+            buffer.PutShort(this.ErrorCode);
+            buffer.PutInt(this.PartitionId);
 
-        //TODO to string
+            // leader
+            var leaderId = (this.Leader != null) ? this.Leader.Id : TopicMetadata.NoLeaderNodeId;
+            buffer.PutInt(leaderId);
+
+            /* number of replicas */
+            buffer.PutInt(this.Replicas.Count());
+            foreach (var replica in this.Replicas)
+            {
+                buffer.PutInt(replica.Id);
+            }
+
+            /* number of in-sync replicas */
+            buffer.PutInt(this.Isr.Count());
+            foreach (var r in this.Isr)
+            {
+                buffer.PutInt(r.Id);
+            }
+        }
+
+        public override string ToString()
+        {
+            var partitionMetadataString = new StringBuilder();
+            partitionMetadataString.Append("partition: " + PartitionId);
+            partitionMetadataString.Append(" leader: " + ((Leader != null) ? this.FormatBroker(Leader) : "None"));
+            partitionMetadataString.Append(
+                " replicas: " + string.Join(", ", this.Replicas.Select(this.FormatBroker)));
+            partitionMetadataString.Append(" isr: " + string.Join(", ", this.Isr.Select(this.FormatBroker)));
+            partitionMetadataString.Append(" isUnderReplicated " + (Isr.Count() < Replicas.Count() ? "true" : "false"));
+            return partitionMetadataString.ToString();
+        }
 
         private string FormatBroker(Broker broker)
         {
             return string.Format("{0} ({1}:{2})", broker.Id, broker.Host, broker.Port);
         }
+
     }
 }

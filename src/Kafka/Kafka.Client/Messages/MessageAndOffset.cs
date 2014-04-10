@@ -17,7 +17,6 @@
         /// </summary>
         /// <returns></returns>
         /// 
-        
         public long NextOffset
         {
             get
@@ -25,6 +24,5 @@
                 return this.Offset + 1;
             }
         }
-         
     }
 }

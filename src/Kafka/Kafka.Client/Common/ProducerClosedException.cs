@@ -4,7 +4,7 @@
 
     public class ProducerClosedException : Exception
     {
-         public ProducerClosedException() : base("Producer already closed")
+        public ProducerClosedException() : base("Producer already closed")
         {
         }
     }

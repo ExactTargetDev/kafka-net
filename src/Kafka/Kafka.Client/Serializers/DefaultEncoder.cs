@@ -9,7 +9,6 @@
     {
         public DefaultEncoder(ProducerConfig config)
         {
-            
         }
 
         public byte[] ToBytes(byte[] t)

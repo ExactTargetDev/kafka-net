@@ -1,14 +1,13 @@
-﻿using System;
-
-namespace Kafka.Client.Common
+﻿namespace Kafka.Client.Common
 {
+    using System;
+
     /// <summary>
     ///  Generic Kafka exception
     /// </summary>
     public class KafkaException : Exception
     {
         public KafkaException()
-            : base()
         {
         }
 

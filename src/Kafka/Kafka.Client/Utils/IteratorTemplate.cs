@@ -31,7 +31,7 @@ namespace Kafka.Client.Utils
 
         public void Dispose()
         {
-            state = State.Done;
+            this.state = State.Done;
         }
 
         public bool MoveNext()

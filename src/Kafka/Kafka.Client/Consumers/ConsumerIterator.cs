@@ -1,12 +1,9 @@
-﻿using System;
-
-namespace Kafka.Client.Consumers
+﻿namespace Kafka.Client.Consumers
 {
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Globalization;
     using System.Reflection;
-    using System.Threading;
 
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
@@ -22,20 +19,20 @@ namespace Kafka.Client.Consumers
     /// </summary>
     /// <typeparam name="TKey"></typeparam>
     /// <typeparam name="TValue"></typeparam>
-    internal class ConsumerIterator<TKey, TValue>: IteratorTemplate<MessageAndMetadata<TKey, TValue>>
+    internal class ConsumerIterator<TKey, TValue> : IteratorTemplate<MessageAndMetadata<TKey, TValue>>
     {
         private readonly BlockingCollection<FetchedDataChunk> channel;
 
         private readonly int consumerTimeoutMs;
 
-        private IDecoder<TKey> keyDecoder;
-        private IDecoder<TValue> valueDecoder;
+        private readonly IDecoder<TKey> keyDecoder;
+        private readonly IDecoder<TValue> valueDecoder;
 
         public string ClientId { get; set; }
 
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         
-        private AtomicReference<IEnumerator<MessageAndOffset>> current = new AtomicReference<IEnumerator<MessageAndOffset>>(null);
+        private readonly AtomicReference<IEnumerator<MessageAndOffset>> current = new AtomicReference<IEnumerator<MessageAndOffset>>(null);
 
         private PartitionTopicInfo currentTopicInfo;
 
@@ -55,13 +52,13 @@ namespace Kafka.Client.Consumers
             get
             {
                 var item = base.Current;
-                if (consumedOffset < 0)
+                if (this.consumedOffset < 0)
                 {
-                    throw new KafkaException(string.Format("Offset returned by the message set is invalid {0}", consumedOffset));
+                    throw new KafkaException(string.Format("Offset returned by the message set is invalid {0}", this.consumedOffset));
                 }
-                currentTopicInfo.ResetConsumeOffset(consumedOffset);
-                var topic = currentTopicInfo.Topic;
-                Logger.DebugFormat("Setting {0} consumer offset to {1}", topic, consumedOffset);
+                this.currentTopicInfo.ResetConsumeOffset(this.consumedOffset);
+                var topic = this.currentTopicInfo.Topic;
+                Logger.DebugFormat("Setting {0} consumer offset to {1}", topic, this.consumedOffset);
                 //TODO: consumerTopicStats.getConsumerTopicStats(topic).messageRate.mark()
                  //TODO: consumerTopicStats.getConsumerAllTopicStats().messageRate.mark()
                 return item;
@@ -71,19 +68,19 @@ namespace Kafka.Client.Consumers
         protected override MessageAndMetadata<TKey, TValue> MakeNext()
         {
             FetchedDataChunk currentDataChunk = null;
-            var localCurrent = current.Get();
+            var localCurrent = this.current.Get();
             if (localCurrent == null || !localCurrent.MoveNext())
             {
-                if (consumerTimeoutMs < 0)
+                if (this.consumerTimeoutMs < 0)
                 {
-                    currentDataChunk = channel.Take();
+                    currentDataChunk = this.channel.Take();
                 }
                 else
                 {
-                    if (!channel.TryTake(out currentDataChunk, consumerTimeoutMs))
+                    if (!this.channel.TryTake(out currentDataChunk, consumerTimeoutMs))
                     {
                          // reste stat to make the iterator re-iterable
-                        Reset();
+                        this.Reset();
                         throw new ConsumerTimeoutException();
                     } 
                 }
@@ -91,18 +88,18 @@ namespace Kafka.Client.Consumers
                 if (currentDataChunk.Equals(ZookeeperConsumerConnector.ShutdownCommand))
                 {
                     Logger.Debug("Received the shutdown command");
-                    channel.Add(currentDataChunk);
+                    this.channel.Add(currentDataChunk);
                     return this.AllDone();
                 }
                 else
                 {
-                    currentTopicInfo = currentDataChunk.TopicInfo;
+                    this.currentTopicInfo = currentDataChunk.TopicInfo;
                     var cdcFetchOffset = currentDataChunk.FetchOffset;
-                    var ctiConsumeOffset = currentTopicInfo.GetFetchOffset();
+                    var ctiConsumeOffset = this.currentTopicInfo.GetFetchOffset();
                     Logger.DebugFormat(
                         "CurrentTopicInfo: ConsumedOffset({0}), FetchOffset({1})",
-                        currentTopicInfo.GetConsumeOffset(),
-                        currentTopicInfo.GetFetchOffset());
+                        this.currentTopicInfo.GetConsumeOffset(),
+                        this.currentTopicInfo.GetFetchOffset());
 
                     if (ctiConsumeOffset < cdcFetchOffset)
                     {
@@ -111,23 +108,30 @@ namespace Kafka.Client.Consumers
                             "consumed offset: {0} doesn't match fetch offset: {1} for {2}; consumer may lose data",
                             ctiConsumeOffset,
                             cdcFetchOffset,
-                            currentTopicInfo);
-                        currentTopicInfo.ResetConsumeOffset(currentDataChunk.FetchOffset);
+                            this.currentTopicInfo);
+                        this.currentTopicInfo.ResetConsumeOffset(currentDataChunk.FetchOffset);
                     }
                     localCurrent = currentDataChunk.Messages.GetEnumerator();
-                    current.Set(localCurrent);
+                    this.current.Set(localCurrent);
                 }
 
                  // if we just updated the current chunk and it is empty that means the fetch size is too small!
-                if(currentDataChunk.Messages.ValidBytes == 0)
-                     throw new MessageSizeTooLargeException(string.Format("Found a message larger than the maximum fetch size of this consumer on topic " +
-                                               "{0} partition {1} at fetch offset {2}. Increase the fetch size, or decrease the maximum message size the broker will allow.",
-                                               currentDataChunk.TopicInfo.Topic, currentDataChunk.TopicInfo.PartitionId, currentDataChunk.FetchOffset));
+                if (currentDataChunk.Messages.ValidBytes == 0)
+                {
+                    throw new MessageSizeTooLargeException(
+                        string.Format(
+                            "Found a message larger than the maximum fetch size of this consumer on topic "
+                            + "{0} partition {1} at fetch offset {2}. Increase the fetch size, or decrease the maximum message size the broker will allow.",
+                            currentDataChunk.TopicInfo.Topic,
+                            currentDataChunk.TopicInfo.PartitionId,
+                            currentDataChunk.FetchOffset));
+                }
             }
 
             var item = localCurrent.Current;
+
             // reject the messages that have already been consumed
-            while (item.Offset < currentTopicInfo.GetConsumeOffset() && localCurrent.MoveNext())
+            while (item.Offset < this.currentTopicInfo.GetConsumeOffset() && localCurrent.MoveNext())
             {
                 item = localCurrent.Current;
             }
@@ -135,30 +139,23 @@ namespace Kafka.Client.Consumers
             item.Message.EnsureValid(); // validate checksum of message to ensure it is valid
 
             return new MessageAndMetadata<TKey, TValue>(
-                currentTopicInfo.Topic,
-                currentTopicInfo.PartitionId,
+                this.currentTopicInfo.Topic,
+                this.currentTopicInfo.PartitionId,
                 item.Message,
                 item.Offset,
-                keyDecoder,
-                valueDecoder);
+                this.keyDecoder,
+                this.valueDecoder);
 
         }
 
-
         //TODO: private val consumerTopicStats = ConsumerTopicStatsRegistry.getConsumerTopicStat(clientId)
-
 
         public void ClearCurrentChunk()
         {
             Logger.Debug("Clearing the current data chunk for this consumer iterator");
-            current.Set(null);
+            this.current.Set(null);
         }
 
 
     }
-}
-
-internal class ConsumerTimeoutException : Exception
-{
-    
 }

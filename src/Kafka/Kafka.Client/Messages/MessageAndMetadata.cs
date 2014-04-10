@@ -1,35 +1,42 @@
-﻿using Kafka.Client.Serializers;
-
-namespace Kafka.Client.Messages
+﻿namespace Kafka.Client.Messages
 {
-    public class MessageAndMetadata<K, V>
+    using Kafka.Client.Serializers;
+
+    public class MessageAndMetadata<TKey, TValue>
     {
         public string Topic { get; private set; }
+
         public int Partition { get; private set; }
+
         private readonly Message rawMessage;
+
         public long Offset { get; private set; }
-        public IDecoder<K> KeyDecoder { get; private set; }
-        public IDecoder<V> ValueDecoder { get; private set; }
 
+        public IDecoder<TKey> KeyDecoder { get; private set; }
 
-        public MessageAndMetadata(string topic, int partition, Message rawMessage, long offset, IDecoder<K> keyDecoder, IDecoder<V> valueDecoder )
+        public IDecoder<TValue> ValueDecoder { get; private set; }
+
+        public MessageAndMetadata(string topic, int partition, Message rawMessage, long offset, IDecoder<TKey> keyDecoder, IDecoder<TValue> valueDecoder)
         {
-          Topic = topic;
-          Partition = partition;
+            this.Topic = topic;
+            this.Partition = partition;
             this.rawMessage = rawMessage;
-                Offset = offset;
-                KeyDecoder = keyDecoder;
-                ValueDecoder = ValueDecoder;
+            this.Offset = offset;
+            this.KeyDecoder = keyDecoder;
+            this.ValueDecoder = valueDecoder;
          } 
 
-        public K Key { get 
+        public TKey Key 
         {
-            return rawMessage.Key != null ? KeyDecoder.FromBytes(Utils.Util.ReadBytes(rawMessage.Key)) : default(K);
-        }}
+            get 
+            {
+                return this.rawMessage.Key != null ? this.KeyDecoder.FromBytes(Utils.Util.ReadBytes(this.rawMessage.Key)) : default(TKey);
+            }
+        }
 
-        public V Message
+        public TValue Message
         {
-            get { return rawMessage.IsNull() ? default(V) : ValueDecoder.FromBytes(Utils.Util.ReadBytes(rawMessage.Payload)); }
+            get { return this.rawMessage.IsNull() ? default(TValue) : this.ValueDecoder.FromBytes(Utils.Util.ReadBytes(this.rawMessage.Payload)); }
         }
     }
 }

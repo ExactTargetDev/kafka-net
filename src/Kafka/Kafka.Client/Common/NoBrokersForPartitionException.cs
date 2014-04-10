@@ -5,7 +5,6 @@
     public class NoBrokersForPartitionException : Exception
     {
         public NoBrokersForPartitionException()
-            : base()
         {
         }
 

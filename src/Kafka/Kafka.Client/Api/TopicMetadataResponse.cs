@@ -10,7 +10,6 @@
 
     public class TopicMetadataResponse : RequestOrResponse
     {
-
         public static TopicMetadataResponse ReadFrom(MemoryStream buffer)
         {
             var correlationId = buffer.GetInt();
@@ -31,11 +30,6 @@
             this.TopicsMetadata = topicsMetadata;
         }
 
-        public override string Describe(bool details)
-        {
-            return this.ToString();
-        }
-
         public override int SizeInBytes
         {
             get
@@ -49,6 +43,14 @@
             throw new NotImplementedException();
         }
 
-        //TODO: 
+        public Dictionary<int, Broker> ExtractBrokers(List<TopicMetadata> topicMetadatas)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override string Describe(bool details)
+        {
+            return this.ToString();
+        }
     }
 }

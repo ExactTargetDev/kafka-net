@@ -1,17 +1,12 @@
-﻿using System.Collections.Generic;
-using System.IO;
-
-namespace Kafka.Client.Messages
+﻿namespace Kafka.Client.Messages
 {
-    using System.Collections;
-
-    using Kafka.Client.Common.Imported;
-
+    using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
 
-    using Kafka.Client.Serializers;
-
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
+    using Kafka.Client.Serializers;
 
     /// <summary>
     /// A sequence of messages stored in a byte buffer
@@ -31,20 +26,21 @@ namespace Kafka.Client.Messages
 
         public ByteBufferMessageSet(MemoryStream buffer)
         {
-            Buffer = buffer;
+            this.Buffer = buffer;
         }
 
-        public ByteBufferMessageSet(CompressionCodecs compressionCodec, IEnumerable<Message> messages) : this(Create(new AtomicLong(0), compressionCodec, messages))
+        public ByteBufferMessageSet(CompressionCodecs compressionCodec, List<Message> messages)
+            : this(Create(new AtomicLong(0), compressionCodec, messages))
         {
         }
 
         public ByteBufferMessageSet(
-            CompressionCodecs compressionCodec, AtomicLong offsetCounter, IEnumerable<Message> messages)
-            : this(ByteBufferMessageSet.Create(offsetCounter, compressionCodec, messages))
+            CompressionCodecs compressionCodec, AtomicLong offsetCounter, List<Message> messages)
+            : this(Create(offsetCounter, compressionCodec, messages))
         {
         }
 
-        public ByteBufferMessageSet(IEnumerable<Message> messages)
+        public ByteBufferMessageSet(List<Message> messages)
             : this(CompressionCodecs.NoCompressionCodec, new AtomicLong(0), messages)
         {
         }
@@ -60,20 +56,22 @@ namespace Kafka.Client.Messages
                     var messageAndOffset = iter.Current;
                     bytes += MessageSet.EntrySize(messageAndOffset.Message);
                 }
+
                 this.shallowValidByteCount = bytes;
             }
-            return shallowValidByteCount;
+            return this.shallowValidByteCount;
         }
 
         public override int WriteTo(Stream channel, long offset, int size)
         {
             //TODO: buffer.mark and reset?
             var written = 0;
-            while (written < SizeInBytes)
+            while (written < this.SizeInBytes)
             {
-                channel.Write(Buffer.GetBuffer(), 0, (int) this.Buffer.Length);
+                channel.Write(this.Buffer.GetBuffer(), 0, (int) this.Buffer.Length);
                 written += (int) this.Buffer.Length;
             }
+
             return written;
         }
 
@@ -97,14 +95,13 @@ namespace Kafka.Client.Messages
             return new ByteBufferMessageSetEnumerator(this, isShallow);
         }
 
-
         //TODO: private[kafka] def assignOffsets(offsetCounter: AtomicLong, codec: CompressionCodec): ByteBufferMessageSet = {
 
         public override int SizeInBytes
         {
             get
             {
-                return (int)Buffer.Length; 
+                return (int)this.Buffer.Length; 
             }
         }
 
@@ -117,9 +114,9 @@ namespace Kafka.Client.Messages
         }
 
         private static MemoryStream Create(
-            AtomicLong offsetCounter, CompressionCodecs compressionCodec, IEnumerable<Message> messages)
+            AtomicLong offsetCounter, CompressionCodecs compressionCodec, List<Message> messages)
         {
-            if (messages.Count() == 0)
+            if (!messages.Any())
             {
                 return Empty.Buffer;
             } 
@@ -151,7 +148,7 @@ namespace Kafka.Client.Messages
                 }
 
                 var msg = new Message(byteArrayStream.ToArray(), compressionCodec);
-                var result = new MemoryStream(msg.Size + MessageSet.LogOverhead);
+                var result = new MemoryStream(msg.Size + LogOverhead);
                 WriteMessage(result, msg, offset);
                 result.Position = 0;
                 return result;
@@ -167,7 +164,7 @@ namespace Kafka.Client.Messages
 
             using (var compressed = CompressionFactory.BuildReader(message.CompressionCodec, inputStream))
             {
-                int read = 0;
+                var read = 0;
                 while ((read = compressed.Read(intermediateBuffer, 0, 1024)) > 0)
                 {
                     outputStream.Write(intermediateBuffer, 0, read);
@@ -184,7 +181,7 @@ namespace Kafka.Client.Messages
         {
             buffer.PutLong(offset);
             buffer.PutInt(message.Size);
-            buffer.Write(message.Buffer.GetBuffer(), 0, (int) message.Buffer.Length);
+            buffer.Write(message.Buffer.GetBuffer(), 0, (int)message.Buffer.Length);
             message.Buffer.Position = 0;
         }
     }

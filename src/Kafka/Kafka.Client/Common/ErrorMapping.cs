@@ -7,26 +7,25 @@
 
     public static class ErrorMapping
     {
-
         static ErrorMapping()
         {
-            exceptionToCode = new Dictionary<Type, short>
+            ExceptionToCode = new Dictionary<Type, short>
                                   {
-                                      {typeof(OffsetOutOfRangeException), OffsetOutOfRangeCode},
-                                      {typeof(InvalidMessageException), InvalidMessageCode},
-                                      {typeof(UnknownTopicOrPartitionException), UnknownTopicOrPartitionCode},
-                                      {typeof(InvalidMessageSizeException), InvalidFetchSizeCode},
-                                      {typeof(NotLeaderForPartitionException), NotLeaderForPartitionCode},
-                                      {typeof(LeaderNotAvailableException), LeaderNotAvailableCode},
-                                      {typeof(RequestTimedOutException), RequestTimedOutCode},
-                                      {typeof(BrokerNotAvailableException), BrokerNotAvailableCode},
-                                      {typeof(ReplicaNotAvailableException), ReplicaNotAvailableCode},
-                                      {typeof(MessageSizeTooLargeException), MessageSizeTooLargeCode},
-                                      {typeof(ControllerMovedException), StaleControllerEpochCode},
-                                      {typeof(OffsetMetadataTooLargeException), OffsetMetadataTooLargeCode}
+                                      { typeof(OffsetOutOfRangeException), OffsetOutOfRangeCode },
+                                      { typeof(InvalidMessageException), InvalidMessageCode },
+                                      { typeof(UnknownTopicOrPartitionException), UnknownTopicOrPartitionCode },
+                                      { typeof(InvalidMessageSizeException), InvalidFetchSizeCode },
+                                      { typeof(NotLeaderForPartitionException), NotLeaderForPartitionCode },
+                                      { typeof(LeaderNotAvailableException), LeaderNotAvailableCode },
+                                      { typeof(RequestTimedOutException), RequestTimedOutCode },
+                                      { typeof(BrokerNotAvailableException), BrokerNotAvailableCode },
+                                      { typeof(ReplicaNotAvailableException), ReplicaNotAvailableCode },
+                                      { typeof(MessageSizeTooLargeException), MessageSizeTooLargeCode },
+                                      { typeof(ControllerMovedException), StaleControllerEpochCode },
+                                      { typeof(OffsetMetadataTooLargeException), OffsetMetadataTooLargeCode }
                                   };
             /* invert the mapping */
-            codeToException = exceptionToCode.ToDictionary(x => x.Value, x => x.Key);
+            CodeToException = ExceptionToCode.ToDictionary(x => x.Value, x => x.Key);
         }
 
         public const short UnknownCode = -1;
@@ -58,12 +57,11 @@
         public const short OffsetMetadataTooLargeCode = 12;
 
         public const short StaleLeaderEpochCode = 13;
-
        
         public static short CodeFor<T>() where T : Exception
         {
-            var code = UnknownCode;
-            return exceptionToCode.TryGetValue(typeof(T), out code) ? code : UnknownCode;
+            short code;
+            return ExceptionToCode.TryGetValue(typeof(T), out code) ? code : UnknownCode;
         }
 
         public static void MaybeThrowException(short code)
@@ -76,15 +74,12 @@
 
         public static Exception ExceptionFor(short code)
         {
-            Type exceptionType = null;
-            return (Exception) Activator.CreateInstance(codeToException.TryGetValue(code, out exceptionType) ? exceptionType : typeof(UnknownException));
+            Type exceptionType;
+            return (Exception)Activator.CreateInstance(CodeToException.TryGetValue(code, out exceptionType) ? exceptionType : typeof(UnknownException));
         }
 
+        private static readonly Dictionary<Type, short> ExceptionToCode;
 
-        private static readonly Dictionary<Type, short> exceptionToCode;
-
-        private static readonly Dictionary<short, Type> codeToException;
-
-        
+        private static readonly Dictionary<short, Type> CodeToException;
     }
 }

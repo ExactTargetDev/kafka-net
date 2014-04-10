@@ -9,7 +9,7 @@
     /// </summary>
     public class BoundedByteBufferReceive : Receive
     {
-        private MemoryStream sizeBuffer = new MemoryStream(4);
+        private MemoryStream sizeBuffer = new MemoryStream(new byte[4], 0, 4, true, true);
 
         private MemoryStream contentBuffer = null;
 
@@ -45,7 +45,6 @@
             // have we read the request size yet? 
             if (this.sizeBuffer.Position < 4)
             {
-                this.sizeBuffer.SetLength(4); //TODO: rework it!
                 read += channel.Read(this.sizeBuffer.GetBuffer(), 0, 4);
                 this.sizeBuffer.Position = read;
             }
@@ -54,33 +53,33 @@
             if (this.contentBuffer == null && this.sizeBuffer.Position == 4)
             {
                 this.sizeBuffer.Position = 0;
-                var size = sizeBuffer.GetInt();
+                var size = this.sizeBuffer.GetInt();
                 if (size <= 0)
                 {
                     throw new InvalidRequestException(string.Format("{0} is not a valid request size", size));
                 }
-                if (size > MaxSize)
+                if (size > this.MaxSize)
                 {
                     throw new InvalidRequestException(
                         string.Format(
                             "Request of length {0} is not valid, it is larget than the maximum size of {1} bytes",
                             size,
-                            MaxSize));
+                            this.MaxSize));
                 }
-                contentBuffer = this.ByteBufferAllocate(size);
+                this.contentBuffer = this.ByteBufferAllocate(size);
             }
 
             // if we have a buffer read some stuff into it
-            if (contentBuffer != null)
+            if (this.contentBuffer != null)
             {
-                read = channel.Read(contentBuffer.GetBuffer(), 0, (int)contentBuffer.Length);
-                contentBuffer.Position += read;
+                read = channel.Read(this.contentBuffer.GetBuffer(), 0, (int)this.contentBuffer.Length);
+                this.contentBuffer.Position += read;
 
                 // did we get everything?
-                if (contentBuffer.Position == contentBuffer.Length)
+                if (this.contentBuffer.Position == this.contentBuffer.Length)
                 {
-                    contentBuffer.Position = 0;
-                    complete = true;
+                    this.contentBuffer.Position = 0;
+                    this.complete = true;
                 }
             }
             return read;
@@ -93,6 +92,5 @@
             stream.SetLength(size);
             return stream;
         }
-
     }
 }

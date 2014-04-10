@@ -6,7 +6,6 @@
 
     using Kafka.Client.Cfg;
     using Kafka.Client.Producers;
-    using Kafka.Client.Utils;
 
     using Xunit;
 

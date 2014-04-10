@@ -8,7 +8,7 @@
 
         public ConsumerTopicStats(string clientId)
         {
-            ClientId = clientId;
+            this.ClientId = clientId;
         }
 
         public ConsumerTopicStats GetConsumerAllTopicStats()
@@ -22,6 +22,6 @@
         }
 
 
-        //TODO: 
+        //TODO: finish me
     }
 }

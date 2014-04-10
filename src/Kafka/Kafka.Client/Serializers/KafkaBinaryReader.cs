@@ -22,10 +22,13 @@ using System.Net.Sockets;
 
 namespace Kafka.Client.Serializers
 {
+    using System;
+
     /// <summary>
     /// Reads data from underlying stream using big endian bytes order for primitive types
     /// and UTF-8 encoding for strings.
     /// </summary>
+    [Obsolete]
     public class KafkaBinaryReader : BinaryReader
     {
         /// <summary>

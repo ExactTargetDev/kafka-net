@@ -8,7 +8,7 @@
 
         public AtomicInteger(int initialValue)
         {
-            value = initialValue;
+            this.value = initialValue;
         }
 
         public AtomicInteger()
@@ -18,7 +18,7 @@
 
         public long Get()
         {
-            return value;
+            return this.value;
         } 
 
         public int GetAndIncrement()

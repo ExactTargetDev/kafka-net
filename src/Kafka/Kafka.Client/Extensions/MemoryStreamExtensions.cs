@@ -1,11 +1,7 @@
-﻿using System.IO;
-
-namespace Kafka.Client.Extensions
+﻿namespace Kafka.Client.Extensions
 {
-    using System;
+    using System.IO;
     using System.Net;
-
-    using Kafka.Client.Serializers;
 
     public static class MemoryStreamExtensions
     {
@@ -19,7 +15,7 @@ namespace Kafka.Client.Extensions
                  throw new InvalidDataException("Expected 4 bytes in stream, got: " + read);
              }
 
-             var value = (int)(buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24);
+             var value = buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24;
 
              return IPAddress.NetworkToHostOrder(value);
          }
@@ -60,7 +56,7 @@ namespace Kafka.Client.Extensions
         {
             value = IPAddress.HostToNetworkOrder(value);
 
-            stream.WriteByte((byte) value);
+            stream.WriteByte((byte)value);
             stream.WriteByte((byte)(value >> 8));
         }
 
@@ -68,14 +64,14 @@ namespace Kafka.Client.Extensions
         {
             var buffer = stream.GetBuffer();
 
-            var value = (int)(buffer[index + 0] | buffer[index + 1] << 8 | buffer[index + 2] << 16 | buffer[index + 3] << 24);
+            var value = buffer[index + 0] | buffer[index + 1] << 8 | buffer[index + 2] << 16 | buffer[index + 3] << 24;
 
             return IPAddress.NetworkToHostOrder(value);
         }
 
         public static void PutInt(this MemoryStream stream, int value)
         {
-            var buffer= new byte[4];
+            var buffer = new byte[4];
             value = IPAddress.HostToNetworkOrder(value);
 
             buffer[0] = (byte)value;
@@ -106,12 +102,11 @@ namespace Kafka.Client.Extensions
         public static void PutInt(this MemoryStream stream, int index, int value)
         {
             value = IPAddress.HostToNetworkOrder(value);
-            byte[] buffer = stream.GetBuffer();
+            var buffer = stream.GetBuffer();
             buffer[index] = (byte)value;
             buffer[index + 1] = (byte)(value >> 8);
             buffer[index + 2] = (byte)(value >> 16);
             buffer[index + 3] = (byte)(value >> 24);
-
         }
     }
 }

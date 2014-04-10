@@ -1,16 +1,15 @@
-﻿using System;
-using System.Security.Cryptography;
-
-namespace Kafka.Client.Utils
+﻿namespace Kafka.Client.Utils
 {
     using System;
-    using System.Security.Cryptography;
 
     public class Crc32
     {
         private const uint kCrcPoly = 0xEDB88320;
+
         private const uint kInitial = 0xFFFFFFFF;
+
         private static readonly uint[] Table;
+
         private const uint CRC_NUM_TABLES = 8;
 
         static Crc32()

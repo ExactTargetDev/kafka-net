@@ -1,13 +1,12 @@
-﻿using Kafka.Client.Utils;
-
-namespace Kafka.Client.Serializers
+﻿namespace Kafka.Client.Serializers
 {
+    using Kafka.Client.Utils;
+
     public class DefaultDecoder : IDecoder<byte[]>
     {
-
-         public DefaultDecoder(VerifiableProperties props = null)
-         {
-         }
+        public DefaultDecoder(VerifiableProperties props = null)
+        {
+        }
 
         public byte[] FromBytes(byte[] bytes)
         {

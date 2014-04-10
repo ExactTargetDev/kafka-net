@@ -31,7 +31,6 @@ namespace Kafka.Client.Messages
         private const int KeyOffset = KeySizeOffset + KeySizeLength;
         private const int ValueSizeLength = 4;
 
-
         private const int MessageOverhead = KeyOffset + ValueSizeLength;
         public const int MinHeaderSize = CrcLength + MagicLength + AttributesLength + KeySizeLength + ValueSizeLength;
         private const byte CurrentMagicValue = 0;
@@ -45,7 +44,8 @@ namespace Kafka.Client.Messages
             this.buffer = buffer;
         }
 
-        public MemoryStream Buffer { 
+        public MemoryStream Buffer 
+        { 
             get
             {
                 return this.buffer;
@@ -55,7 +55,7 @@ namespace Kafka.Client.Messages
 
         public Message(byte[] bytes, byte[] key, CompressionCodecs codec, int payloadOffset, int payloadSize)
         {
-            buffer = new MemoryStream(CrcLength +
+            this.buffer = new MemoryStream(CrcLength +
                                       MagicLength +
                                       AttributesLength +
                                       KeySizeLength +
@@ -63,7 +63,7 @@ namespace Kafka.Client.Messages
                                       ValueSizeLength +
                                       ((bytes == null)
                                            ? 0
-                                           : ((payloadSize >= 0 ? payloadSize : bytes.Length - payloadOffset))));
+                                           : (payloadSize >= 0 ? payloadSize : bytes.Length - payloadOffset)));
             this.buffer.Position = MagicOffset;
             this.buffer.WriteByte(CurrentMagicValue);
             byte attributes = 0;
@@ -73,6 +73,7 @@ namespace Kafka.Client.Messages
                     Convert.ToByte(
                         attributes | (CompressionCodeMask & Messages.CompressionCodec.GetCompressionCodecValue(codec)));
             }
+
             this.buffer.WriteByte(attributes);
             if (key == null)
             {
@@ -83,6 +84,7 @@ namespace Kafka.Client.Messages
                 this.buffer.PutInt(key.Length);
                 this.buffer.Write(key, 0, key.Length);
             }
+
             var size = (bytes == null)
                                ? -1
                                : (payloadSize >= 0) ? payloadSize : bytes.Length - payloadOffset;
@@ -91,30 +93,27 @@ namespace Kafka.Client.Messages
             {
                 this.buffer.Write(bytes, payloadOffset, size);
             }
+
             this.buffer.Position = 0;
 
-            Utils.Util.WriteUnsignedInt(buffer, CrcOffset, this.ComputeChecksum());
+            Utils.Util.WriteUnsignedInt(this.buffer, CrcOffset, this.ComputeChecksum());
 
         }
 
         public Message(byte[] bytes, byte[] key, CompressionCodecs codec) : this(bytes, key, codec, 0, -1)
         {
-            
         }
 
         public Message(byte[] bytes, CompressionCodecs codec) : this(bytes, null, codec)
         {
-            
         }
 
         public Message(byte[] bytes, byte[] key) : this(bytes, key, CompressionCodecs.NoCompressionCodec)
         {
-            
         }
 
         public Message(byte[] bytes) : this(bytes, null, CompressionCodecs.NoCompressionCodec)
         {
-            
         }
 
         /// <summary>
@@ -123,25 +122,28 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public long ComputeChecksum()
         {
-            return Utils.Util.Crc32(buffer.GetBuffer(), MagicOffset, (int)buffer.Length - MagicOffset);
+            return Utils.Util.Crc32(this.buffer.GetBuffer(), MagicOffset, (int)this.buffer.Length - MagicOffset);
         }
 
         /// <summary>
         /// Retrieve the previously computed CRC for this message
         /// </summary>
         /// <returns></returns>
-        public long Checksum { get
+        public long Checksum 
         {
-            return Utils.Util.ReadUnsingedInt(buffer, CrcOffset);
-        }}
+            get
+            {
+                return Utils.Util.ReadUnsingedInt(this.buffer, CrcOffset);
+            }
+        }
 
         /// <summary>
-        /// Returns true if the crc stored with the message matches the crc computed off the message contents
+        /// Returns true if the CRC stored with the message matches the CRC computed off the message contents
         /// </summary>
         /// <returns></returns>
         public bool IsValid
         {
-            get { return Checksum == ComputeChecksum(); }
+            get { return this.Checksum == this.ComputeChecksum(); }
         }
 
 
@@ -150,17 +152,18 @@ namespace Kafka.Client.Messages
         /// </summary>
         public void EnsureValid()
         {
-            if (!IsValid)
+            if (!this.IsValid)
             {
-                throw new InvalidMessageException(String.Format("Message is corrupt (stored crc = {0}, computed crc = {1})", Checksum, ComputeChecksum()));
+                throw new InvalidMessageException(string.Format("Message is corrupt (stored crc = {0}, computed crc = {1})", Checksum, ComputeChecksum()));
             }
         }
 
         /// <summary>
-        /// The complete serialized size of this message in bytes (including crc, header attributes, etc)
+        /// The complete serialized size of this message in bytes (including CRC, header attributes, etc)
         /// </summary>
         /// <returns></returns>
-        public int Size {
+        public int Size 
+        {
             get { return (int)this.buffer.Length; }
         }
 
@@ -168,14 +171,18 @@ namespace Kafka.Client.Messages
         /// The length of the key in bytes
         /// </summary>
         /// <returns></returns>
-        public int KeySize { get { return buffer.GetInt(Message.KeySizeOffset); } }
+        public int KeySize
+        {
+            get { return this.buffer.GetInt(Message.KeySizeOffset); }
+        }
 
         /// <summary>
         /// Does the message have a key?
         /// </summary>
         /// <returns></returns>
-        public bool HasKey {
-            get { return KeySize >= 0; }
+        public bool HasKey 
+        {
+            get { return this.KeySize >= 0; }
         }
 
         /// <summary>
@@ -184,7 +191,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         private int PayloadSizeOffset
         {
-            get { return KeyOffset + Math.Max(0, KeySize); }
+            get { return KeyOffset + Math.Max(0, this.KeySize); }
         }
 
         /// <summary>
@@ -193,7 +200,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public int PayloadSize
         {
-            get { return buffer.GetInt(PayloadSizeOffset); }
+            get { return this.buffer.GetInt(this.PayloadSizeOffset); }
         }
 
         /// <summary>
@@ -202,7 +209,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public bool IsNull()
         {
-            return PayloadSize < 0;
+            return this.PayloadSize < 0;
         }
 
         /// <summary>
@@ -231,7 +238,7 @@ namespace Kafka.Client.Messages
         {
             get
             {
-                return Messages.CompressionCodec.GetCompressionCodec(buffer.GetBuffer()[AttributesOffset] &
+                return Messages.CompressionCodec.GetCompressionCodec(this.buffer.GetBuffer()[AttributesOffset] &
                                                                           CompressionCodeMask);
             }
         }
@@ -241,7 +248,7 @@ namespace Kafka.Client.Messages
         /// </summary>
         public MemoryStream Payload
         {
-            get { return this.SliceDelimited(PayloadSizeOffset); }
+            get { return this.SliceDelimited(this.PayloadSizeOffset); }
         }
 
         public MemoryStream Key
@@ -256,36 +263,43 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         private MemoryStream SliceDelimited(int start)
         {
-            int size = buffer.GetInt(start);
+            var size = this.buffer.GetInt(start);
             if (size < 0)
             {
                 return null;
             }
-            return new MemoryStream(buffer.GetBuffer(), start + 4, size, false);
+
+            return new MemoryStream(this.buffer.GetBuffer(), start + 4, size, false);
         }
 
         public override string ToString()
         {
-            return string.Format("Magic: {0}, Attributes: {1}, Checksum: {2}, Payload: {3}, Key: {4}", Magic, Attributes, Checksum, Payload, Key);
+            return string.Format("Magic: {0}, Attributes: {1}, Checksum: {2}, Payload: {3}, Key: {4}", this.Magic, this.Attributes, this.Checksum, this.Payload, this.Key);
         }
 
         protected bool Equals(Message other)
         {
-            return StructuralComparisons.StructuralEqualityComparer.Equals(buffer.GetBuffer(), other.Buffer.GetBuffer());
+            return StructuralComparisons.StructuralEqualityComparer.Equals(this.buffer.GetBuffer(), other.Buffer.GetBuffer());
         }
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
-            return Equals((Message) obj);
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            return obj.GetType() == this.GetType() && this.Equals((Message)obj);
         }
 
         public override int GetHashCode()
         {
             return this.buffer != null ? this.buffer.GetHashCode() : 0;
         }
-
     }
 }

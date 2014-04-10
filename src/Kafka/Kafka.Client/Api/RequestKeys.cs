@@ -1,5 +1,8 @@
 ﻿namespace Kafka.Client.Api
 {
+    using System;
+    using System.IO;
+
     public static class RequestKeys
     {
         public const short ProduceKey = 0;
@@ -35,18 +38,19 @@
         OffsetCommitKey -> ("OffsetCommit", OffsetCommitRequest.readFrom),
         OffsetFetchKey -> ("OffsetFetch", OffsetFetchRequest.readFrom))
 
-  def nameForKey(key: Short): String = {
-    keyToNameAndDeserializerMap.get(key) match {
-      case Some(nameAndSerializer) => nameAndSerializer._1
-      case None => throw new KafkaException("Wrong request type %d".format(key))
-    }
-  }
+         * 
 
-  def deserializerForKey(key: Short): (ByteBuffer) => RequestOrResponse = {
-    keyToNameAndDeserializerMap.get(key) match {
-      case Some(nameAndSerializer) => nameAndSerializer._2
-      case None => throw new KafkaException("Wrong request type %d".format(key))
-    }
   }*/
+
+        public static string NameForKey(short key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static Func<MemoryStream, RequestOrResponse> DeserializerForKey(short key)
+        {
+            throw new NotImplementedException();
+        }
+
     }
 }

@@ -18,7 +18,6 @@ namespace Kafka.Client.Messages
     /// </summary>
     internal abstract class MessageSet : IEnumerable<MessageAndOffset>
     {
-
         public const int MessageSizeLength = 4;
 
         public const int OffsetLength = 8;
@@ -53,7 +52,7 @@ namespace Kafka.Client.Messages
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return GetEnumerator();
+            return this.GetEnumerator();
         }
 
         /// <summary>

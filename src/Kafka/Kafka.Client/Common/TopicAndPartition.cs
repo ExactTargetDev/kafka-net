@@ -1,9 +1,6 @@
 ﻿namespace Kafka.Client.Common
 {
     using System;
-    using System.Collections.Concurrent;
-
-    using Kafka.Client.Cluster;
 
     public class TopicAndPartition
     {

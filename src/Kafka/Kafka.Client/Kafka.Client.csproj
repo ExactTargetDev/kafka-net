@@ -171,6 +171,7 @@
     <Compile Include="Common\UnknownException.cs" />
     <Compile Include="Common\UnknownTopicOrPartitionException.cs" />
     <Compile Include="Consumers\ConsumerIterator.cs" />
+    <Compile Include="Consumers\ConsumerTimeoutException.cs" />
     <Compile Include="Consumers\ConsumerTopicMetrics.cs" />
     <Compile Include="Consumers\ConsumerTopicStats.cs" />
     <Compile Include="Consumers\ConsumerTopicStatsRegistry.cs" />

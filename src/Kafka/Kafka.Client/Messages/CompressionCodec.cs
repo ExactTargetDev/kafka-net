@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-using Kafka.Client.Common;
-
 namespace Kafka.Client.Messages
 {
-    using System;
     using System.Globalization;
+
+    using Kafka.Client.Common;
 
     public static class CompressionCodec
     {
@@ -35,7 +34,7 @@ namespace Kafka.Client.Messages
                 case 2:
                     return CompressionCodecs.SnappyCompressionCodec;
                 default:
-                    throw new UnknownCodecException(String.Format(
+                    throw new UnknownCodecException(string.Format(
                         CultureInfo.CurrentCulture,
                         "{0} is an unknown compression codec",
                         codec));
@@ -47,14 +46,14 @@ namespace Kafka.Client.Messages
             switch (compressionCodec)
             {
                 case CompressionCodecs.SnappyCompressionCodec:
-                    return (byte)2;
+                    return 2;
                 case CompressionCodecs.DefaultCompressionCodec:
                 case CompressionCodecs.GZIPCompressionCodec:
-                    return (byte)1;
+                    return 1;
                 case CompressionCodecs.NoCompressionCodec:
-                    return (byte)0;
+                    return 0;
                 default:
-                    throw new UnknownCodecException(String.Format(
+                    throw new UnknownCodecException(string.Format(
                         CultureInfo.CurrentCulture,
                         "{0} is an unknown compression codec",
                         compressionCodec));

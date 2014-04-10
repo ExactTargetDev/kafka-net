@@ -1,11 +1,12 @@
-﻿using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using Kafka.Client.Messages;
-using Kafka.Client.Serializers;
-
-namespace Kafka.Client.Consumers
+﻿namespace Kafka.Client.Consumers
 {
+    using System.Collections;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+
+    using Kafka.Client.Messages;
+    using Kafka.Client.Serializers;
+
     internal class KafkaStream<K, V> : IEnumerable<MessageAndMetadata<K, V>>
     {
         private readonly BlockingCollection<FetchedDataChunk> queue;
@@ -21,8 +22,8 @@ namespace Kafka.Client.Consumers
             this.queue = queue;
             this.keyDecoder = keyDecoder;
             this.valueDecoder = valueDecoder;
-            ClientId = clientId;
-            iter = new ConsumerIterator<K, V>(queue, consumerTimeoutMs, keyDecoder, valueDecoder, clientId);
+            this.ClientId = clientId;
+            this.iter = new ConsumerIterator<K, V>(queue, consumerTimeoutMs, keyDecoder, valueDecoder, clientId);
         }
 
         private ConsumerIterator<K, V> iter;
@@ -33,12 +34,12 @@ namespace Kafka.Client.Consumers
         /// <returns></returns>
         public IEnumerator<MessageAndMetadata<K, V>> GetEnumerator()
         {
-            return iter;
+            return this.iter;
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return GetEnumerator();
+            return this.GetEnumerator();
         }
 
         /// <summary>

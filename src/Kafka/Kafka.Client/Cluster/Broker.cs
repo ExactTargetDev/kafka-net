@@ -1,13 +1,10 @@
 ﻿namespace Kafka.Client.Cluster
 {
     using System;
-    using System.Globalization;
     using System.IO;
 
     using Kafka.Client.Api;
-    using Kafka.Client.Common;
     using Kafka.Client.Extensions;
-    using Kafka.Client.Serializers;
 
     public class Broker
     {
@@ -23,7 +20,6 @@
             this.Host = host;
             this.Port = port;
         }
-
 
         public override string ToString()
         {
@@ -42,40 +38,18 @@
             buffer.PutInt(this.Port);
         }
 
-        public int SizeInBytes { 
+        public int SizeInBytes 
+        { 
             get
             {
-                return ApiUtils.ShortStringLength(this.Host); ///* host name */ + 4 /* port */ + 4 /* broker id*/
+                return ApiUtils.ShortStringLength(this.Host) /* host name */ + 4 /* port */ + 4 /* broker id*/;
             }
         }
 
-
-        /* TODO: not necessary ?
         public static Broker CreateBroker(int id, string brokerInfoString)
         {
-            //TODO: check this method!
-            if (string.IsNullOrEmpty(brokerInfoString))
-            {
-                throw new BrokerNotAvailableException(string.Format("Broker id {0} does not exist", id));
-            }
-            var brokerInfo = brokerInfoString.Split(':');
-            if (brokerInfo.Length > 2)
-            {
-                int port;
-                if (int.TryParse(brokerInfo[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out port))
-                {
-                    return new Broker(id, brokerInfo[0], brokerInfo[1]);
-                }
-                else
-                {
-                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, "{0} is not a valid integer", brokerInfo[2]));
-                }
-            }
-            else
-            {
-                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, "{0} is not a valid BrokerInfoString", brokerInfoString));
-            }
-        }*/
+            throw new NotImplementedException();
+        }
 
         protected bool Equals(Broker other)
         {
@@ -88,22 +62,20 @@
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
-            if (obj.GetType() != this.GetType())
-            {
-                return false;
-            }
-            return Equals((Broker)obj);
+
+            return obj.GetType() == this.GetType() && this.Equals((Broker)obj);
         }
 
         public override int GetHashCode()
         {
             unchecked
             {
-                int hashCode = this.Id;
+                var hashCode = this.Id;
                 hashCode = (hashCode * 397) ^ (this.Host != null ? this.Host.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ this.Port;
                 return hashCode;
@@ -117,6 +89,5 @@
             var port = buffer.GetInt();
             return new Broker(id, host, port);
         }
-
     }
 }

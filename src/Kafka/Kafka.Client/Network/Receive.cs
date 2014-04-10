@@ -14,7 +14,7 @@
         public int ReadCompletely(Stream channel)
         {
             var totalRead = 0;
-            while (!complete)
+            while (!this.complete)
             {
                 var read = this.ReadFrom(channel);
                 Logger.DebugFormat("{0} bytes read", read);

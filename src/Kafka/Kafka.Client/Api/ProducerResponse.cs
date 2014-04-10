@@ -1,5 +1,6 @@
 ﻿namespace Kafka.Client.Api
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -16,6 +17,9 @@
             : base(null, correlationId)
         {
             this.Status = status;
+
+            this.statusGroupedByTopic = new Lazy<IDictionary<string, IDictionary<TopicAndPartition, ProducerResponseStatus>>>(() =>
+                this.Status.GroupByScala(x => x.Key.Topic));
         }
 
         public static ProducerResponse ReadFrom(MemoryStream buffer)
@@ -41,23 +45,41 @@
             return new ProducerResponse(statusPairs.ToDictionary(x => x.Key, x => x.Value), correlationId);
         }
 
-        public override string Describe(bool details)
+        private readonly Lazy<IDictionary<string, IDictionary<TopicAndPartition, ProducerResponseStatus>>> statusGroupedByTopic;
+
+        public bool HasError()
         {
-            return this.ToString();
+            return this.Status.Values.Any(v => v.Error != ErrorMapping.NoError);
         }
 
         public override int SizeInBytes
         {
             get
             {
-                throw new System.NotImplementedException();
+                var groupedStatus = this.statusGroupedByTopic.Value;
+                return 4 + /* correlation id */ 
+                    4 + /* topic count */ 
+                    groupedStatus.Aggregate(
+                           0,
+                           (foldedTopics, currTopic) =>
+                               {
+                                   return foldedTopics + 
+                                       ApiUtils.ShortStringLength(currTopic.Key) + 
+                                       4 + /* partition count for this topic */
+                                       currTopic.Value.Count * 
+                                       (4 + /* partition id */ 2 + /* error code */ 8 /* offset */);
+                               });
             }
         }
 
         public override void WriteTo(MemoryStream bufffer)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException("Not used in client");
         }
 
+        public override string Describe(bool details)
+        {
+            return this.ToString();
+        }
     }
 }
