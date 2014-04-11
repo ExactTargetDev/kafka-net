@@ -24,5 +24,35 @@
                 return this.Offset + 1;
             }
         }
+
+        protected bool Equals(MessageAndOffset other)
+        {
+            return Equals(this.Message, other.Message) && this.Offset == other.Offset;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+            return Equals((MessageAndOffset)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((this.Message != null ? this.Message.GetHashCode() : 0) * 397) ^ this.Offset.GetHashCode();
+            }
+        }
     }
 }

@@ -5,6 +5,7 @@ using Kafka.Client.Extensions;
 namespace Kafka.Client.Utils
 {
     using System.Reflection;
+    using System.Text;
 
     using Kafka.Client.Producers;
 
@@ -94,6 +95,13 @@ namespace Kafka.Client.Utils
         public static T CreateObject<T>(string type, params object[] args)
         {
             return (T)Activator.CreateInstance(Type.GetType(type), args);
+        }
+
+        public static string ReadString(MemoryStream stream)
+        {
+            var buffer = new byte[stream.Length - stream.Position];
+            stream.Read(buffer, 0, (int)(stream.Length - stream.Position));
+            return Encoding.UTF8.GetString(buffer);
         }
 
     }

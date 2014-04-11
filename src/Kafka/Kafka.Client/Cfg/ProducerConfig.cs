@@ -136,11 +136,6 @@ namespace Kafka.Client.Cfg
 
             set
             {
-                if (value != null)
-                {
-                    this.broker = null;
-                }
-
                 this.zooKeeper = value;
             }
         }

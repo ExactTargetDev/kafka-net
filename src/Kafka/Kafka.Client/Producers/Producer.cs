@@ -34,6 +34,8 @@
              this.config = config;
              this.eventHandler = eventHandler;
 
+             this.queue = new BlockingCollection<KeyedMessage<TKey, TValue>>(config.QueueBufferingMaxMessages);
+
              if (config.ProducerType == ProducerTypes.Async)
              {
                  this.sync = false;
@@ -52,17 +54,6 @@
 
         //TODO: private val producerTopicStats = ProducerTopicStatsRegistry.getProducerTopicStats(config.clientId)
         //TODO: KafkaMetricsReporter.startReporters(config.props)
-
-        /* TODO public Producer(ProducerConfig config) : this(config, new DefaultEventHandler<TKey, TValue>(
-            config,
-                                      Util.createObject<IPartitioner>(config.partitionerClass, config.props),
-                                      Util.createObject<IEncoder<V>>(config.serializerClass, config.props),
-                                      Util.createObject<IEncoder<K>>(config.keySerializerClass, config.props),
-                                      new ProducerPool(config))
-            ))
-        {
-            
-        }*/
 
         public void Send(params KeyedMessage<TKey, TValue>[] messages)
         {
@@ -89,6 +80,7 @@
         {
             foreach (var message in messages)
             {
+
                ///TODO: 
                ///  producerTopicStats.getProducerTopicStats(message.topic).messageRate.mark()
       //producerTopicStats.getProducerAllTopicsStats.messageRate.mark()
@@ -97,35 +89,51 @@
 
         private void AsyncSend(KeyedMessage<TKey, TValue>[] messages)
         {
-            /* TODO:
-             *  for (message <- messages) {
-      val added = config.queueEnqueueTimeoutMs match {
-        case 0  =>
-          queue.offer(message)
-        case _  =>
-          try {
-            config.queueEnqueueTimeoutMs < 0 match {
-            case true =>
-              queue.put(message)
-              true
-            case _ =>
-              queue.offer(message, config.queueEnqueueTimeoutMs, TimeUnit.MILLISECONDS)
+            foreach (KeyedMessage<TKey, TValue> message in messages)
+            {
+                bool added;
+                switch (this.config.QueueEnqueueTimeoutMs)
+                {
+                    case 0:
+                        added = this.queue.TryAdd(message);
+                        break;
+                    default:
+                        try
+                        {
+                            if (this.config.QueueEnqueueTimeoutMs < 0)
+                            {
+                                this.queue.Add(message);
+                                added = true;
+                            }
+                            else
+                            {
+                                added = this.queue.TryAdd(message, config.QueueEnqueueTimeoutMs);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error("Error in AsyncSend", ex);
+                            added = false;
+                        }
+                        break;
+                }
+                if (!added)
+                {
+                    // TODO: producerTopicStats.getProducerTopicStats(message.topic).droppedMessageRate.mark()
+                    // TODO: producerTopicStats.getProducerAllTopicsStats.droppedMessageRate.mark()
+                    throw new QueueFullException(
+                        "Event queue is full of unsent messages, could not send event: " + message);
+                }
+                else
+                {
+                    if (Logger.IsDebugEnabled)
+                    {
+                        Logger.Debug("Added to send queue an event: " + message);
+                        Logger.Debug("Remaining queue size: " + (this.queue.BoundedCapacity - this.queue.Count));
+                    }
+                }
+               
             }
-          }
-          catch {
-            case e: InterruptedException =>
-              false
-          }
-      }
-      if(!added) {
-        producerTopicStats.getProducerTopicStats(message.topic).droppedMessageRate.mark()
-        producerTopicStats.getProducerAllTopicsStats.droppedMessageRate.mark()
-        throw new QueueFullException("Event queue is full of unsent messages, could not send event: " + message.toString)
-      }else {
-        trace("Added to send queue an event: " + message.toString)
-        trace("Remaining queue size: " + queue.remainingCapacity)
-      }
-    }*/
         }
 
         /// <summary>

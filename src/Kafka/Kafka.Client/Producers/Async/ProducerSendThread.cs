@@ -9,7 +9,7 @@
     using System.Threading;
 
     using log4net;
-    //TODO: rename to ProducerSendAsyncWorker
+    
     public class ProducerSendThread<TKey, TValue>
     {
         public string ThreadName { get; private set; }
@@ -70,7 +70,9 @@
                     if (currentQueueItem != null)
                     {
                             Logger.InfoFormat("Dequeued item for topic {0}, partition key: {1}, data: {2}",
-                                              currentQueueItem.Topic, currentQueueItem.Key, string.Join(", ", currentQueueItem.Message));
+                                              currentQueueItem.Topic, 
+                                              currentQueueItem.Key, 
+                                              string.Join(", ", currentQueueItem.Message));
                         events.Add(currentQueueItem);
 
                         //check if the batch size is reached

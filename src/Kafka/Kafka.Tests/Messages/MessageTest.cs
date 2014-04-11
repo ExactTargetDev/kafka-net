@@ -45,7 +45,6 @@
             Assert.Equal(false, atomic.CompareAndSet(false, true));
             Assert.Equal(true, atomic.CompareAndSet(true, false));
             Assert.Equal(false, atomic.CompareAndSet(true, false));
-
         }
     }
 }

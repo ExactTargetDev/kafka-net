@@ -36,5 +36,35 @@
         {
             return string.Format("[{0},{1}]", this.Topic, this.Partiton);
         }
+
+        protected bool Equals(TopicAndPartition other)
+        {
+            return string.Equals(this.Topic, other.Topic) && this.Partiton == other.Partiton;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+            return Equals((TopicAndPartition)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((this.Topic != null ? this.Topic.GetHashCode() : 0) * 397) ^ this.Partiton;
+            }
+        }
     }
 }

@@ -269,7 +269,7 @@ namespace Kafka.Client.Messages
                 return null;
             }
 
-            return new MemoryStream(this.buffer.GetBuffer(), start + 4, size, false);
+            return new MemoryStream(this.buffer.GetBuffer(), start + 4, size, false, false);
         }
 
         public override string ToString()

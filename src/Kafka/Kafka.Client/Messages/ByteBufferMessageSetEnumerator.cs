@@ -18,16 +18,28 @@
 
         private IEnumerator<MessageAndOffset> innerIter = null;
 
+        private bool? innerHasNext = null;
+
         public ByteBufferMessageSetEnumerator(ByteBufferMessageSet parent, bool isShallow)
         {
             this.parent = parent;
-            this.topIter = new MemoryStream(parent.Buffer.GetBuffer(), (int)parent.Buffer.Position, (int)(parent.Buffer.Length - parent.Buffer.Position));
+            this.topIter = new MemoryStream(parent.Buffer.GetBuffer(), (int)parent.Buffer.Position, (int)(parent.Buffer.Length - parent.Buffer.Position), false, false);
             this.isShallow = isShallow;
+        }
+
+        private bool InnerHasNext()
+        {
+            if (this.innerHasNext.HasValue)
+            {
+                return this.innerHasNext.Value;
+            }
+            this.innerHasNext = this.innerIter.MoveNext();
+            return this.innerHasNext.Value;
         }
 
         public bool InnerDone()
         {
-            return this.innerIter == null || !this.innerIter.MoveNext();
+            return this.innerIter == null || !this.InnerHasNext();
         }
 
         public MessageAndOffset MakeNextOuter()
@@ -68,9 +80,10 @@
                         return new MessageAndOffset(newMessage, offset);
                     default:
                         this.innerIter = ByteBufferMessageSet.Decompress(newMessage).InternalIterator();
-                        if (!this.innerIter.MoveNext())
+                        if (!this.InnerHasNext())
                         {
                             this.innerIter = null;
+                            this.innerHasNext = null;
                         }
 
                         return this.MakeNext();
@@ -92,17 +105,10 @@
                 }
                 else
                 {
-                    this.innerIter.MoveNext();
-                    return this.innerIter.Current;
+                    var current = this.innerIter.Current;
+                    innerHasNext = null;
+                    return current;
                 }
-            }
-        }
-
-        public override MessageAndOffset Current
-        {
-            get
-            {
-                return base.Current;
             }
         }
     }

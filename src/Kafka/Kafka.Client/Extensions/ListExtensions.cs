@@ -46,5 +46,13 @@
 
             return result;
         }
+
+        public static IEnumerable<TElement> ToEnumerable<TElement>(this IEnumerator<TElement> enumerator)
+        {
+            while (enumerator.MoveNext())
+            {
+                yield return enumerator.Current;
+            }
+        }
     }
 }

@@ -11,6 +11,7 @@
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Messages;
     using Kafka.Client.Serializers;
+    using Kafka.Client.Utils;
 
     using log4net;
 
@@ -340,18 +341,19 @@
         /// <param name="brokerId">brokerId the broker that will receive the request</param>
         /// <param name="messagesPerTopic"></param>
         /// <returns> the set (topic, partitions) messages which incurred an error sending or processing</returns>
-        private HashSet<TopicAndPartition> Send(int brokerId, IDictionary<TopicAndPartition, ByteBufferMessageSet> messagesPerTopic)
+        private List<TopicAndPartition> Send(int brokerId, IDictionary<TopicAndPartition, ByteBufferMessageSet> messagesPerTopic)
         {
             if (brokerId < 0)
             {
                 Logger.WarnFormat("Failed to send data since partitions {0} don't have a leader", string.Join(",", messagesPerTopic.Select(m => m.Key.Partiton)));
-                return new HashSet<TopicAndPartition>(messagesPerTopic.Keys);
+                return new List<TopicAndPartition>(messagesPerTopic.Keys);
             }
             if (messagesPerTopic.Count > 0)
             {
                 var currentCorrelationId = correlationId.GetAndIncrement();
                 var producerRequest = new ProducerRequest(currentCorrelationId, config.ClientId, config.RequestRequiredAcks, config.RequestTimeoutMs, messagesPerTopic);
-                var failedTopicPartitions = new HashSet<TopicAndPartition>();
+                var failedTopicPartitions = new List<TopicAndPartition>();
+
                 try {
 
                     var syncProducer = this.producerPool.GetProducer(brokerId);
@@ -368,31 +370,50 @@
                                 string.Format(
                                     "Incomplete response ({0}) for producer request ({1})", response, producerRequest));
                         }
-                        /* TODO
-                         * if (logger.isTraceEnabled) {
-            val successfullySentData = response.status.filter(_._2.error == ErrorMapping.NoError)
-            successfullySentData.foreach(m => messagesPerTopic(m._1).foreach(message =>
-              trace("Successfully sent message: %s".format(if(message.message.isNull) null else Utils.readString(message.message.payload)))))
-                }         * 
-                         * val failedPartitionsAndStatus = response.status.filter(_._2.error != ErrorMapping.NoError).toSeq
-          failedTopicPartitions = failedPartitionsAndStatus.map(partitionStatus => partitionStatus._1)
-          if(failedTopicPartitions.size > 0) {
-            val errorString = failedPartitionsAndStatus
-              .sortWith((p1, p2) => p1._1.topic.compareTo(p2._1.topic) < 0 ||
-                                    (p1._1.topic.compareTo(p2._1.topic) == 0 && p1._1.partition < p2._1.partition))
-              .map{
-                case(topicAndPartition, status) =>
-                  topicAndPartition.toString + ": " + ErrorMapping.exceptionFor(status.error).getClass.getName
-              }.mkString(",")
-            warn("Produce request with correlation id %d failed due to %s".format(currentCorrelationId, errorString))
-          }
-          }*/
+                        if (Logger.IsDebugEnabled)
+                        {
+                            var successfullySentData = response.Status.Where(s => s.Value.Error == ErrorMapping.NoError).ToList();
+                            foreach (var m in successfullySentData)
+                            {
+                                var messages = messagesPerTopic[m.Key].ToList();
+                                foreach (var message in messages)
+                                {
+                                    Logger.DebugFormat(
+                                        "Successfully sent messsage: {0}",
+                                        message.Message.IsNull() ? 
+                                        null : 
+                                        Util.ReadString(message.Message.Payload));
+                                }
+                            }
+                        }
+
+                        var failedPartitionsAndStatus = response.Status.Where(s => s.Value.Error != ErrorMapping.NoError).ToList();
+                        failedTopicPartitions =
+                            failedPartitionsAndStatus.Select(partitionStatus => partitionStatus.Key).ToList();
+                        if (failedTopicPartitions.Any())
+                        {
+                            var errorString = string.Join(
+                                ",",
+                                failedPartitionsAndStatus.OrderBy(x => x.Key.Topic)
+                                                         .ThenBy(x => x.Key.Partiton)
+                                                         .Select(
+                                                             kvp =>
+                                                                 { 
+                                                                     var topicAndPartiton = kvp.Key;
+                                                                     var status = kvp.Value;
+                                                                     return topicAndPartiton.ToString() + ": "
+                                                                            + ErrorMapping.ExceptionFor(status.Error)
+                                                                                          .GetType()
+                                                                                          .Name;
+                                                                 }));
+                            Logger.WarnFormat("Produce request with correlation id {0} failed due to {1}", currentCorrelationId, errorString);
+                        }
 
                         return failedTopicPartitions;
                     }
                     else
                     {
-                        return new HashSet<TopicAndPartition>();
+                        return new List<TopicAndPartition>();
                     }
                 } 
                 catch (Exception e) 
@@ -404,12 +425,12 @@
                                     brokerId,
                                     string.Join(",", messagesPerTopic.Select(m => m.Key))),
                                 e);
-                            return new HashSet<TopicAndPartition>(messagesPerTopic.Keys);
+                            return new List<TopicAndPartition>(messagesPerTopic.Keys);
                 }
             }
             else
             {
-                return new HashSet<TopicAndPartition>();
+                return new List<TopicAndPartition>();
             }
            
         }

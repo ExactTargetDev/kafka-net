@@ -163,6 +163,7 @@
     <Compile Include="Common\OffsetMetadataTooLargeException.cs" />
     <Compile Include="Common\OffsetOutOfRangeException.cs" />
     <Compile Include="Common\ProducerClosedException.cs" />
+    <Compile Include="Common\QueueFullException.cs" />
     <Compile Include="Common\ReplicaNotAvailableException.cs" />
     <Compile Include="Common\RequestTimedOutException.cs" />
     <Compile Include="Common\TopicAndPartition.cs" />

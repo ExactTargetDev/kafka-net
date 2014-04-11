@@ -1,5 +1,6 @@
 ﻿namespace Kafka.Client.Messages
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -64,12 +65,12 @@
 
         public override int WriteTo(Stream channel, long offset, int size)
         {
-            //TODO: buffer.mark and reset?
+            // Ignore offset and size from input. We just want to write the whole buffer to the channel.
             var written = 0;
             while (written < this.SizeInBytes)
             {
-                channel.Write(this.Buffer.GetBuffer(), 0, (int) this.Buffer.Length);
-                written += (int) this.Buffer.Length;
+                channel.Write(this.Buffer.GetBuffer(), 0, (int)this.Buffer.Length);
+                written += (int)this.Buffer.Length;
             }
 
             return written;
@@ -95,7 +96,29 @@
             return new ByteBufferMessageSetEnumerator(this, isShallow);
         }
 
-        //TODO: private[kafka] def assignOffsets(offsetCounter: AtomicLong, codec: CompressionCodec): ByteBufferMessageSet = {
+        internal ByteBufferMessageSet AssignOffsets(AtomicLong offsetCounter, CompressionCodecs codec)
+        {
+            if (codec == CompressionCodecs.NoCompressionCodec)
+            {
+                // do as in-place conversion
+                var position = 0;
+                var markedPosition = this.Buffer.Position;
+                while (position < this.SizeInBytes - MessageSet.LogOverhead)
+                {
+                    this.Buffer.Position = position;
+                    this.Buffer.PutLong(offsetCounter.GetAndIncrement());
+                    position += MessageSet.LogOverhead + Buffer.GetInt();
+                }
+                this.Buffer.Position = markedPosition;
+                return this;
+            }
+            else
+            {
+                // messages are compressed, crack open the messageset and recompress with correct offset
+                var messages = this.InternalIterator(isShallow: false).ToEnumerable().Select(_ => _.Message);
+                return new ByteBufferMessageSet(codec, offsetCounter, messages.ToList());
+            }
+        }
 
         public override int SizeInBytes
         {
@@ -116,7 +139,7 @@
         private static MemoryStream Create(
             AtomicLong offsetCounter, CompressionCodecs compressionCodec, List<Message> messages)
         {
-            if (!messages.Any())
+            if (messages == null || !messages.Any())
             {
                 return Empty.Buffer;
             } 
@@ -183,6 +206,56 @@
             buffer.PutInt(message.Size);
             buffer.Write(message.Buffer.GetBuffer(), 0, (int)message.Buffer.Length);
             message.Buffer.Position = 0;
+        }
+
+        protected bool Equals(ByteBufferMessageSet other)
+        {
+            if (this.Buffer.Length != other.Buffer.Length)
+            {
+                return false;
+            }
+            var pos1 = this.Buffer.Position;
+            var pos2 = other.Buffer.Position;
+            try
+            {
+                for (var i = 0; i < this.Buffer.Length; i++)
+                {
+                    if (this.Buffer.ReadByte() != other.Buffer.ReadByte())
+                    {
+                        return false;
+                    }
+                }
+            }
+            finally
+            {
+                this.Buffer.Position = pos1;
+                other.Buffer.Position = pos2;
+            }
+
+            return true;
+
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+            return Equals((ByteBufferMessageSet)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return (this.Buffer != null ? this.Buffer.GetHashCode() : 0);
         }
     }
 }
