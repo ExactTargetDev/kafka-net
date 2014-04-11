@@ -53,7 +53,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BitOrder.cs" />
+    <Compile Include="Custom\Extensions\BitOrder.cs" />
     <Compile Include="Messages\ByteBufferMessageSetTest.cs" />
     <Compile Include="IteratorTemplateTests.cs" />
     <Compile Include="Messages\MessageTest.cs" />
@@ -73,6 +73,9 @@
       <Project>{a92dd03b-ee4f-4a78-9fb2-279b6348c7d2}</Project>
       <Name>Kafka.Client</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Custom\Utils\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

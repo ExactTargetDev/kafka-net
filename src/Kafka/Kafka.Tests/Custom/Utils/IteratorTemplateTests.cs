@@ -1,8 +1,9 @@
 ﻿namespace Kafka.Tests
 {
-    using System;
     using System.Collections.Generic;
+    using System.Linq;
 
+    using Kafka.Client.Extensions;
     using Kafka.Client.Utils;
 
     using Xunit;
@@ -13,11 +14,9 @@
         public void SimpleTest()
         {
             var iter = new MyIterator();
-            while (iter.MoveNext())
-            {
-                Console.WriteLine(iter.Current);
-                //TODO: put to array and compare
-            }
+            var result = iter.ToEnumerable().ToList();
+            var expected = new List<string> { "1", "2", "3" };
+            Assert.Equal(expected, result);
         }
     }
 
@@ -25,7 +24,7 @@
     {
         private int i = -1;
 
-        private List<string> items = new List<string> {"1", "2", "3"};  
+        private readonly List<string> items = new List<string> {"1", "2", "3"};  
 
         protected override string MakeNext()
         {
