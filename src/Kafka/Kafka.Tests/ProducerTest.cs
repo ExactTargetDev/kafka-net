@@ -12,6 +12,7 @@
 
     public class ProducerTest
     {
+        //TODO: remove this test
 
         public ProducerTest()
         {
@@ -30,7 +31,7 @@
                 for (int i = 0; i < 50; i++)
                 {
                     var msg = new KeyedMessage<byte[], byte[]>(
-                        "topic2", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("value" + i));
+                        "topic8", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("value" + i));
 
                     producer.Send(msg);
                 }
@@ -46,7 +47,7 @@
                 for (int i = 0; i < 50; i++)
                 {
                     var msg = new KeyedMessage<byte[], byte[]>(
-                        "topic2", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("async msg" + i));
+                        "topic8", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("async msg" + i));
 
                     producer.Send(msg);
                 }
