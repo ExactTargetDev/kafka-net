@@ -7,7 +7,7 @@
     using Kafka.Client.Messages;
     using Kafka.Client.Serializers;
 
-    internal class KafkaStream<K, V> : IEnumerable<MessageAndMetadata<K, V>>
+    public class KafkaStream<K, V> : IEnumerable<MessageAndMetadata<K, V>>
     {
         private readonly BlockingCollection<FetchedDataChunk> queue;
 

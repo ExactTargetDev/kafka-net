@@ -4,7 +4,7 @@
 
     using Kafka.Client.Messages;
 
-    internal class FetchedDataChunk : IEquatable<FetchedDataChunk>
+    public class FetchedDataChunk : IEquatable<FetchedDataChunk>
     {
         public ByteBufferMessageSet Messages { get; set; }
 

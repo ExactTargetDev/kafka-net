@@ -11,7 +11,7 @@
 
     using log4net;
 
-    internal class PartitionTopicInfo
+    public class PartitionTopicInfo
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 

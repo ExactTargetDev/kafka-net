@@ -65,7 +65,8 @@ namespace Kafka.Client.Cfg
         public ConsumerConfiguration(string host, int port)
             : this()
         {
-            this.Broker = new BrokerConfiguration { Host = host, Port = port };
+            //TODO don't use hardcoded values!
+            this.ZooKeeper = new ZooKeeperConfiguration(host + ":" + port, 10000, 10000, 5000);
         }
 
         public ConsumerConfiguration(ConsumerConfigurationSection config)

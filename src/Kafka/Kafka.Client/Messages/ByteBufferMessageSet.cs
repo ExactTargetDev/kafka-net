@@ -18,7 +18,7 @@
     /// 
     /// Option 2: Give it a list of messages along with instructions relating to serialization format. Producers will use this method.
     /// </summary>
-    internal class ByteBufferMessageSet : MessageSet
+    public class ByteBufferMessageSet : MessageSet
     {
 
         private int shallowValidByteCount = -1;

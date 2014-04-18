@@ -16,7 +16,7 @@ namespace Kafka.Client.Messages
     /// 4 byte size containing an integer N
     /// N message bytes as described in the Message class
     /// </summary>
-    internal abstract class MessageSet : IEnumerable<MessageAndOffset>
+    public abstract class MessageSet : IEnumerable<MessageAndOffset>
     {
         public const int MessageSizeLength = 4;
 
