@@ -7,10 +7,12 @@
     using Kafka.Client.Api;
     using Kafka.Client.Cfg;
     using Kafka.Client.Client;
-    using Kafka.Client.Cluster;
+    using Kafka.Client.Clusters;
     using Kafka.Client.Common;
 
     using log4net;
+
+    using Kafka.Client.Extensions;
 
     internal class BrokerPartitionInfo
     {
@@ -57,7 +59,7 @@
                     throw new KafkaException(string.Format("Failed to fetch topic metadata for topic: {0}", topic));
                 }
             }
-            var metadata = this.topicPartitionInfo[topic];
+            var metadata = this.topicPartitionInfo.Get(topic);
             var partitionMetadata = metadata.PartitionsMetadata;
 
             if (partitionMetadata.Count() == 0)

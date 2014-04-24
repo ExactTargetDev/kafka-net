@@ -6,7 +6,7 @@
     using System.Linq;
     using System.Text;
 
-    using Kafka.Client.Cluster;
+    using Kafka.Client.Clusters;
     using Kafka.Client.Common;
 
     using Kafka.Client.Extensions;
@@ -29,17 +29,17 @@
                 buffer, "error code", Tuple.Create<short, short>(-1, short.MaxValue));
             var partitionId = ApiUtils.ReadIntInRange(buffer, "partition id", Tuple.Create(0, int.MaxValue)); // partition id
             var leaderId = buffer.GetInt();
-            var leader = brokers[leaderId];
+            var leader = brokers.Get(leaderId);
 
             // list of all replicas
             var numReplicas = ApiUtils.ReadIntInRange(buffer, "number of all replicas", Tuple.Create(0, int.MaxValue));
             var replicaIds = Enumerable.Range(0, numReplicas).Select(_ => buffer.GetInt()).ToList();
-            var replicas = replicaIds.Select(r => brokers[r]).ToList();
+            var replicas = replicaIds.Select(brokers.Get).ToList();
 
             // list of in-sync replicasd
             var numIsr = ApiUtils.ReadIntInRange(buffer, "number of in-sync replicas", Tuple.Create(0, int.MaxValue));
             var isrIds = Enumerable.Range(0, numIsr).Select(_ => buffer.GetInt()).ToList();
-            var isr = isrIds.Select(r => brokers[r]).ToList();
+            var isr = isrIds.Select(brokers.Get).ToList();
 
             return new PartitionMetadata(partitionId, leader, replicas, isr, errorCode);
         }

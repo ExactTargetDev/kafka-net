@@ -5,7 +5,7 @@
     using System.IO;
     using System.Linq;
 
-    using Kafka.Client.Cluster;
+    using Kafka.Client.Clusters;
     using Kafka.Client.Extensions;
 
     public class TopicMetadataResponse : RequestOrResponse

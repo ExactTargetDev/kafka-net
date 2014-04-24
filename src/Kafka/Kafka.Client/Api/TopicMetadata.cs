@@ -6,7 +6,7 @@
     using System.Linq;
     using System.Text;
 
-    using Kafka.Client.Cluster;
+    using Kafka.Client.Clusters;
     using Kafka.Client.Common;
     using Kafka.Client.Extensions;
 

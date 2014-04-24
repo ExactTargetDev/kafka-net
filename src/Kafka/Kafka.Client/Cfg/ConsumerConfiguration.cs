@@ -30,67 +30,94 @@ namespace Kafka.Client.Cfg
     /// TODO: review and update props
     public class ConsumerConfiguration
     {
-        public const short DefaultNumberOfTries = 2;
+        public const int RefreshMetadataBackoffMs = 200;
 
-        public const int DefaultTimeout = -1;
+        public const int SocketTimeout = 30 * 1000;
 
-        public const bool DefaultAutoCommit = true;
+        public const int SocketBufferSize = 64 * 1024;
 
-        public const int DefaultAutoCommitInterval = 10 * 1000;
+        public const int FetchSize = 1024 * 1024;
 
-        public const int DefaultFetchSize = 1024 * 1024;
+        public const int MaxFetchSize = 10 * FetchSize;
 
-        public const int DefaultBackOffIncrement = 1000;
+        public const int DefaultNumConsumerFetchers = 1;
 
-        public const int DefaultSocketTimeout = 30 * 1000;
+        public const int DefaultFetcherBackoffMs = 1000;
 
-        public const int DefaultBufferSize = 64 * 1024;
+        public const bool AutoCommit = true;
 
-        public const string DefaultConsumerId = null;
+        public const int AutoCommitInterval = 60 * 1000;
 
-        public const string DefaultSection = "kafkaConsumer";
+        public const int MaxQueuedChunks = 2;
+
+        public const int MaxRebalanceRetries = 4;
+
+        public const string DefaultAutoOffsetReset = OffsetRequest.LargestTimeString;
+
+        public const int DefaultConsumerTimeoutMs = -1;
+
+        public const int MinFetchBytes = 1;
+
+        public const int MaxFetchWaitMs = 100;
+
+        public const string MirrorTopicsWhitelist = "";
+
+        public const string MirrorTopicsBlacklist = "";
+
+        public const int MirrorConsumerNumThreads = 1;
+
+        public const string DefaultClientId = "";
 
         public ConsumerConfiguration()
         {
-            this.NumberOfTries = DefaultNumberOfTries;
-            this.Timeout = DefaultTimeout;
-            //TODO:this.AutoOffsetReset = OffsetRequest.SmallestTime;
-            this.AutoCommit = DefaultAutoCommit;
-            this.AutoCommitInterval = DefaultAutoCommitInterval;
-            this.FetchSize = DefaultFetchSize;
-            this.BackOffIncrement = DefaultBackOffIncrement;
-            this.ConsumerId = DefaultConsumerId;
+            this.GroupId = string.Empty;
+            this.ConsumerId = null;
+            this.SocketTimeoutMs = SocketTimeout;
+            this.SocketReceiveBufferBytes = SocketBufferSize;
+            this.FetchMessageMaxBytes = FetchSize;
+            this.NumConsumerFetchers = DefaultNumConsumerFetchers;
+            this.AutoCommitEnable = AutoCommit;
+            this.AutoCommitIntervalMs = AutoCommitInterval;
+            this.QueuedMaxMessages = MaxQueuedChunks;
+            this.RebalanceMaxRetries = MaxRebalanceRetries;
+            this.FetchMinBytes = MinFetchBytes;
+            this.FetchWaitMaxMs = MaxFetchWaitMs;
+            this.RebalanceBackoffMs = ZooKeeperConfiguration.DefaultSyncTime;
+            this.RefreshLeaderBackoffMs = RefreshMetadataBackoffMs;
+            this.AutoOffsetReset = DefaultAutoOffsetReset;
+            this.ConsumerTimeoutMs = DefaultConsumerTimeoutMs;
+            this.ClientId = GroupId;
         }
 
         public ConsumerConfiguration(string host, int port)
             : this()
         {
-            //TODO don't use hardcoded values!
-            this.ZooKeeper = new ZooKeeperConfiguration(host + ":" + port, 10000, 10000, 5000);
+            this.ZooKeeper = new ZooKeeperConfiguration(host + ":" + port, ZooKeeperConfiguration.DefaultSessionTimeout, 
+                ZooKeeperConfiguration.DefaultConnectionTimeout, ZooKeeperConfiguration.DefaultSyncTime);
         }
 
         public ConsumerConfiguration(ConsumerConfigurationSection config)
         {
             Validate(config);
-            this.NumberOfTries = config.NumberOfTries;
             this.GroupId = config.GroupId;
-            this.Timeout = config.Timeout;
-            this.AutoOffsetReset = config.AutoOffsetReset;
-            this.AutoCommit = config.AutoCommit;
-            this.AutoCommitInterval = config.AutoCommitInterval;
-            this.FetchSize = config.FetchSize;
-            this.BackOffIncrement = config.BackOffIncrement;
-            this.SocketTimeout = config.SocketTimeout;
-            this.BufferSize = config.BufferSize;
             this.ConsumerId = config.ConsumerId;
-            if (config.Broker.ElementInformation.IsPresent)
-            {
-                this.SetBrokerConfiguration(config.Broker);
-            }
-            else
-            {
+            this.SocketTimeoutMs = config.SocketTimeout;
+            this.SocketReceiveBufferBytes = config.SocketBufferSize;
+            this.FetchMessageMaxBytes = config.FetchSize;
+            this.NumConsumerFetchers = config.NumConsumerFetchers;
+            this.AutoCommitEnable = config.AutoCommit;
+            this.AutoCommitIntervalMs = config.AutoCommitInterval;
+            this.QueuedMaxMessages = config.MaxQueuedChunks;
+            this.RebalanceMaxRetries = config.MaxRebalanceRetries;
+            this.FetchMinBytes = config.MinFetchBytes;
+            this.FetchWaitMaxMs = config.MaxFetchWaitMs;
+            this.RebalanceBackoffMs = config.RebalanceBackoffMs;
+            this.RefreshLeaderBackoffMs = config.RefreshMetadataBackoffMs;
+            this.AutoOffsetReset = config.AutoOffsetReset;
+            this.ConsumerTimeoutMs = config.ConsumerTimeoutMs;
+            this.ClientId = config.GroupId;
+          
                 this.SetZooKeeperConfiguration(config.ZooKeeperServers);
-            }
         }
 
         public ConsumerConfiguration(XElement xmlElement)
@@ -98,41 +125,48 @@ namespace Kafka.Client.Cfg
         {
         }
 
+        public string GroupId { get; private set; }
+
+        public string ConsumerId { get; private set; }
+
+        public int SocketTimeoutMs { get; private set; }
+
+        public int SocketReceiveBufferBytes  { get; private set; }
+
+        public int FetchMessageMaxBytes { get; private set; }
+
+        public int NumConsumerFetchers { get; private set; }
+
+        public bool AutoCommitEnable { get; private set; }
+
+        public int AutoCommitIntervalMs { get; private set; }
+
+        public int QueuedMaxMessages { get; private set; }
+
+        public int RebalanceMaxRetries { get; private set; }
+
+        public int FetchMinBytes { get; private set; }
+
+        public int FetchWaitMaxMs { get; private set; }
+
+        public int RebalanceBackoffMs { get; private set; }
+
+        public int RefreshLeaderBackoffMs { get; private set; }
+
+        public string AutoOffsetReset { get; private set; }
+
+        public int ConsumerTimeoutMs { get; private set; }
+
+        public string ClientId { get; private set; }
+
+
         public static ConsumerConfiguration Configure(string section)
         {
             var config = ConfigurationManager.GetSection(section) as ConsumerConfigurationSection;
             return new ConsumerConfiguration(config);
         }
 
-        public short NumberOfTries { get; set; }
-
-        public string GroupId { get; set; }
-
-        public int Timeout { get; set; }
-
-        public string AutoOffsetReset { get; set; }
-
-        public bool AutoCommit { get; set; }
-
-        public int AutoCommitInterval { get; set; }
-
-        public int FetchSize { get; set; }
-
-        public int BackOffIncrement { get; set; }
-
-        public int SocketTimeout { get; set; }
-
-        public int BufferSize { get; set; }
-
-        public string ConsumerId { get; set; }
-
-        public int MaxFetchSize
-        {
-            get
-            {
-                return this.FetchSize * 10;
-            }
-        }
+       
 
         public ZooKeeperConfiguration ZooKeeper { get; set; }
 
@@ -140,23 +174,7 @@ namespace Kafka.Client.Cfg
 
         private static void Validate(ConsumerConfigurationSection config)
         {
-            if (config.Broker.ElementInformation.IsPresent
-                && config.ZooKeeperServers.ElementInformation.IsPresent)
-            {
-                throw new ConfigurationErrorsException("ZooKeeper configuration cannot be set when brokers configuration is used");
-            }
-
-            if (!config.ZooKeeperServers.ElementInformation.IsPresent
-                && !config.Broker.ElementInformation.IsPresent)
-            {
-                throw new ConfigurationErrorsException("ZooKeeper server or Kafka broker configuration must be set");
-            }
-
-            if (config.ZooKeeperServers.ElementInformation.IsPresent
-                && config.ZooKeeperServers.Servers.Count == 0)
-            {
-                throw new ConfigurationErrorsException("At least one ZooKeeper server address is required");
-            }
+           //TODO:
         }
 
         private static string GetIpAddress(string host)

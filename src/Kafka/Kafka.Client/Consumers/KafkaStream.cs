@@ -7,7 +7,12 @@
     using Kafka.Client.Messages;
     using Kafka.Client.Serializers;
 
-    public class KafkaStream<K, V> : IEnumerable<MessageAndMetadata<K, V>>
+    public abstract class KafkaStream
+    {
+        public abstract void Clear();
+    }
+
+    public class KafkaStream<K, V> : KafkaStream, IEnumerable<MessageAndMetadata<K, V>>
     {
         private readonly BlockingCollection<FetchedDataChunk> queue;
 
@@ -46,7 +51,7 @@
         /// This method clears the queue being iterated during the consumer rebalancing. This is mainly
         ///  to reduce the number of duplicates received by the consumer
         /// </summary>
-        public void Clear()
+        public override void Clear()
         {
             iter.ClearCurrentChunk();
         }

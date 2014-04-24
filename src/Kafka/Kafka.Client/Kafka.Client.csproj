@@ -102,6 +102,9 @@
     <Reference Include="log4net">
       <HintPath>..\..\..\lib\log4Net\log4net.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.6.0.2\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
@@ -115,11 +118,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\ApiUtils.cs" />
+    <Compile Include="Api\FetchRequest.cs" />
     <Compile Include="Api\OffsetRequest.cs" />
+    <Compile Include="Api\PartitionFetchInfo.cs" />
     <Compile Include="Api\PartitionMetadata.cs" />
     <Compile Include="Api\ProducerRequest.cs" />
     <Compile Include="Api\ProducerResponse.cs" />
     <Compile Include="Api\ProducerResponseStatus.cs" />
+    <Compile Include="Api\Request.cs" />
     <Compile Include="Api\RequestKeys.cs" />
     <Compile Include="Api\RequestOrResponse.cs" />
     <Compile Include="Api\TopicMetadata.cs" />
@@ -142,10 +148,12 @@
     <Compile Include="Cfg\ZooKeeperServerConfigurationElement.cs" />
     <Compile Include="Cfg\ZooKeeperServerConfigurationElementCollection.cs" />
     <Compile Include="Client\ClientUtils.cs" />
-    <Compile Include="Cluster\Broker.cs" />
-    <Compile Include="Cluster\Partition.cs" />
-    <Compile Include="Cluster\Replica.cs" />
+    <Compile Include="Clusters\Broker.cs" />
+    <Compile Include="Clusters\Cluster.cs" />
+    <Compile Include="Clusters\Partition.cs" />
+    <Compile Include="Clusters\Replica.cs" />
     <Compile Include="Common\BrokerNotAvailableException.cs" />
+    <Compile Include="Common\ConsumerRebalanceFailedException.cs" />
     <Compile Include="Common\ControllerMovedException.cs" />
     <Compile Include="Common\ErrorMapping.cs" />
     <Compile Include="Common\FailedToSendMessageException.cs" />
@@ -183,6 +191,7 @@
     <Compile Include="Consumers\IConsumerConnector.cs" />
     <Compile Include="Consumers\KafkaStream.cs" />
     <Compile Include="Consumers\PartitionTopicInfo.cs" />
+    <Compile Include="Consumers\SimpleConsumer.cs" />
     <Compile Include="Consumers\TopicCount.cs" />
     <Compile Include="Consumers\TopicFilter.cs" />
     <Compile Include="Consumers\Whitelist.cs" />
@@ -238,6 +247,10 @@
     <Compile Include="Serializers\KafkaBinaryWriter.cs" />
     <Compile Include="Serializers\StringDecoder.cs" />
     <Compile Include="Serializers\StringEncoder.cs" />
+    <Compile Include="Server\AbstractFetcherManager.cs" />
+    <Compile Include="Server\AbstractFetcherThread.cs" />
+    <Compile Include="Server\BrokerAndFetcherId.cs" />
+    <Compile Include="Server\BrokerAndInitialOffset.cs" />
     <Compile Include="Utils\ConcurrentHashSet.cs" />
     <Compile Include="Utils\Crc32.cs" />
     <Compile Include="Utils\IScheduler.cs" />
@@ -247,6 +260,7 @@
     <Compile Include="Utils\Util.cs" />
     <Compile Include="Utils\VerifiableProperties.cs" />
     <Compile Include="Utils\ZKGroupDirs.cs" />
+    <Compile Include="Utils\ZKGroupTopicDirs.cs" />
     <Compile Include="Utils\ZkStringSerializer.cs" />
     <Compile Include="Utils\ZkUtils.cs" />
     <Compile Include="ZKClient\DataUpdater.cs" />
@@ -272,6 +286,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="KafkaClient.snk" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -24,39 +24,12 @@ namespace Kafka.Client.Cfg
 
     public class ConsumerConfigurationSection : ConfigurationSection
     {
-        [ConfigurationProperty("numberOfTries", IsRequired = false, DefaultValue = ConsumerConfiguration.DefaultNumberOfTries)]
-        public short NumberOfTries
-        {
-            get
-            {
-                return (short)this["numberOfTries"];
-            }
-        }
-
         [ConfigurationProperty("groupId", IsRequired = true)]
         public string GroupId
         {
             get
             {
                 return (string)this["groupId"];
-            }
-        }
-
-        [ConfigurationProperty("timeout", IsRequired = false, DefaultValue = ConsumerConfiguration.DefaultTimeout)]
-        public int Timeout
-        {
-            get
-            {
-                return (int)this["timeout"];
-            }
-        }
-
-        [ConfigurationProperty("autoOffsetReset", IsRequired = false, DefaultValue = OffsetRequest.LargestTimeString)]
-        public string AutoOffsetReset
-        {
-            get
-            {
-                return (string)this["autoOffsetReset"];
             }
         }
 
@@ -69,43 +42,7 @@ namespace Kafka.Client.Cfg
             }
         }
 
-        [ConfigurationProperty("autoCommit", IsRequired = false, DefaultValue = ConsumerConfiguration.DefaultAutoCommit)]
-        public bool AutoCommit
-        {
-            get
-            {
-                return (bool)this["autoCommit"];
-            }
-        }
-
-        [ConfigurationProperty("autoCommitInterval", IsRequired = false, DefaultValue = ConsumerConfiguration.DefaultAutoCommitInterval)]
-        public int AutoCommitInterval
-        {
-            get
-            {
-                return (int)this["autoCommitInterval"];
-            }
-        }
-
-        [ConfigurationProperty("fetchSize", IsRequired = false, DefaultValue = ConsumerConfiguration.DefaultFetchSize)]
-        public int FetchSize
-        {
-            get
-            {
-                return (int)this["fetchSize"];
-            }
-        }
-
-        [ConfigurationProperty("backOffIncrement", IsRequired = false, DefaultValue = ConsumerConfiguration.DefaultBackOffIncrement)]
-        public int BackOffIncrement
-        {
-            get
-            {
-                return (int)this["backOffIncrement"];
-            }
-        }
-
-        [ConfigurationProperty("socketTimeout", IsRequired = false, DefaultValue = ConsumerConfiguration.DefaultSocketTimeout)]
+        [ConfigurationProperty("socketTimeout", IsRequired = false, DefaultValue = ConsumerConfiguration.SocketTimeout)]
         public int SocketTimeout
         {
             get
@@ -114,12 +51,133 @@ namespace Kafka.Client.Cfg
             }
         }
 
-        [ConfigurationProperty("bufferSize", IsRequired = false, DefaultValue = ConsumerConfiguration.DefaultSocketTimeout)]
-        public int BufferSize
+        [ConfigurationProperty("socketBufferSize", IsRequired = false, DefaultValue = ConsumerConfiguration.SocketBufferSize)]
+        public int SocketBufferSize
         {
             get
             {
-                return (int)this["bufferSize"];
+                return (int)this["socketBufferSize"];
+            }
+        }
+
+        [ConfigurationProperty("fetchSize", IsRequired = false, DefaultValue = ConsumerConfiguration.FetchSize)]
+        public int FetchSize
+        {
+            get
+            {
+                return (int)this["fetchSize"];
+            }
+        }
+
+        [ConfigurationProperty("numConsumerFetchers", IsRequired = false, DefaultValue = ConsumerConfiguration.DefaultNumConsumerFetchers)]
+        public int NumConsumerFetchers
+        {
+            get
+            {
+                return (int)this["numConsumerFetchers"];
+            }
+        }
+
+        [ConfigurationProperty("autoCommit", IsRequired = false, DefaultValue = ConsumerConfiguration.AutoCommit)]
+        public bool AutoCommit
+        {
+            get
+            {
+                return (bool)this["autoCommit"];
+            }
+        }
+
+        [ConfigurationProperty("autoCommitInterval", IsRequired = false, DefaultValue = ConsumerConfiguration.AutoCommitInterval)]
+        public int AutoCommitInterval
+        {
+            get
+            {
+                return (int)this["autoCommitInterval"];
+            }
+        }
+
+        [ConfigurationProperty("maxQueuedChunks", IsRequired = false, DefaultValue = ConsumerConfiguration.MaxQueuedChunks)]
+        public int MaxQueuedChunks
+        {
+            get
+            {
+                return (int)this["maxQueuedChunks"];
+            }
+        }
+
+        [ConfigurationProperty("maxRebalanceRetries", IsRequired = false, DefaultValue = ConsumerConfiguration.MaxRebalanceRetries)]
+        public int MaxRebalanceRetries
+        {
+            get
+            {
+                return (int)this["maxRebalanceRetries"];
+            }
+        }
+
+        [ConfigurationProperty("minFetchBytes", IsRequired = false, DefaultValue = ConsumerConfiguration.MinFetchBytes)]
+        public int MinFetchBytes
+        {
+            get
+            {
+                return (int)this["minFetchBytes"];
+            }
+        }
+
+        [ConfigurationProperty("maxFetchWaitMs", IsRequired = false, DefaultValue = ConsumerConfiguration.MaxFetchWaitMs)]
+        public int MaxFetchWaitMs
+        {
+            get
+            {
+                return (int)this["maxFetchWaitMs"];
+            }
+        }
+
+        [ConfigurationProperty("rebalanceBackoffMs", IsRequired = false, DefaultValue = ZooKeeperConfiguration.DefaultSyncTime)]
+        public int RebalanceBackoffMs
+        {
+            get
+            {
+                return (int)this["rebalanceBackoffMs"];
+            }
+        }
+
+        [ConfigurationProperty("refreshMetadataBackoffMs", IsRequired = false, DefaultValue = ConsumerConfiguration.RefreshMetadataBackoffMs)]
+        public int RefreshMetadataBackoffMs
+        {
+            get
+            {
+                return (int)this["refreshMetadataBackoffMs"];
+            }
+        }
+
+        [ConfigurationProperty("autoOffsetReset", IsRequired = false, DefaultValue = OffsetRequest.LargestTimeString)]
+        public string AutoOffsetReset
+        {
+            get
+            {
+                return (string)this["autoOffsetReset"];
+            }
+        }
+
+        [ConfigurationProperty("consumerTimeoutMs", IsRequired = false, DefaultValue = ConsumerConfiguration.DefaultConsumerTimeoutMs)]
+        public int ConsumerTimeoutMs
+        {
+            get
+            {
+                return (int)this["consumerTimeoutMs"];
+            }
+        }
+
+        [ConfigurationProperty("clientId", IsRequired = false, DefaultValue = null)]
+        public string ClientId
+        {
+            get
+            {
+                if (this["clientId"] == null)
+                {
+                    return GroupId;
+                }
+                return (string)this["clientId"];
             }
         }
 
@@ -129,15 +187,6 @@ namespace Kafka.Client.Cfg
             get
             {
                 return (ZooKeeperConfigurationElement)this["zookeeper"];
-            }
-        }
-
-        [ConfigurationProperty("broker", IsRequired = false)]
-        public BrokerConfigurationElement Broker
-        {
-            get
-            {
-                return (BrokerConfigurationElement)this["broker"];
             }
         }
 

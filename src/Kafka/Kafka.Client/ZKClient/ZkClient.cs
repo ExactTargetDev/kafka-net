@@ -19,6 +19,8 @@
 
     using log4net;
 
+    using Kafka.Client.Extensions;
+
     public class ZkClient : IWatcher, IDisposable
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -101,24 +103,25 @@
         }
 
         public List<string> SubscribeChildChanges(string path, IZkChildListener listener) {
-            lock (_childListener) 
+            lock (_childListener)
             {
-                var listeners = _childListener[path];
+                ConcurrentHashSet<IZkChildListener> listeners = _childListener.Get(path);
 
-                if (listeners == null) 
+                if (listeners == null)
                 {
                     listeners = new ConcurrentHashSet<IZkChildListener>();
                     _childListener[path] = listeners;
                 }
+
                 listeners.Add(listener);
             }
             return WatchForChilds(path);
         }
 
         public void UnsubscribeChildChanges(string path, IZkChildListener childListener) {
-            lock (_childListener) 
+            lock (_childListener)
             {
-                var listeners = _childListener[path];
+                ConcurrentHashSet<IZkChildListener> listeners = _childListener.Get(path);
                 if (listeners != null)
                 {
                     listeners.TryRemove(childListener);
@@ -130,11 +133,13 @@
             ConcurrentHashSet<IZkDataListener> listeners;
             lock (_dataListener)
             {
-                listeners = _dataListener[path];
-                if (listeners == null) {
+                listeners = _dataListener.Get(path);
+                if (listeners == null)
+                {
                     listeners = new ConcurrentHashSet<IZkDataListener>();
                     _dataListener[path] = listeners;
                 }
+
                 listeners.Add(listener);
             }
             WatchForData(path);
@@ -144,9 +149,10 @@
         public void UnsubscribeDataChanges(string path, IZkDataListener dataListener) {
             lock (_dataListener)
             {
-                ConcurrentHashSet<IZkDataListener> listeners = _dataListener[path];
 
-                if (listeners != null) {
+                ConcurrentHashSet<IZkDataListener> listeners = _dataListener.Get(path);
+                if (listeners != null)
+                {
                     listeners.TryRemove(dataListener);
                 }
 
@@ -445,13 +451,13 @@
 
         private bool HasListeners(string path)
         {
-            var dataListeners = _dataListener[path];
+            var dataListeners = _dataListener.Get(path);
             if (dataListeners != null && dataListeners.Count > 0) 
             {
                 return true;
             }
 
-            var childListeners = _childListener[path];
+            var childListeners = _childListener.Get(path);
             if (childListeners != null && childListeners.Count > 0) 
             {
                 return true;
@@ -488,7 +494,7 @@
 
             if (watchedEvent.Type == EventType.NodeChildrenChanged || watchedEvent.Type == EventType.NodeCreated || watchedEvent.Type == EventType.NodeDeleted)
             {
-                var childListeners = _childListener[path];
+                var childListeners = _childListener.Get(path);
                 if (childListeners != null && childListeners.Count > 0)
                 {
                     this.FireChildChangedEvents(path, childListeners);
@@ -497,7 +503,7 @@
 
             if (watchedEvent.Type == EventType.NodeDataChanged || watchedEvent.Type == EventType.NodeDeleted || watchedEvent.Type == EventType.NodeCreated)
             {
-                var listeners = _dataListener[path];
+                var listeners = _dataListener.Get(path);
                 if (listeners != null && listeners.Count > 0) {
                     this.FireDataChangedEvents(watchedEvent.Path, listeners);
                 }
@@ -583,9 +589,9 @@
             }
         }
 
-        protected ConcurrentHashSet<IZkDataListener> GetDataListener(string path) 
+        protected ConcurrentHashSet<IZkDataListener> GetDataListener(string path)
         {
-            return _dataListener[path];
+            return _dataListener.Get(path);
         }
 
 

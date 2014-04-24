@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Text;
 
+    using Kafka.Client.Api;
     using Kafka.Client.Cfg;
     using Kafka.Client.Consumers;
 
@@ -11,6 +12,14 @@
 
     public class ConsumerTest
     {
+        public ConsumerTest()
+        {
+            //TODO: move to separate class and config statically
+            log4net.Config.BasicConfigurator.Configure(
+            new log4net.Appender.ConsoleAppender { Layout = new log4net.Layout.SimpleLayout() }
+          );
+        }
+
         [Fact]
         public void Test()
         {
@@ -29,6 +38,16 @@
                     Console.WriteLine(Encoding.UTF8.GetString(message.Key));
                 }
             }
+        }
+
+        [Fact]
+        public void TestSimpleConsmer()
+        {
+            var consumer = new SimpleConsumer("192.168.1.14", 2181, 5000, 4096, "client-1");
+            var request = new TopicMetadataRequest(new List<string> {"topic5"}, 5);
+            var response = consumer.Send(request);
+
+            consumer.Dispose();
         }
     }
 }

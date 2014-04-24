@@ -1,4 +1,4 @@
-﻿namespace Kafka.Client.Cluster
+﻿namespace Kafka.Client.Clusters
 {
     using System;
     /* TODO Do we need it? 

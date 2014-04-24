@@ -7,7 +7,7 @@
 
     using Kafka.Client.Api;
     using Kafka.Client.Cfg;
-    using Kafka.Client.Cluster;
+    using Kafka.Client.Clusters;
     using Kafka.Client.Common;
     using Kafka.Client.Extensions;
     using Kafka.Client.Producers;
