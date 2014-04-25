@@ -31,7 +31,6 @@
 
         private readonly ConcurrentDictionary<String, ConcurrentHashSet<IZkDataListener>> _dataListener = new ConcurrentDictionary<string, ConcurrentHashSet<IZkDataListener>>();
 
-        //TODO: use concurrent version!!
         private readonly ConcurrentHashSet<IZkStateListener> _stateListener = new ConcurrentHashSet<IZkStateListener>();
 
         private KeeperState _currentState;
@@ -610,7 +609,7 @@
 
         public void WaitUntilConnected()
         {
-            this.WaitUntilConnected(TimeSpan.MaxValue);
+            this.WaitUntilConnected(TimeSpan.FromMilliseconds(int.MaxValue));
         }
 
         public bool WaitUntilConnected(TimeSpan timeout)

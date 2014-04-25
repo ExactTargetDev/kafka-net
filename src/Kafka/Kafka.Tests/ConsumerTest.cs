@@ -23,7 +23,7 @@
         [Fact]
         public void Test()
         {
-            var config = new ConsumerConfiguration("192.168.1.14", 2181);
+            var config = new ConsumerConfiguration("192.168.1.14", 2181, "group1");
             var consumer = Consumer.Create(config);
             var topic = new Dictionary<string, int>
                             {

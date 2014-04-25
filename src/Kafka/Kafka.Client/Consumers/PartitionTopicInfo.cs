@@ -25,7 +25,7 @@
 
         private readonly string clientId;
 
-        public readonly long InvalidOffset = -1L;
+        public const long InvalidOffset = -1L;
 
         public static bool IsOffsetInvalid(long offset)
         {

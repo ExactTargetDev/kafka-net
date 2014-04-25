@@ -11,6 +11,7 @@
     using Kafka.Client.ZKClient;
     using Kafka.Client.ZKClient.Exceptions;
 
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     using Org.Apache.Zookeeper.Data;
@@ -115,7 +116,11 @@
 
          // TODO: def registerBrokerInZk(zkClient: ZkClient, id: Int, host: String, port: Int, timeout: Int, jmxPort: Int) {
 
-         //TODO: def getConsumerPartitionOwnerPath(group: String, topic: String, partition: Int): String = {
+        public static string GetConsumerPartitionOwnerPath(string group, string topic, int partition)
+        {
+            var topicDirs = new ZKGroupTopicDirs(group, topic);
+            return topicDirs.ConsumerOwnerDir + "/" + partition;
+        }
 
         //TODO: def leaderAndIsrZkData(leaderAndIsr: LeaderAndIsr, controllerEpoch: Int): String = {
 
@@ -358,7 +363,7 @@
                     }
                 }
 
-                Logger.DebugFormat("Partition map for /brokers/topics/{0} is {1}", topic, partitionMap);
+                Logger.DebugFormat("Partition map for /brokers/topics/{0} is {1}", topic, JObject.FromObject(partitionMap).ToString(Formatting.None));
                 ret[topic] = partitionMap;
             }
 

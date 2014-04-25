@@ -29,5 +29,10 @@ namespace Kafka.Client.Common.Imported
         {
             return Interlocked.Increment(ref this.value);
         }
+
+        public override string ToString()
+        {
+            return string.Format("{0}", this.value);
+        }
     }
 }

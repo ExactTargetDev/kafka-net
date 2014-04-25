@@ -29,17 +29,17 @@
                 buffer, "error code", Tuple.Create<short, short>(-1, short.MaxValue));
             var partitionId = ApiUtils.ReadIntInRange(buffer, "partition id", Tuple.Create(0, int.MaxValue)); // partition id
             var leaderId = buffer.GetInt();
-            var leader = brokers.Get(leaderId);
+            var leader = brokers[leaderId];
 
             // list of all replicas
             var numReplicas = ApiUtils.ReadIntInRange(buffer, "number of all replicas", Tuple.Create(0, int.MaxValue));
             var replicaIds = Enumerable.Range(0, numReplicas).Select(_ => buffer.GetInt()).ToList();
-            var replicas = replicaIds.Select(brokers.Get).ToList();
+            var replicas = replicaIds.Select(x => brokers[x]).ToList();
 
             // list of in-sync replicasd
             var numIsr = ApiUtils.ReadIntInRange(buffer, "number of in-sync replicas", Tuple.Create(0, int.MaxValue));
             var isrIds = Enumerable.Range(0, numIsr).Select(_ => buffer.GetInt()).ToList();
-            var isr = isrIds.Select(brokers.Get).ToList();
+            var isr = isrIds.Select(x => brokers[x]).ToList();
 
             return new PartitionMetadata(partitionId, leader, replicas, isr, errorCode);
         }

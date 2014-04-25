@@ -89,11 +89,12 @@ namespace Kafka.Client.Cfg
             this.ClientId = GroupId;
         }
 
-        public ConsumerConfiguration(string host, int port)
+        public ConsumerConfiguration(string host, int port, string groupId)
             : this()
         {
             this.ZooKeeper = new ZooKeeperConfiguration(host + ":" + port, ZooKeeperConfiguration.DefaultSessionTimeout, 
                 ZooKeeperConfiguration.DefaultConnectionTimeout, ZooKeeperConfiguration.DefaultSyncTime);
+            this.GroupId = groupId;
         }
 
         public ConsumerConfiguration(ConsumerConfigurationSection config)

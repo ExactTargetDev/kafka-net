@@ -27,12 +27,17 @@
 
         public Broker GetBroker(int id)
         {
-            return this.brokers.Get(id);
+            Broker result;
+            if (brokers.TryGetValue(id, out result))
+            {
+                return result;
+            }
+            return null;
         }
 
         public void Add(Broker broker)
         {
-            brokers[broker.Id] = broker;
+            this.brokers[broker.Id] = broker;
         }
 
         public void Remote(int id)

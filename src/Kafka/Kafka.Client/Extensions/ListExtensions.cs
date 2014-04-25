@@ -70,7 +70,7 @@
             }
         }
 
-        public static TValue Get<TKey, TValue>(this IDictionary<TKey, TValue> self, TKey key)
+        public static TValue Get<TKey, TValue>(this IDictionary<TKey, TValue> self, TKey key) where TKey : class
         {
             TValue result;
             return self.TryGetValue(key, out result) ? result : default(TValue);

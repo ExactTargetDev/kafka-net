@@ -70,15 +70,13 @@ namespace Kafka.Client.Server
                     {
                         fetcherThread = this.CreateFetcherThread(
                             brokerAndFetcherId.FetcherId, brokerAndFetcherId.Broker);
-                        fetcherThreadMap[brokerAndFetcherId] = fetcherThread;
+                        this.fetcherThreadMap[brokerAndFetcherId] = fetcherThread;
                         fetcherThread.Start();
                     }
 
-                    throw new NotImplementedException();
-                    /* TODO
-                     * fetcherThreadMap(brokerAndFetcherId).addPartitions(partitionAndOffset.map { case (topicAndPartition, brokerAndInitOffset) =>
-          topicAndPartition -> brokerAndInitOffset.initOffset
-        })*/
+                    fetcherThreadMap.Get(brokerAndFetcherId)
+                                    .AddPartitions(
+                                        partitionAndOffsets.ToDictionary(x => x.Key, x => x.Value.InitOffset));
                 }
             }
 
@@ -91,43 +89,51 @@ namespace Kafka.Client.Server
                 }).ToArray()));
         }
 
-        /*
-     
-      
-         
-         
-  def removeFetcherForPartitions(partitions: Set[TopicAndPartition]) {
-    mapLock synchronized {
-      for ((key, fetcher) <- fetcherThreadMap) {
-        fetcher.removePartitions(partitions)
-      }
-    }
-    info("Removed fetcher for partitions %s".format(partitions.mkString(",")))
-  }
-
-  def shutdownIdleFetcherThreads() {
-    mapLock synchronized {
-      val keysToBeRemoved = new mutable.HashSet[BrokerAndFetcherId]
-      for ((key, fetcher) <- fetcherThreadMap) {
-        if (fetcher.partitionCount <= 0) {
-          fetcher.shutdown()
-          keysToBeRemoved += key
+        public void RemoveFetcherForPartitions(HashSet<TopicAndPartition> partitions)
+        {
+            lock (mapLock)
+            {
+                foreach (var keyAndFetcher in fetcherThreadMap)
+                {
+                    keyAndFetcher.Value.RemotePartitions(partitions);
+                }
+            }
+            Logger.InfoFormat("Removed fetcher for partitions {0}", string.Join(",", partitions));
         }
-      }
-      fetcherThreadMap --= keysToBeRemoved
-    }
-  }
 
-  def closeAllFetchers() {
-    mapLock synchronized {
-      for ( (_, fetcher) <- fetcherThreadMap) {
-        fetcher.shutdown()
-      }
-      fetcherThreadMap.clear()
-    }
-  }
-         */
-        //TODO: finish me
+        public void ShutdownIdleFetcherThreads()
+        {
+            lock (mapLock)
+            {
+                var keysToBeRemoted = new HashSet<BrokerAndFetcherId>();
+                foreach (var keyAndFetcher in fetcherThreadMap)
+                {
+                    var key = keyAndFetcher.Key;
+                    var fetcher = keyAndFetcher.Value;
+                    if (fetcher.PartitionCount() <= 0)
+                    {
+                        fetcher.Shutdown();
+                        keysToBeRemoted.Add(key);
+                    }
+                }
+                foreach (var key in keysToBeRemoted)
+                {
+                    fetcherThreadMap.Remove(key);
+                }
+            }
+        }
+
+        public void CloseAllFetchers()
+        {
+            lock (mapLock)
+            {
+                foreach (var fetcher in  fetcherThreadMap.Values)
+                {
+                    fetcher.Shutdown();
+                }
+                fetcherThreadMap.Clear();
+            }
+        }
 
     }
 }

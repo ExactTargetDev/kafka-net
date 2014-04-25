@@ -17,8 +17,10 @@
     using Kafka.Client.Serializers;
     using Kafka.Client.Utils;
     using Kafka.Client.ZKClient;
+    using Kafka.Client.ZKClient.Exceptions;
 
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     using ZooKeeperNet;
 
@@ -113,7 +115,7 @@
                 // generate unique consumerId automatically
                 var uuid = Guid.NewGuid();
                 consumerUuid = string.Format(
-                    "{0}-{1}-{2}", Dns.GetHostName(), DateTime.Now, uuid.ToString().Substring(0, 8));
+                    "{0}-{1}-{2}", Dns.GetHostName(), DateTimeHelper.CurrentTimeMilis(), BitConverter.ToString(uuid.ToByteArray()).Substring(0, 8));
             }
 
             this.consumerIdString = config.GroupId + "_" + consumerUuid;
@@ -222,7 +224,7 @@
         private void RegisterConsumerInZK(ZKGroupDirs dirs, string consumerIdString, TopicCount topicCount)
         {
             Logger.InfoFormat("begin registering consumer {0} in ZK", consumerIdString);
-            var timestamp = (DateTime.Now - new DateTime(1970, 1, 1)).TotalMilliseconds;
+            var timestamp = DateTimeHelper.CurrentTimeMilis();
             var consumerRegistrationInfo = JsonConvert.SerializeObject(new
                                                                            {
                                                                                version = 1,
@@ -606,6 +608,8 @@
                         var topic = topicAndConsumerThreadIsSet.Key;
                         var consumerThreadIdSet = topicAndConsumerThreadIsSet.Value;
 
+                        currentTopicRegistry[topic] = new Pool<int, PartitionTopicInfo>();
+
                         var topicDirs = new ZKGroupTopicDirs(group, topic);
                         var curConsumers = consumersPerTopicMap.Get(topic);
                         var curPartitions = partitionsPerTopicMap.Get(topic);
@@ -613,7 +617,7 @@
                         var nPartsPerConsumer = curPartitions.Count / curConsumers.Count;
                         var nConsumersWithExtraPart = curPartitions.Count % curConsumers.Count;
 
-                        Logger.InfoFormat("Consumer {0} rebalancing the following partitions: {1} for topic {2} with consumers: {3}", consumerIdString, curPartitions, topic, curConsumers);
+                        Logger.InfoFormat("Consumer {0} rebalancing the following partitions: {1} for topic {2} with consumers: {3}", consumerIdString, string.Join(",", curPartitions), topic, string.Join(",", curConsumers));
 
                         foreach (var consumerThreadId in consumerThreadIdSet)
                         {
@@ -657,8 +661,8 @@
                     if (this.ReflectPartitionOwnershipDecision(partitionOwnershipDecision))
                     {
                         Logger.Info("Updating the cache");
-                        Logger.Debug("Partitions per topic cache " + partitionsPerTopicMap);
-                        Logger.Debug("Consumers per topic cache " + consumersPerTopicMap);
+                        Logger.Debug("Partitions per topic cache " + JObject.FromObject(partitionsPerTopicMap).ToString(Formatting.None));
+                        Logger.Debug("Consumers per topic cache " + JObject.FromObject(consumersPerTopicMap).ToString(Formatting.None));
                         parent.topicRegistry = currentTopicRegistry;
                         this.UpdateFetcher(cluster);
                         return true;
@@ -676,7 +680,25 @@
                 IDictionary<string, IList<KafkaStream>> messageStreams,
                 IEnumerable<BlockingCollection<FetchedDataChunk>> queuesToBeCleared)
             {
-                throw new NotImplementedException();
+                var allPartitionInfos = parent.topicRegistry.Values.SelectMany(p => p.Values).ToList();
+                if (parent.fetcher != null)
+                {
+                    parent.fetcher.StopConnections();
+                    ClearFetcherQueues(allPartitionInfos, cluster, queuesToBeCleared, messageStreams);
+                    Logger.Info("Committing all offsets after clearing the fetcher queues");
+                    /**
+                      * here, we need to commit offsets before stopping the consumer from returning any more messages
+                      * from the current data chunk. Since partition ownership is not yet released, this commit offsets
+                      * call will ensure that the offsets committed now will be used by the next consumer thread owning the partition
+                      * for the current data chunk. Since the fetchers are already shutdown and this is the last chunk to be iterated
+                      * by the consumer, there will be no more messages returned by this iterator until the rebalancing finishes
+                      * successfully and the fetchers restart to fetch more data chunks
+                      **/
+                    if (parent.config.AutoCommitEnable)
+                    {
+                        parent.CommitOffsets();
+                    }
+                }
             }
 
             private void ClearFetcherQueues(
@@ -685,7 +707,24 @@
                 IEnumerable<BlockingCollection<FetchedDataChunk>> queuesToBeCleared,
                 IDictionary<string, IList<KafkaStream>> messageStreams)
             {
-                throw new NotImplementedException();
+                // Clear all but the currently iterated upon chunk in the consumer thread's queue
+                foreach (var queue in queuesToBeCleared)
+                {
+                    queue.Clear();
+                }
+
+                Logger.Info("Cleared all relevant queues for this fetcher");
+
+                // Also clear the currently iterated upon chunk in the consumer threads
+                if (messageStreams != null)
+                {
+                    foreach (var stream in messageStreams.Values)
+                    {
+                        stream.Clear();
+                    }
+                }
+
+                Logger.Info("Cleared the data chunks in all the consumer message iterators");
             }
 
             private void CloseFetchers(
@@ -702,15 +741,71 @@
                 this.CloseFetchersForQueues(cluster, messageStreams, queuesTobeCleared);
             }
 
-            private bool UpdateFetcher(Cluster cluster)
+            private void UpdateFetcher(Cluster cluster)
             {
-                throw new NotImplementedException();
+                // update partitions for fetcher
+                var allPartitionInfos = new List<PartitionTopicInfo>();
+                foreach (var partitionInfos in parent.topicRegistry.Values)
+                {
+                    allPartitionInfos.AddRange(partitionInfos.Values);
+                }
+                Logger.InfoFormat("Consumer {0} selected partitions: {1}", consumerIdString, string.Join(",", allPartitionInfos.OrderBy(x => x.PartitionId).Select(x => x.ToString())));
+
+                if (parent.fetcher != null)
+                {
+                    parent.fetcher.StartConnections(allPartitionInfos, cluster);
+                }
             }
 
             private bool ReflectPartitionOwnershipDecision(
                 IDictionary<Tuple<string, int>, string> partitionOwnershipDecision)
             {
-                throw new NotImplementedException();
+                var successfullyOwnedPartitions = new List<Tuple<string, int>>();
+                var partitionOwnershipSuccessful = partitionOwnershipDecision.Select(
+                    partitionOwner =>
+                        {
+                            var topic = partitionOwner.Key.Item1;
+                            var partition = partitionOwner.Key.Item2;
+                            var consumerThreadId = partitionOwner.Value;
+                            var partitionOwnerPath = ZkUtils.GetConsumerPartitionOwnerPath(group, topic, partition);
+                            try
+                            {
+                                ZkUtils.CreateEphemeralPathExpectConflict(
+                                    parent.zkClient, partitionOwnerPath, consumerThreadId);
+                                Logger.InfoFormat(
+                                    "{0} successfully owner partition {1} for topic {2}",
+                                    consumerThreadId,
+                                    partition,
+                                    topic);
+                                successfullyOwnedPartitions.Add(Tuple.Create(topic, partition));
+                                return true;
+                            }
+                            catch (ZkNodeExistsException e)
+                            {
+                                // The node hasn't been deleted by the original owner. So wait a bit and retry.
+                                Logger.InfoFormat("waiting for the partition ownership to be deleted:" + partition);
+                                return false;
+                            }
+                            catch (Exception e)
+                            {
+                                throw e;
+                            }
+                        }).ToList();
+                var hasPartitionOwnershipFailed = partitionOwnershipSuccessful.Aggregate(
+                    0, (sum, decision) => (sum + (decision ? 0 : 1)));
+                /* even if one of the partition ownership attempt has failed, return false */
+
+                if (hasPartitionOwnershipFailed > 0)
+                {
+                    // remove all paths that we have owned in ZK
+                    foreach (var topicAndPartition in successfullyOwnedPartitions)
+                    {
+                        this.DeletePartitionOwnershipFromZK(topicAndPartition.Item1, topicAndPartition.Item2);
+                    }
+                    return false;
+                }
+
+                return true;
             }
 
             private void AddPartitionTopicInfo(
@@ -720,10 +815,33 @@
                 string topic,
                 string consumerThreadId)
             {
-                throw new NotImplementedException();
+
+                var partTopicInfoMap = currentTopicRegistry.Get(topic);
+
+                var znode = topicDirs.ConsumerOffsetDir + "/" + partition;
+                var offsetString = ZkUtils.ReadDataMaybeNull(parent.zkClient, znode).Item1;
+
+                // If first time starting a consumer, set the initial offset to -1
+                var offset = (offsetString != null) ? long.Parse(offsetString) : PartitionTopicInfo.InvalidOffset;
+
+                var queue = parent.topicThreadIdAndQueues.Get(Tuple.Create(topic, consumerThreadId));
+                var consumedOffset = new AtomicLong(offset);
+                var fetchedOffset = new AtomicLong(offset);
+                var partTopicInfo = new PartitionTopicInfo(
+                    topic,
+                    partition,
+                    queue,
+                    consumedOffset,
+                    fetchedOffset,
+                    new AtomicInteger(parent.config.FetchMessageMaxBytes),
+                    parent.config.ClientId);
+
+                partTopicInfoMap[partition] = partTopicInfo;
+                Logger.DebugFormat("{0} selected new offset {1}", partTopicInfo, offset);
+                parent.checkpointedOffsets[new TopicAndPartition(topic, partition)] = offset;
+
             }
 
-            //TODO:
         }
 
         private void ReinitializeConsumer<TKey, TValue>(
@@ -786,7 +904,7 @@
                 var topicThreadId = e.Item1;
                 var q = e.Item2.Item1;
                 topicThreadIdAndQueues[topicThreadId] = q;
-                Logger.DebugFormat("Adding topicThreadId {0} and queue {1} to topicThreadIdAndQueues data structure", topicThreadId, q);
+                Logger.DebugFormat("Adding topicThreadId {0} and queue {1} to topicThreadIdAndQueues data structure", topicThreadId, string.Join(",", q));
                 //TODO: gauge
             }
 
