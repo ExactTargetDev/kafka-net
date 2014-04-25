@@ -29,7 +29,8 @@
             config.FetchMessageMaxBytes, 
             Request.OrdinaryConsumerId,
             config.FetchWaitMaxMs,
-            config.FetchMinBytes, true)
+            config.FetchMinBytes, 
+            true)
 
         {
             throw new NotImplementedException();

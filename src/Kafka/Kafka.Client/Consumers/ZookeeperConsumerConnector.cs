@@ -96,7 +96,7 @@
 
         private ZKTopicPartitionChangeListener topicPartitionChangeListener;
 
-        private ZKRebalancerListener loadBalancerListener;
+        private IZKRebalancerListener loadBalancerListener;
 
         private ZookeeperTopicEventWatcher wildcardTopicWatcher;
 
@@ -208,7 +208,6 @@
             this.RegisterConsumerInZK(dirs, consumerIdString, topicCount);
             ReinitializeConsumer(topicCount, queuesAndStreams);
 
-            //TODO: cast? asInstanceOf[Map[String, List[KafkaStream[K,V]]]]
             return (IDictionary<string, IList<KafkaStream<TKey, TValue>>>)loadBalancerListener.KafkaMessageAndMetadataStreams;
         }
 
@@ -314,9 +313,9 @@
 
             public TopicCount TopicCount { get; private set; }
 
-            public ZKRebalancerListener LoadbalancerListener { get; private set; }
+            public IZKRebalancerListener LoadbalancerListener { get; private set; }
 
-            public ZKSessionExpireListener(ZookeeperConsumerConnector parent, ZKGroupDirs dirs, string consumerIdString, TopicCount topicCount, ZKRebalancerListener loadbalancerListener)
+            public ZKSessionExpireListener(ZookeeperConsumerConnector parent, ZKGroupDirs dirs, string consumerIdString, TopicCount topicCount, IZKRebalancerListener loadbalancerListener)
             {
                 this.parent = parent;
                 this.dirs = dirs;
@@ -358,10 +357,10 @@
         {
             private ZookeeperConsumerConnector parent;
 
-            public ZKRebalancerListener LoadbalancerListener { get; private set; }
+            public IZKRebalancerListener LoadbalancerListener { get; private set; }
 
             public ZKTopicPartitionChangeListener(
-                ZookeeperConsumerConnector parent, ZKRebalancerListener loadBalancerListener)
+                ZookeeperConsumerConnector parent, IZKRebalancerListener loadBalancerListener)
             {
                 this.parent = parent;
                 this.LoadbalancerListener = loadBalancerListener;
@@ -393,7 +392,18 @@
             }
         }
 
-        internal class ZKRebalancerListener : IZkChildListener
+        internal interface IZKRebalancerListener : IZkChildListener
+        {
+            void RebalanceEventTriggered();
+
+            void SyncedRebalance();
+
+            void ResetState();
+
+            object KafkaMessageAndMetadataStreams { get; }
+        }
+
+        internal class ZKRebalancerListener<TKey, TValue> : IZkChildListener, IZKRebalancerListener
         {
 
             private ZookeeperConsumerConnector parent;
@@ -402,7 +412,7 @@
 
             private string consumerIdString;
 
-            public IDictionary<string, IList<KafkaStream>> KafkaMessageAndMetadataStreams { get; private set; }
+            public object KafkaMessageAndMetadataStreams { get; private set; }
 
             private bool isWatcherTriggered = false;
 
@@ -416,7 +426,7 @@
                 ZookeeperConsumerConnector parent,
                 string group,
                 string consumerIdString,
-                IDictionary<string, IList<KafkaStream>> kafkaMessageAndMetadataStreams)
+                IDictionary<string, IList<KafkaStream<TKey, TValue>>> kafkaMessageAndMetadataStreams)
             {
                 this.parent = parent;
                 this.group = group;
@@ -556,7 +566,7 @@
                             }
 
                             // stop all fetchers and clear all the queues to avoid data duplication
-                            CloseFetchersForQueues(cluster, KafkaMessageAndMetadataStreams, parent.topicThreadIdAndQueues.Select(x => x.Value).ToList());
+                            CloseFetchersForQueues(cluster, (IDictionary<string, IList<KafkaStream<TKey, TValue>>>)KafkaMessageAndMetadataStreams, parent.topicThreadIdAndQueues.Select(x => x.Value).ToList());
                             Thread.Sleep(parent.config.RebalanceBackoffMs);
                         }
                     }
@@ -596,7 +606,7 @@
                      * partitions in parallel. So, not stopping the fetchers leads to duplicate data.
                      */
 
-                    this.CloseFetchers(cluster, KafkaMessageAndMetadataStreams, myTopicThreadIdsMap);
+                    this.CloseFetchers(cluster, (IDictionary<string, IList<KafkaStream<TKey, TValue>>>) KafkaMessageAndMetadataStreams, myTopicThreadIdsMap);
 
                     this.ReleasePartitionOwnership(parent.topicRegistry);
 
@@ -677,7 +687,7 @@
 
             private void CloseFetchersForQueues(
                 Cluster cluster,
-                IDictionary<string, IList<KafkaStream>> messageStreams,
+                IDictionary<string, IList<KafkaStream<TKey, TValue>>> messageStreams,
                 IEnumerable<BlockingCollection<FetchedDataChunk>> queuesToBeCleared)
             {
                 var allPartitionInfos = parent.topicRegistry.Values.SelectMany(p => p.Values).ToList();
@@ -705,7 +715,7 @@
                 IEnumerable<PartitionTopicInfo> topicInfos,
                 Cluster cluster,
                 IEnumerable<BlockingCollection<FetchedDataChunk>> queuesToBeCleared,
-                IDictionary<string, IList<KafkaStream>> messageStreams)
+                IDictionary<string, IList<KafkaStream<TKey, TValue>>> messageStreams)
             {
                 // Clear all but the currently iterated upon chunk in the consumer thread's queue
                 foreach (var queue in queuesToBeCleared)
@@ -729,7 +739,7 @@
 
             private void CloseFetchers(
                 Cluster cluster,
-                IDictionary<string, IList<KafkaStream>> messageStreams,
+                IDictionary<string, IList<KafkaStream<TKey, TValue>>> messageStreams,
                 IDictionary<string, ISet<string>> relevantTopicThreadIdsMap)
             {
                 // only clear the fetcher queues for certain topic partitions that *might* no longer be served by this consumer
@@ -852,8 +862,8 @@
             // listener to consumer and partition changes
             if (loadBalancerListener == null)
             {
-                var topicStreamsMaps = new Dictionary<string, IList<KafkaStream>>();
-                loadBalancerListener = new ZKRebalancerListener(this, config.GroupId, consumerIdString, topicStreamsMaps); //TODO: cast
+                var topicStreamsMaps = new Dictionary<string, IList<KafkaStream<TKey, TValue>>>();
+                loadBalancerListener = new ZKRebalancerListener<TKey, TValue>(this, config.GroupId, consumerIdString, topicStreamsMaps); 
             }
 
             // create listener for session expired event if not exist yet
@@ -869,7 +879,7 @@
                 topicPartitionChangeListener = new ZKTopicPartitionChangeListener(this, loadBalancerListener);
             }
 
-            var topicStreamsMap = loadBalancerListener.KafkaMessageAndMetadataStreams;
+            var topicStreamsMap = (IDictionary<string, IList<KafkaStream<TKey, TValue>>>)loadBalancerListener.KafkaMessageAndMetadataStreams;
 
             // map of {topic -> Set(thread-1, thread-2, ...)}
             var consumerThreadIdsPerTopic = topicCount.GetConsumerThreadIdsPerTopic();
@@ -913,7 +923,7 @@
             foreach (var e in groupedByTopic)
             {
                 var topic = e.Key;
-                var streams = e.Select(x =>(KafkaStream) x.Item2.Item2).ToList();
+                var streams = e.Select(x => x.Item2.Item2).ToList();
                 topicStreamsMap[topic] = streams;
                 Logger.DebugFormat("adding topic {0} and {1} stream to map", topic, streams.Count);
             }

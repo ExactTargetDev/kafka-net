@@ -3,6 +3,8 @@
     using System;
     using System.Collections.Generic;
     using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     using Kafka.Client.Api;
     using Kafka.Client.Cfg;
@@ -31,13 +33,22 @@
                             };
             var messageStreams = consumer.CreateMessageStreams(topic);
             var topic5Stream = messageStreams["topic5"];
-            foreach (var stream in topic5Stream)
-            {
-                foreach (var message in stream)
-                {
-                    Console.WriteLine(Encoding.UTF8.GetString(message.Key));
-                }
-            }
+
+            Task.Factory.StartNew(
+                () =>
+                    {
+                        foreach (var stream in topic5Stream)
+                        {
+                            foreach (var message in stream)
+                            {
+                                Console.WriteLine(Encoding.UTF8.GetString(message.Key));
+                            }
+                        }
+                    });
+
+            Thread.Sleep(10000);
+            consumer.Shutdown();
+
         }
 
         [Fact]

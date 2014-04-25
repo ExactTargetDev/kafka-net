@@ -18,7 +18,7 @@
 
         private Thread innerThread;
 
-        private AtomicBoolean isRunning = new AtomicBoolean(true);
+        protected AtomicBoolean isRunning = new AtomicBoolean(true);
 
         private ManualResetEventSlim shutdownLatch = new ManualResetEventSlim(false);
 
