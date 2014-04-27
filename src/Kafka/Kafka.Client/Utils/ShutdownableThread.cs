@@ -12,9 +12,9 @@
     {
         protected static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private string name;
+        protected string name;
 
-        private bool isInterruptible;
+        protected bool isInterruptible;
 
         private Thread innerThread;
 

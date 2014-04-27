@@ -11,7 +11,7 @@
     {
         /// <summary>
         /// Uses the key to calculate a partition bucket id for routing
-        /// the data to the appropriate broker partition
+        /// the Data to the appropriate broker partition
         /// </summary>
         /// <param name="key"></param>
         /// <param name="numPartitions"></param>

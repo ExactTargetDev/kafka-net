@@ -158,7 +158,7 @@
             }
             catch (ZkNodeExistsException e)
             {
-                // this can happen when there is connection loss; make sure the data is what we intend to write
+                // this can happen when there is connection loss; make sure the Data is what we intend to write
                 string storedData = null;
                 try
                 {
@@ -171,7 +171,7 @@
 
                 if (storedData == null || storedData != data)
                 {
-                    Logger.InfoFormat("Conflict in {0} data: {1}, stored data: {2}", path, data, storedData);
+                    Logger.InfoFormat("Conflict in {0} Data: {1}, stored Data: {2}", path, data, storedData);
                     throw e;
                 }
                 else
@@ -228,11 +228,11 @@
             }
         }
 
-         //TODO: def createPersistentPath(client: ZkClient, path: String, data: String = ""): Unit = {
+         //TODO: def createPersistentPath(client: ZkClient, path: String, Data: String = ""): Unit = {
 
-         //TODO: def createSequentialPersistentPath(client: ZkClient, path: String, data: String = ""): String = {
+         //TODO: def createSequentialPersistentPath(client: ZkClient, path: String, Data: String = ""): String = {
 
-         //TODO: def updatePersistentPath(client: ZkClient, path: String, data: String) = {
+         //TODO: def updatePersistentPath(client: ZkClient, path: String, Data: String) = {
 
         public static void UpdatePersistentPath(ZkClient client, string path, string data)
         {
@@ -254,11 +254,11 @@
             }
         }
 
-         //TODO: def conditionalUpdatePersistentPath(client: ZkClient, path: String, data: String, expectVersion: Int): (Boolean, Int) = {
+         //TODO: def conditionalUpdatePersistentPath(client: ZkClient, path: String, Data: String, expectVersion: Int): (Boolean, Int) = {
 
-         //TODO: def conditionalUpdatePersistentPathIfExists(client: ZkClient, path: String, data: String, expectVersion: Int): (Boolean, Int) = {
+         //TODO: def conditionalUpdatePersistentPathIfExists(client: ZkClient, path: String, Data: String, expectVersion: Int): (Boolean, Int) = {
 
-         //TODO: def updateEphemeralPath(client: ZkClient, path: String, data: String): Unit = {
+         //TODO: def updateEphemeralPath(client: ZkClient, path: String, Data: String): Unit = {
 
          //TODO: def deletePath(client: ZkClient, path: String): Boolean = {
 

@@ -95,7 +95,7 @@ namespace Kafka.Client.Server
             {
                 foreach (var keyAndFetcher in fetcherThreadMap)
                 {
-                    keyAndFetcher.Value.RemotePartitions(partitions);
+                    keyAndFetcher.Value.RemovePartitions(partitions);
                 }
             }
             Logger.InfoFormat("Removed fetcher for partitions {0}", string.Join(",", partitions));

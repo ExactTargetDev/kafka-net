@@ -53,7 +53,7 @@ namespace Kafka.Client.Locks
     /// and helps avoid many common programming errors involving locks,
     /// there are occasions where you need to work with locks in a more
     /// flexible way. For example, some algorithms for traversing
-    /// concurrently accessed data structures require the use of
+    /// concurrently accessed Data structures require the use of
     /// 'hand-over-hand' or 'chain locking': you
     /// acquire the lock of node A, then node B, then release A and acquire
     /// C, then release B and acquire D and so on.  Implementations of the

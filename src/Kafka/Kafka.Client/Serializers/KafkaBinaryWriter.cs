@@ -24,7 +24,7 @@ namespace Kafka.Client.Serializers
     using System;
 
     /// <summary>
-    /// Writes data into underlying stream using big endian bytes order for primitive types
+    /// Writes Data into underlying stream using big endian bytes order for primitive types
     /// and UTF-8 encoding for strings.
     /// </summary>
     [Obsolete]

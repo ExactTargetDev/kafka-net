@@ -105,7 +105,7 @@
                     {
                         Logger.ErrorFormat(
                             CultureInfo.CurrentCulture,
-                            "consumed offset: {0} doesn't match fetch offset: {1} for {2}; consumer may lose data",
+                            "consumed offset: {0} doesn't match fetch offset: {1} for {2}; consumer may lose Data",
                             ctiConsumeOffset,
                             cdcFetchOffset,
                             this.currentTopicInfo);
@@ -152,7 +152,7 @@
 
         public void ClearCurrentChunk()
         {
-            Logger.Debug("Clearing the current data chunk for this consumer iterator");
+            Logger.Debug("Clearing the current Data chunk for this consumer iterator");
             this.current.Set(null);
         }
 

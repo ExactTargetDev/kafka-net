@@ -69,7 +69,7 @@
                     var expired = currentQueueItem == null;
                     if (currentQueueItem != null)
                     {
-                            Logger.InfoFormat("Dequeued item for topic {0}, partition key: {1}, data: {2}",
+                            Logger.InfoFormat("Dequeued item for topic {0}, partition key: {1}, Data: {2}",
                                               currentQueueItem.Topic, 
                                               currentQueueItem.Key, 
                                               string.Join(", ", currentQueueItem.Message));

@@ -1,10 +1,12 @@
 ﻿namespace Kafka.Client.Consumers
 {
     using System;
+    using System.Collections.Generic;
     using System.Reflection;
 
     using Kafka.Client.Api;
     using Kafka.Client.Cfg;
+    using Kafka.Client.Common;
     using Kafka.Client.Network;
 
     using log4net;
@@ -118,9 +120,28 @@
             return TopicMetadataResponse.ReadFrom(response.Buffer);
         }
 
-        //TODO: fetch offsets
+        /// <summary>
+        /// Fetch a set of messages from a topic.
+        /// </summary>
+        /// <param name="request"> specifies the topic name, topic partition, starting byte offset, maximum bytes to be fetched.</param>
+        /// <returns></returns>
+        internal FetchResponse Fetch(FetchRequest request)
+        {
+            Receive response;
+            // TODO timers
+            response = this.SendRequest(request);
 
-        //TODO: def getOffsetsBefore(request: OffsetRequest) = OffsetResponse.readFrom(sendRequest(request).buffer)
+            var fetchResponse = FetchResponse.ReadFrom(response.Buffer);
+            var fetchedSize = fetchResponse.SizeInBytes;
+            //TODO stats
+
+            return fetchResponse;
+        }
+
+        internal OffsetResponse GetOffsetsBefore(OffsetRequest request)
+        {
+            return OffsetResponse.ReadFrom(this.SendRequest(request).Buffer);
+        }
 
         //TODO: def commitOffsets(request: OffsetCommitRequest) = OffsetCommitResponse.readFrom(sendRequest(request).buffer)
 
@@ -134,7 +155,32 @@
             }
         }
 
-        //TODO:  def earliestOrLatestOffset(topicAndPartition: TopicAndPartition, earliestOrLatest: Long, consumerId: Int): Long = {
+        public long EarliestOrLatestOffset(TopicAndPartition topicAndPartition, long earliestOrLatest, int consumerId)
+        {
+            var request =
+                new OffsetRequest(
+                    requestInfo:
+                        new Dictionary<TopicAndPartition, PartitionOffsetRequestInfo>
+                            {
+                                {
+                                    topicAndPartition,
+                                    new PartitionOffsetRequestInfo(earliestOrLatest, 1)
+                                }
+                            },
+                    clientId: this.ClientId,
+                    replicaId: consumerId);
+            var partitionErrorAndOffset = GetOffsetsBefore(request).PartitionErrorAndOffsets[topicAndPartition];
+            long offset;
+            if (partitionErrorAndOffset.Error == ErrorMapping.NoError)
+            {
+                offset = partitionErrorAndOffset.Offsets[0];
+            }
+            else
+            {
+                throw ErrorMapping.ExceptionFor(partitionErrorAndOffset.Error);
+            }
+            return offset;
+        }
 
     }
 }

@@ -345,7 +345,7 @@
         {
             if (brokerId < 0)
             {
-                Logger.WarnFormat("Failed to send data since partitions {0} don't have a leader", string.Join(",", messagesPerTopic.Select(m => m.Key.Partiton)));
+                Logger.WarnFormat("Failed to send Data since partitions {0} don't have a leader", string.Join(",", messagesPerTopic.Select(m => m.Key.Partiton)));
                 return new List<TopicAndPartition>(messagesPerTopic.Keys);
             }
             if (messagesPerTopic.Count > 0)
@@ -420,7 +420,7 @@
                 {
                             Logger.Warn(
                                 string.Format(
-                                    "Failed to send producer request with correlation id {0} to broker {1} with data for partitions {2}",
+                                    "Failed to send producer request with correlation id {0} to broker {1} with Data for partitions {2}",
                                     currentCorrelationId,
                                     brokerId,
                                     string.Join(",", messagesPerTopic.Select(m => m.Key))),

@@ -119,7 +119,10 @@
   <ItemGroup>
     <Compile Include="Api\ApiUtils.cs" />
     <Compile Include="Api\FetchRequest.cs" />
+    <Compile Include="Api\FetchResponse.cs" />
+    <Compile Include="Api\FetchResponsePartitionData.cs" />
     <Compile Include="Api\OffsetRequest.cs" />
+    <Compile Include="Api\OffsetResponse.cs" />
     <Compile Include="Api\PartitionFetchInfo.cs" />
     <Compile Include="Api\PartitionMetadata.cs" />
     <Compile Include="Api\ProducerRequest.cs" />

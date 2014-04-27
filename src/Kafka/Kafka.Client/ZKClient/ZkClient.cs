@@ -142,7 +142,7 @@
                 listeners.Add(listener);
             }
             WatchForData(path);
-            Logger.Debug("Subscribed data changes for " + path);
+            Logger.Debug("Subscribed Data changes for " + path);
         }
 
         public void UnsubscribeDataChanges(string path, IZkDataListener dataListener) {

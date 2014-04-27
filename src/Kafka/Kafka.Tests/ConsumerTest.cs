@@ -25,7 +25,8 @@
         [Fact]
         public void Test()
         {
-            var config = new ConsumerConfiguration("192.168.1.14", 2181, "group1");
+            var config = new ConsumerConfiguration("192.168.1.14", 2181, "group2");
+            config.ClientId = "client123";
             var consumer = Consumer.Create(config);
             var topic = new Dictionary<string, int>
                             {

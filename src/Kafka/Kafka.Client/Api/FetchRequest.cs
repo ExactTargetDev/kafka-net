@@ -5,10 +5,14 @@ namespace Kafka.Client.Api
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Text;
 
     using Kafka.Client.Cfg;
     using Kafka.Client.Common;
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
+    using Kafka.Client.Messages;
+    using Kafka.Client.Network;
     using Kafka.Client.ZKClient.Exceptions;
 
     using System.Linq;
@@ -115,8 +119,13 @@ namespace Kafka.Client.Api
         }
 
 
-
-        /*TODO  def isFromFollower = Request.isReplicaIdFromFollower(replicaId) */
+        public bool IsFromFailover
+        {
+            get
+            {
+                return Request.IsReplicaIdFromFollower(this.ReplicaId);
+            }
+        }
 
         public bool FromOrdinaryConsumer
         {
@@ -149,12 +158,92 @@ namespace Kafka.Client.Api
 
         public override void HandleError(Exception e, Network.RequestChannel requestChannel, Network.RequestChannelRequest request)
         {
+            var fetchResponsePartitionData = RequestInfo.ToDictionary(
+                k => k.Key, v => new FetchResponsePartitionData(ErrorMapping.CodeFor(e.GetType()), -1, MessageSet.Empty));
+            var errorResponse = new FetchResponse(CorrelationId, fetchResponsePartitionData);
             throw new NotImplementedException();
+          //TODO:  requestChannel.SendResponse(new RequestChannel.Respose(request, new FetchResponseSend(errorResponse)));
         }
 
         public override string Describe(bool details)
         {
-            throw new NotImplementedException();
+            var fetchRequest = new StringBuilder();
+            fetchRequest.Append("Name: " + this.GetType().Name);
+            fetchRequest.Append("; Version: " + VersionId);
+            fetchRequest.Append("; CorrelationId: " + CorrelationId);
+            fetchRequest.Append("; ClientId: " + ClientId);
+            fetchRequest.Append("; ReplicaId: " + ReplicaId);
+            fetchRequest.Append("; MaxWait: " + MaxWait + " ms");
+            fetchRequest.Append("; MinBytes: " + MinBytes + " bytes");
+            if (details)
+            {
+                fetchRequest.Append("; RequestInfo: " + string.Join(",", RequestInfo));
+            }
+
+            return fetchRequest.ToString();
+        }
+
+    }
+
+    public class FetchRequestBuilder
+    {
+        private readonly AtomicInteger correlationId = new AtomicInteger(0);
+
+        private readonly short versionId = FetchRequest.CurrentVersion;
+
+        private string clientId = ConsumerConfiguration.DefaultClientId;
+
+        private int replicaId = Request.OrdinaryConsumerId;
+
+        private int maxWait = FetchRequest.DefaultMaxWait;
+
+        private int minBytes = FetchRequest.DefaultMinBytes;
+
+        private Dictionary<TopicAndPartition, PartitionFetchInfo> requestMap = new Dictionary<TopicAndPartition, PartitionFetchInfo>();
+
+        public FetchRequestBuilder AddFetch(string topic, int partition, long offset, int fetchSize)
+        {
+            this.requestMap[new TopicAndPartition(topic, partition)] = new PartitionFetchInfo(offset, fetchSize);
+            return this;
+        }
+
+        public FetchRequestBuilder ClientId(string clientId)
+        {
+            this.clientId = clientId;
+            return this;
+        }
+
+        internal FetchRequestBuilder ReplicaId(int replicaId)
+        {
+            this.replicaId = replicaId;
+            return this;
+        }
+
+        internal FetchRequestBuilder MaxWait(int maxWait)
+        {
+            this.maxWait = maxWait;
+            return this;
+        }
+
+        internal FetchRequestBuilder MinBytes(int minBytes)
+        {
+            this.minBytes = minBytes;
+            return this;
+        }
+
+        public FetchRequest Build()
+        {
+            var fetchRequest = new FetchRequest(
+                versionId,
+                correlationId.GetAndIncrement(),
+                clientId,
+                replicaId,
+                maxWait,
+                minBytes,
+                new Dictionary<TopicAndPartition, PartitionFetchInfo>(requestMap));
+
+            this.requestMap.Clear();
+            return fetchRequest;
         }
 
     }

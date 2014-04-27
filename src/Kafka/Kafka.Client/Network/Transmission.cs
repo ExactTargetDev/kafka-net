@@ -7,7 +7,7 @@
     using log4net;
 
     /// <summary>
-    /// Represents a stateful transfer of data to or from the network
+    /// Represents a stateful transfer of Data to or from the network
     /// </summary>
     public abstract class Transmission
     {

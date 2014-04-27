@@ -114,10 +114,11 @@
             Logger.InfoFormat("All connections stopped");
         }
 
-        public void AddPartitionsWithError(IList<TopicAndPartition> partitionList)
+        public void AddPartitionsWithError(IEnumerable<TopicAndPartition> partitionList)
         {
             Logger.DebugFormat("Adding partitions with error {0}", string.Join(",", partitionList));
-            lock (this.Lock)
+            this.Lock.Lock();
+            try
             {
                 if (this.partitionMap != null)
                 {
@@ -127,6 +128,10 @@
                     }
                     this.cond.SignalAll();
                 }
+            }
+            finally
+            {
+                this.Lock.Unlock();
             }
         }
 

@@ -180,7 +180,44 @@
 
         public void Shutdown()
         {
-            throw new System.NotImplementedException();
+            lock (rebalanceLock)
+            {
+                var canShutdown = isShuttingDown.CompareAndSet(false, true);
+                if (canShutdown)
+                {
+                    Logger.Info("ZKConsumerConnector shutting down");
+                    if (wildcardTopicWatcher != null)
+                    {
+                        wildcardTopicWatcher.Shutdown();
+                    }
+                    try
+                    {
+                        if (config.AutoCommitEnable)
+                        {
+                            scheduler.Shutdown();
+                        }
+                        if (fetcher != null)
+                        {
+                            fetcher.StopConnections();
+                        }
+                        this.SendShutdownToAllQueues();
+                        if (config.AutoCommitEnable)
+                        {
+                            this.CommitOffsets();
+                        }
+                        if (zkClient != null)
+                        {
+                            zkClient.Dispose();
+                            zkClient = null;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Fatal("error during consumer connector shutdown", e);
+                    }
+                    Logger.Info("ZKConsumerConnector shut down completed");
+                }
+            }
         }
 
         private IDictionary<string, IList<KafkaStream<TKey, TValue>>> Consume<TKey, TValue>(IDictionary<string, int> topicCountMap, IDecoder<TKey> keyDecoder, IDecoder<TValue> valueDecoder)
@@ -381,7 +418,7 @@
                 }
                 catch (Exception e)
                 {
-                    Logger.Error("Error while handling topic partition change for data path " + dataPath, e);
+                    Logger.Error("Error while handling topic partition change for Data path " + dataPath, e);
                 }
             }
 
@@ -565,7 +602,7 @@
                                 Logger.Info("Rebalancing attempt failed. Clearing the cache before the next rebalancing operation is triggered");
                             }
 
-                            // stop all fetchers and clear all the queues to avoid data duplication
+                            // stop all fetchers and clear all the queues to avoid Data duplication
                             CloseFetchersForQueues(cluster, (IDictionary<string, IList<KafkaStream<TKey, TValue>>>)KafkaMessageAndMetadataStreams, parent.topicThreadIdAndQueues.Select(x => x.Value).ToList());
                             Thread.Sleep(parent.config.RebalanceBackoffMs);
                         }
@@ -600,10 +637,10 @@
                         p => p.Key, p => p.Value.Keys.OrderBy(x => x).ToList());
 
                      /**
-                     * fetchers must be stopped to avoid data duplication, since if the current
+                     * fetchers must be stopped to avoid Data duplication, since if the current
                      * rebalancing attempt fails, the partitions that are released could be owned by another consumer.
-                     * But if we don't stop the fetchers first, this consumer would continue returning data for released
-                     * partitions in parallel. So, not stopping the fetchers leads to duplicate data.
+                     * But if we don't stop the fetchers first, this consumer would continue returning Data for released
+                     * partitions in parallel. So, not stopping the fetchers leads to duplicate Data.
                      */
 
                     this.CloseFetchers(cluster, (IDictionary<string, IList<KafkaStream<TKey, TValue>>>) KafkaMessageAndMetadataStreams, myTopicThreadIdsMap);
@@ -698,11 +735,11 @@
                     Logger.Info("Committing all offsets after clearing the fetcher queues");
                     /**
                       * here, we need to commit offsets before stopping the consumer from returning any more messages
-                      * from the current data chunk. Since partition ownership is not yet released, this commit offsets
+                      * from the current Data chunk. Since partition ownership is not yet released, this commit offsets
                       * call will ensure that the offsets committed now will be used by the next consumer thread owning the partition
-                      * for the current data chunk. Since the fetchers are already shutdown and this is the last chunk to be iterated
+                      * for the current Data chunk. Since the fetchers are already shutdown and this is the last chunk to be iterated
                       * by the consumer, there will be no more messages returned by this iterator until the rebalancing finishes
-                      * successfully and the fetchers restart to fetch more data chunks
+                      * successfully and the fetchers restart to fetch more Data chunks
                       **/
                     if (parent.config.AutoCommitEnable)
                     {
@@ -734,7 +771,7 @@
                     }
                 }
 
-                Logger.Info("Cleared the data chunks in all the consumer message iterators");
+                Logger.Info("Cleared the Data chunks in all the consumer message iterators");
             }
 
             private void CloseFetchers(
@@ -914,7 +951,7 @@
                 var topicThreadId = e.Item1;
                 var q = e.Item2.Item1;
                 topicThreadIdAndQueues[topicThreadId] = q;
-                Logger.DebugFormat("Adding topicThreadId {0} and queue {1} to topicThreadIdAndQueues data structure", topicThreadId, string.Join(",", q));
+                Logger.DebugFormat("Adding topicThreadId {0} and queue {1} to topicThreadIdAndQueues Data structure", topicThreadId, string.Join(",", q));
                 //TODO: gauge
             }
 

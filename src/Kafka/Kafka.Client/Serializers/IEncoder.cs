@@ -6,7 +6,7 @@
     /// takes a VerifiableProperties instance.
     /// </summary>
     /// <typeparam name="T">
-    /// Type od data
+    /// Type od Data
     /// </typeparam>
     public interface IEncoder<T>
     {

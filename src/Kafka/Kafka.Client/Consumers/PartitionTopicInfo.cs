@@ -11,6 +11,8 @@
 
     using log4net;
 
+    using Kafka.Client.Extensions;
+
     public class PartitionTopicInfo
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -131,7 +133,7 @@
             if (size > 0)
             {
 
-                var next = 0; //TODO: var next = messages.ShallowEnumerator().Last().NextOffset;
+                var next = messages.ShallowEnumerator().ToEnumerable().Last().NextOffset;
                 Logger.DebugFormat("Updating fetch offset = {0} to {1}", this.fetchedOffset.Get(), next);
                 chunkQueue.Add(new FetchedDataChunk(messages, this, this.fetchedOffset.Get()));
                 fetchedOffset.Set(next);

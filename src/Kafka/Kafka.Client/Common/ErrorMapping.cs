@@ -58,10 +58,10 @@
 
         public const short StaleLeaderEpochCode = 13;
        
-        public static short CodeFor<T>() where T : Exception
+        public static short CodeFor(Type type)
         {
             short code;
-            return ExceptionToCode.TryGetValue(typeof(T), out code) ? code : UnknownCode;
+            return ExceptionToCode.TryGetValue(type, out code) ? code : UnknownCode;
         }
 
         public static void MaybeThrowException(short code)

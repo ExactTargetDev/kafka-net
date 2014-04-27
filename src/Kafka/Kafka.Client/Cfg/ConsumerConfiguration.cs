@@ -126,15 +126,15 @@ namespace Kafka.Client.Cfg
         {
         }
 
-        public string GroupId { get; private set; }
+        public string GroupId { get; set; }
 
-        public string ConsumerId { get; private set; }
+        public string ConsumerId { get; set; }
 
-        public int SocketTimeoutMs { get; private set; }
+        public int SocketTimeoutMs { get; set; }
 
-        public int SocketReceiveBufferBytes  { get; private set; }
+        public int SocketReceiveBufferBytes  { get; set; }
 
-        public int FetchMessageMaxBytes { get; private set; }
+        public int FetchMessageMaxBytes { get; private set; } //TODO: public setters
 
         public int NumConsumerFetchers { get; private set; }
 
@@ -158,7 +158,7 @@ namespace Kafka.Client.Cfg
 
         public int ConsumerTimeoutMs { get; private set; }
 
-        public string ClientId { get; private set; }
+        public string ClientId { get; set; }
 
 
         public static ConsumerConfiguration Configure(string section)

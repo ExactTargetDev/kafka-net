@@ -49,7 +49,7 @@
                 return 2 /* error code */ 
                     + ApiUtils.ShortStringLength(this.Topic) + 4
                        + this.PartitionsMetadata.Aggregate(0, (i, metadata) => i + metadata.SizeInBytes);
-                    /* size and partition data array */
+                    /* size and partition Data array */
             }
         }
 
