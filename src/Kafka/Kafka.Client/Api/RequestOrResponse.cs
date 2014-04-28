@@ -1,7 +1,6 @@
 ﻿namespace Kafka.Client.Api
 {
     using System;
-    using System.IO;
     using System.Reflection;
 
     using Kafka.Client.Common.Imported;
@@ -26,11 +25,6 @@
         public abstract int SizeInBytes { get; }
 
         public abstract void WriteTo(ByteBuffer bufffer);
-
-        public virtual void HandleError(Exception e, RequestChannel requestChannel, RequestChannelRequest request)
-        {
-            throw new NotImplementedException("Handle error is not used in client");
-        }
 
         /// <summary>
         /// The purpose of this API is to return a string description of the Request mainly for the purpose of request logging

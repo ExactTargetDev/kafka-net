@@ -2,12 +2,10 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
     using System.Text;
 
     using Kafka.Client.Common.Imported;
-    using Kafka.Client.Extensions;
 
     public class TopicMetadataRequest : RequestOrResponse
     {
@@ -17,7 +15,7 @@
 
         public static TopicMetadataRequest ReadFrom(ByteBuffer buffer)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public short VersionId { get; private set; }
@@ -78,6 +76,7 @@
             {
                 topicMetadataRequest.Append("; Topics: " + string.Join(",", this.Topics));
             }
+
             return topicMetadataRequest.ToString();
         }
     }

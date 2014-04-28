@@ -74,7 +74,7 @@
 
         public override void WriteTo(ByteBuffer bufffer)
         {
-            throw new NotImplementedException("Not used in client");
+            throw new NotSupportedException();
         }
 
         public override string Describe(bool details)

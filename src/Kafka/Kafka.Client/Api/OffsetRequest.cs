@@ -25,7 +25,7 @@
 
         public static OffsetRequest ReadFrom(ByteBuffer buffer)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public IDictionary<TopicAndPartition, PartitionOffsetRequestInfo> RequestInfo { get; private set; }
@@ -123,11 +123,6 @@
         public override string ToString()
         {
             return this.Describe(true);
-        }
-
-        public override void HandleError(Exception e, Network.RequestChannel requestChannel, Network.RequestChannelRequest request)
-        {
-            throw new NotImplementedException();
         }
 
         public override string Describe(bool details)

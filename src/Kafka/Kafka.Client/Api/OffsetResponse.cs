@@ -83,7 +83,7 @@
 
         public override void WriteTo(ByteBuffer bufffer)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public override string Describe(bool details)

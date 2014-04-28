@@ -153,9 +153,8 @@
     <Compile Include="Client\ClientUtils.cs" />
     <Compile Include="Clusters\Broker.cs" />
     <Compile Include="Clusters\Cluster.cs" />
-    <Compile Include="Clusters\Partition.cs" />
-    <Compile Include="Clusters\Replica.cs" />
     <Compile Include="Common\BrokerNotAvailableException.cs" />
+    <Compile Include="Common\ClientIdAndTopic.cs" />
     <Compile Include="Common\ConsumerRebalanceFailedException.cs" />
     <Compile Include="Common\ControllerMovedException.cs" />
     <Compile Include="Common\ErrorMapping.cs" />
@@ -166,6 +165,7 @@
     <Compile Include="Common\Imported\HeapByteBuffer.cs" />
     <Compile Include="Common\Imported\IIterable.cs" />
     <Compile Include="Common\Imported\IIterator.cs" />
+    <Compile Include="Common\Imported\IMeter.cs" />
     <Compile Include="Common\InvalidMessageSizeException.cs" />
     <Compile Include="Common\KafkaException.cs" />
     <Compile Include="Common\Imported\AtomicInteger.cs" />
@@ -173,6 +173,7 @@
     <Compile Include="Common\InvalidMessageException.cs" />
     <Compile Include="Common\LeaderNotAvailableException.cs" />
     <Compile Include="Common\MessageSizeTooLargeException.cs" />
+    <Compile Include="Common\MetersFactory.cs" />
     <Compile Include="Common\NoBrokersForPartitionException.cs" />
     <Compile Include="Common\NotLeaderForPartitionException.cs" />
     <Compile Include="Common\OffsetMetadataTooLargeException.cs" />
@@ -191,9 +192,7 @@
     <Compile Include="Consumers\ConsumerFetcherThread.cs" />
     <Compile Include="Consumers\ConsumerIterator.cs" />
     <Compile Include="Consumers\ConsumerTimeoutException.cs" />
-    <Compile Include="Consumers\ConsumerTopicMetrics.cs" />
     <Compile Include="Consumers\ConsumerTopicStats.cs" />
-    <Compile Include="Consumers\ConsumerTopicStatsRegistry.cs" />
     <Compile Include="Consumers\Blacklist.cs" />
     <Compile Include="Consumers\FetchedDataChunk.cs" />
     <Compile Include="Consumers\IConsumerConnector.cs" />
@@ -231,7 +230,6 @@
     <Compile Include="Network\InvalidRequestException.cs" />
     <Compile Include="Network\Receive.cs" />
     <Compile Include="Network\RequestChannelRequest.cs" />
-    <Compile Include="Network\RequestChannel.cs" />
     <Compile Include="Network\Send.cs" />
     <Compile Include="Network\Transmission.cs" />
     <Compile Include="Producers\Async\DefaultEventHandler.cs" />
@@ -245,6 +243,8 @@
     <Compile Include="Producers\PartitionAndLeader.cs" />
     <Compile Include="Producers\Producer.cs" />
     <Compile Include="Producers\ProducerPool.cs" />
+    <Compile Include="Producers\ProducerStats.cs" />
+    <Compile Include="Producers\ProducerTopicStats.cs" />
     <Compile Include="Producers\SyncProducer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Serializers\DefaultDecoder.cs" />

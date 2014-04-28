@@ -41,8 +41,6 @@
                                             offset);
         }
 
-        //TODO: public ByteBuffer AsReadOnlyBuffer()
-
         protected int Ix(int i)
         {
             return i + offset;
@@ -103,8 +101,18 @@
 
         public ByteBuffer Put(ByteBuffer src)
         {
-            throw new NotImplementedException();
-
+            if (src == this)
+                throw new ArgumentNullException("src");
+            int n = src.Remaining();
+            if (n > Remaining())
+            {
+                throw new IndexOutOfRangeException();
+            }
+            for (int i = 0; i < n; i++)
+            {
+                Put(src.Get());
+            }
+            return this;
         }
 
         public override ByteBuffer Compact()
@@ -125,27 +133,6 @@
         {
             hb[i] = b;
         }
-
-        public override char GetChar()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override char GetChar(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override ByteBuffer PutChar(char x)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override ByteBuffer PutChar(int i, char x)
-        {
-            throw new NotImplementedException();
-        }
-
 
         public override short GetShort()
         {
@@ -280,46 +267,6 @@
             this.hb[startIndex + 6] = (byte)(x >> 48);
             this.hb[startIndex + 7] = (byte)(x >> 56);
             return this;
-        }
-
-        public override float GetFloat()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override float GetFloat(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override ByteBuffer PutFloat(float x)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override ByteBuffer PutFloat(int i, float x)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override double GetDouble()
-        {
-            throw new NotImplementedException();
-        }
-
-        public override double GetDouble(int i)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override ByteBuffer PutDouble(double x)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override ByteBuffer PutDouble(int i, double x)
-        {
-            throw new NotImplementedException();
         }
 
     }

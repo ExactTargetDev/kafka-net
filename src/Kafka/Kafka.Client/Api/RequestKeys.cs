@@ -1,10 +1,5 @@
 ﻿namespace Kafka.Client.Api
 {
-    using System;
-    using System.IO;
-
-    using Kafka.Client.Common.Imported;
-
     public static class RequestKeys
     {
         public const short ProduceKey = 0;
@@ -26,33 +21,5 @@
         public const short OffsetCommitKey = 8;
 
         public const short OffsetFetchKey = 9;
-
-        /* TODO
-         * val keyToNameAndDeserializerMap: Map[Short, (String, (ByteBuffer) => RequestOrResponse)]=
-    Map(ProduceKey -> ("Produce", ProducerRequest.readFrom),
-        FetchKey -> ("Fetch", FetchRequest.readFrom),
-        OffsetsKey -> ("Offsets", OffsetRequest.readFrom),
-        MetadataKey -> ("Metadata", TopicMetadataRequest.readFrom),
-        LeaderAndIsrKey -> ("LeaderAndIsr", LeaderAndIsrRequest.readFrom),
-        StopReplicaKey -> ("StopReplica", StopReplicaRequest.readFrom),
-        UpdateMetadataKey -> ("UpdateMetadata", UpdateMetadataRequest.readFrom),
-        ControlledShutdownKey -> ("ControlledShutdown", ControlledShutdownRequest.readFrom),
-        OffsetCommitKey -> ("OffsetCommit", OffsetCommitRequest.readFrom),
-        OffsetFetchKey -> ("OffsetFetch", OffsetFetchRequest.readFrom))
-
-         * 
-
-  }*/
-
-        public static string NameForKey(short key)
-        {
-            throw new NotImplementedException();
-        }
-
-        public static Func<ByteBuffer, RequestOrResponse> DeserializerForKey(short key)
-        {
-            throw new NotImplementedException();
-        }
-
     }
 }

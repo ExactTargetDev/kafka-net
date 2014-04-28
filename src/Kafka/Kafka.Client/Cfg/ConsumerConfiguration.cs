@@ -16,18 +16,17 @@
  */
 namespace Kafka.Client.Cfg
 {
-    using Kafka.Client.Api;
     using System.Configuration;
-    using System.Net;
     using System.Globalization;
+    using System.Net;
     using System.Text;
     using System.Xml.Linq;
 
+    using Kafka.Client.Api;
 
     /// <summary>
     /// Configuration used by the consumer
     /// </summary>
-    /// TODO: review and update props
     public class ConsumerConfiguration
     {
         public const int RefreshMetadataBackoffMs = 200;
@@ -175,7 +174,34 @@ namespace Kafka.Client.Cfg
 
         private static void Validate(ConsumerConfigurationSection config)
         {
-           //TODO:
+            ValidateClientId(config.ClientId);
+            ValidateGroupId(config.GroupId);
+            ValidateAutoOffsetReset(config.AutoOffsetReset);
+        }
+
+        public static void ValidateClientId(string clientId)
+        {
+            ValidateChars("client.id", clientId);
+        }
+
+        public static void ValidateGroupId(string groupId)
+        {
+            ValidateChars("group.id", groupId);
+        }
+
+        public static void ValidateAutoOffsetReset(string autoOffsetReset)
+        {
+            if (OffsetRequest.SmallestTimeString != autoOffsetReset
+                && OffsetRequest.LargestTimeString != autoOffsetReset)
+            {
+                throw new ConfigurationException("Wrong value " + autoOffsetReset + "of auto.reset.offset in ConsumerConfig. "
+                                                 + "Valid values are: " + OffsetRequest.SmallestTimeString + " and " + OffsetRequest.LargestTimeString);
+            }
+        }
+
+        public static void ValidateChars(string prop, string value)
+        {
+            //TODO:
         }
 
         private static string GetIpAddress(string host)

@@ -344,7 +344,7 @@
         {
             private ZookeeperConsumerConnector parent;
 
-            public ZKGroupDirs dirs { get; private set; }
+            public ZKGroupDirs Dirs { get; private set; }
 
             public string ConsumerIdString { get; private set; }
 
@@ -355,7 +355,7 @@
             public ZKSessionExpireListener(ZookeeperConsumerConnector parent, ZKGroupDirs dirs, string consumerIdString, TopicCount topicCount, IZKRebalancerListener loadbalancerListener)
             {
                 this.parent = parent;
-                this.dirs = dirs;
+                this.Dirs = dirs;
                 this.ConsumerIdString = consumerIdString;
                 this.TopicCount = topicCount;
                 this.LoadbalancerListener = loadbalancerListener;
@@ -379,7 +379,7 @@
 
                 Logger.InfoFormat("ZK expired; release old broker parition ownership; re-register consumer {0}", ConsumerIdString);
                 LoadbalancerListener.ResetState();
-                parent.RegisterConsumerInZK(dirs, ConsumerIdString, TopicCount);
+                parent.RegisterConsumerInZK(this.Dirs, ConsumerIdString, TopicCount);
 
                 // explicitly trigger load balancing for this consumer
                 LoadbalancerListener.SyncedRebalance();

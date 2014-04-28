@@ -65,15 +65,6 @@
             return DeleteTopicsPath + "/" + topic;
         }
 
-        /* TODO
-         *   /*
-          * def getController(zkClient: ZkClient): Int = {
-     readDataMaybeNull(zkClient, ControllerPath)._1 match {
-       case Some(controller) => KafkaController.parseControllerId(controller)
-       case None => throw new KafkaException("Controller doesn't exist")
-     }
-   }*/
-
          public static string GetTopicPartitionPath(string topic, int partitionId)
          {
              return GetTopicPartitionsPath(topic) + "/" + partitionId;
@@ -83,10 +74,6 @@
          {
              return GetTopicPartitionPath(topic, partitionId) + "/" + "state";
          }
-
-         //TODO: public static IList<int> GetSortedBrokerList(ZkClient zkClient)
-
-         //TODO: public static IList<Broker> GetAllBrokersInCluster(ZkClient zkClient)
 
         public static List<Broker> GetAllBrokersInCluster(ZkClient zkClient)
         {
@@ -98,35 +85,11 @@
                          .ToList();
         }
 
-         //TODO: def getLeaderIsrAndEpochForPartition(zkClient: ZkClient, topic: String, partition: Int):Option[LeaderIsrAndControllerEpoch] = {
-
-         //TODO: def getLeaderAndIsrForPartition(zkClient: ZkClient, topic: String, partition: Int):Option[LeaderAndIsr] = {
-
-         //TODO: def setupCommonPaths(zkClient: ZkClient) {
-
-         //TODO: def parseLeaderAndIsr(leaderAndIsrStr: String, topic: String, partition: Int, stat: Stat)
-
-         //TODO: def getLeaderForPartition(zkClient: ZkClient, topic: String, partition: Int): Option[Int] = {
-
-         //TODO: def getEpochForPartition(zkClient: ZkClient, topic: String, partition: Int): Int = {
-
-         //TODO: def getInSyncReplicasForPartition(zkClient: ZkClient, topic: String, partition: Int): Seq[Int] = {
-
-         //TODO: def getReplicasForPartition(zkClient: ZkClient, topic: String, partition: Int): Seq[Int] = {
-
-         // TODO: def registerBrokerInZk(zkClient: ZkClient, id: Int, host: String, port: Int, timeout: Int, jmxPort: Int) {
-
         public static string GetConsumerPartitionOwnerPath(string group, string topic, int partition)
         {
             var topicDirs = new ZKGroupTopicDirs(group, topic);
             return topicDirs.ConsumerOwnerDir + "/" + partition;
         }
-
-        //TODO: def leaderAndIsrZkData(leaderAndIsr: LeaderAndIsr, controllerEpoch: Int): String = {
-
-        //TODO: def replicaAssignmentZkData(map: Map[String, Seq[Int]]): String = {
-
-         //TODO: def makeSurePersistentPathExists(client: ZkClient, path: String) {
 
         private static void CreateParentPath(ZkClient client, string path)
         {
@@ -228,12 +191,6 @@
             }
         }
 
-         //TODO: def createPersistentPath(client: ZkClient, path: String, Data: String = ""): Unit = {
-
-         //TODO: def createSequentialPersistentPath(client: ZkClient, path: String, Data: String = ""): String = {
-
-         //TODO: def updatePersistentPath(client: ZkClient, path: String, Data: String) = {
-
         public static void UpdatePersistentPath(ZkClient client, string path, string data)
         {
             try
@@ -254,14 +211,6 @@
             }
         }
 
-         //TODO: def conditionalUpdatePersistentPath(client: ZkClient, path: String, Data: String, expectVersion: Int): (Boolean, Int) = {
-
-         //TODO: def conditionalUpdatePersistentPathIfExists(client: ZkClient, path: String, Data: String, expectVersion: Int): (Boolean, Int) = {
-
-         //TODO: def updateEphemeralPath(client: ZkClient, path: String, Data: String): Unit = {
-
-         //TODO: def deletePath(client: ZkClient, path: String): Boolean = {
-
         public static bool DeletePath(ZkClient client, string path)
         {
             try
@@ -279,12 +228,6 @@
                 throw e;
             }
         }
-
-
-
-         //TODO: def deletePathRecursive(client: ZkClient, path: String) {
-
-         //TODO: def maybeDeletePath(zkUrl: String, dir: String) {
 
          public static Tuple<string, Stat> ReadData(ZkClient client, string path)
          {
@@ -307,10 +250,6 @@
             }
         }
 
-         //TODO: def getChildren(client: ZkClient, path: String): Seq[String] = {
-
-         //TODO: def getChildrenParentMayNotExist(client: ZkClient, path: String): Seq[String] = {
-
         public static IList<string> GetChildrenParentMayNotExist(ZkClient client, string path)
         {
             try
@@ -323,11 +262,6 @@
             }
         }
 
-
-        //TODO: def pathExists(client: ZkClient, path: String): Boolean = {
-
-
-
         public static Cluster GetCluster(ZkClient zkClient)
         {
             var cluster = new Cluster();
@@ -339,10 +273,6 @@
             }
             return cluster;
         }
-
-         //TODO: def getPartitionLeaderAndIsrForTopics(zkClient: ZkClient, topicAndPartitions: Set[TopicAndPartition])
-
-         //TODO: def getReplicaAssignmentForTopics(zkClient: ZkClient, topics: Seq[String]): mutable.Map[TopicAndPartition, Seq[Int]] = {
 
         public static IDictionary<string, IDictionary<int, List<int>>> GetPartitionAssignmentForTopics(
             ZkClient zkClient, IList<string> topics)
@@ -369,26 +299,6 @@
 
             return ret;
         }
-
-         //TODO: def getPartitionAssignmentForTopics(zkClient: ZkClient, topics: Seq[String]): mutable.Map[String, collection.Map[Int, Seq[Int]]] = {
-
-         //TODO: def getPartitionsForTopics(zkClient: ZkClient, topics: Seq[String]): mutable.Map[String, Seq[Int]] = {
-
-         //TODO: def getPartitionsBeingReassigned(zkClient: ZkClient): Map[TopicAndPartition, ReassignedPartitionsContext] = {
-
-         //TODO: def parsePartitionReassignmentData(jsonData: String): Map[TopicAndPartition, Seq[Int]] = {
-
-         //TODO: def parseTopicsData(jsonData: String): Seq[String] = {
-
-         //TODO: def getPartitionReassignmentZkData(partitionsToBeReassigned: Map[TopicAndPartition, Seq[Int]]): String = {
-
-         //TODO: def updatePartitionReassignmentData(zkClient: ZkClient, partitionsToBeReassigned: Map[TopicAndPartition, Seq[Int]]) {
-
-         //TODO: def getPartitionsUndergoingPreferredReplicaElection(zkClient: ZkClient): Set[TopicAndPartition] = {
-
-         //TODO :def deletePartition(zkClient : ZkClient, brokerId: Int, topic: String) {
-
-         //TODO: def getConsumersInGroup(zkClient: ZkClient, group: String): Seq[String] = {
 
         public static IDictionary<string, List<string>> GetConsumersPerTopic(ZkClient zkClient, string group)
         {
@@ -422,9 +332,6 @@
             return consumerPerTopicMap;
         }
 
-
-         //TODO: def getBrokerInfo(zkClient: ZkClient, brokerId: Int): Option[Broker] = {
-
         public static Broker GetBrokerInfo(ZkClient zkClient, int brokerId)
         {
             var brokerInfo = ReadDataMaybeNull(zkClient, BrokerIdsPath + "/" + brokerId);
@@ -437,12 +344,6 @@
                 return null;
             }
         }
-
-         //TODO: def getAllTopics(zkClient: ZkClient): Seq[String] = {
-
-         //TODO: def getAllPartitions(zkClient: ZkClient): Set[TopicAndPartition] = {
        
-
-        //TODO: finish me 
     }
 }

@@ -48,7 +48,7 @@
             this.SoTimeout = soTimeout;
             this.BufferSize = bufferSize;
             this.ClientId = clientId;
-            // TODO: ConsumerConfig.validateClientId(clientId)
+            ConsumerConfiguration.ValidateClientId(clientId);
             this.blockingChannel = new BlockingChannel(Host, Port, BufferSize, BlockingChannel.UseDefaultBufferSize, SoTimeout);
         }
 
@@ -142,10 +142,6 @@
         {
             return OffsetResponse.ReadFrom(this.SendRequest(request).Buffer);
         }
-
-        //TODO: def commitOffsets(request: OffsetCommitRequest) = OffsetCommitResponse.readFrom(sendRequest(request).buffer)
-
-        //TODO: def fetchOffsets(request: OffsetFetchRequest) = OffsetFetchResponse.readFrom(sendRequest(request).buffer)
 
         private void GetOrMakeConnection()
         {

@@ -35,23 +35,23 @@
         {
             get
             {
-                throw new NotImplementedException();
+                throw new NotSupportedException();
             }
         }
 
-        public override void WriteTo(ByteBuffer bufffer)
+        public override void WriteTo(ByteBuffer buffer)
         {
-            throw new NotImplementedException();
-        }
-
-        public Dictionary<int, Broker> ExtractBrokers(List<TopicMetadata> topicMetadatas)
-        {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public override string Describe(bool details)
         {
             return this.ToString();
+        }
+
+        public override string ToString()
+        {
+            return string.Format("TopicMetadataResponse(TopicsMetadata: {0}, SizeInBytes: {1})", string.Join("," , this.TopicsMetadata), this.SizeInBytes);
         }
     }
 }

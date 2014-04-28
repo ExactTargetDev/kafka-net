@@ -198,9 +198,6 @@
             this.offset = offset;
         }
 
-
-        //TODO:     public static ByteBuffer allocateDirect(int capacity) {return new DirectByteBuffer(capacity);}
-
         public static ByteBuffer Allocate(int capacity)
         {
             if (capacity < 0)
@@ -361,19 +358,9 @@
             return Equals((ByteBuffer)obj);
         }
 
-        //TODO: compare to
-
         internal abstract byte _Get(int i);
 
         internal abstract void _Put(int i, byte b);
-
-        public abstract char GetChar();
-
-        public abstract ByteBuffer PutChar(char value);
-
-        public abstract char GetChar(int index);
-
-        public abstract ByteBuffer PutChar(int index, char value);
 
         public abstract short GetShort();
 
@@ -398,22 +385,6 @@
         public abstract long GetLong(int index);
 
         public abstract ByteBuffer PutLong(int index, long value);
-
-        public abstract float GetFloat();
-
-        public abstract ByteBuffer PutFloat(float value);
-
-        public abstract float GetFloat(int index);
-
-        public abstract ByteBuffer PutFloat(int index, float value);
-
-        public abstract double GetDouble();
-
-        public abstract ByteBuffer PutDouble(double value);
-
-        public abstract double GetDouble(int index);
-
-        public abstract ByteBuffer PutDouble(int index, double value);
 
         #endregion
 

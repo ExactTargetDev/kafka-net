@@ -138,9 +138,8 @@
                 chunkQueue.Add(new FetchedDataChunk(messages, this, this.fetchedOffset.Get()));
                 fetchedOffset.Set(next);
                 Logger.DebugFormat("Updated fetch offset of {0} to {1}", this, next);
-                //TODO: consumerTopicStats.GetConsumerTopicStats(Topic).ByteRate.Mark(size);
-                //TODO:consumerTopicStats.GetConsumerAllTopicStats().ByteRate.Mark(size);
-
+                this.consumerTopicStats.GetConsumerTopicStats(Topic).ByteRate.Mark(size);
+                this.consumerTopicStats.GetConsumerAllTopicStats().ByteRate.Mark(size);
             }
             else if (messages.SizeInBytes > 0)
             {

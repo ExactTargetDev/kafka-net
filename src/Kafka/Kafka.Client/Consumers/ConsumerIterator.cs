@@ -38,6 +38,8 @@
 
         private long consumedOffset = -1;
 
+        private ConsumerTopicStats consumerTopicStats;
+
         public ConsumerIterator(BlockingCollection<FetchedDataChunk> channel, int consumerTimeoutMs, IDecoder<TKey> keyDecoder, IDecoder<TValue> valueDecoder, string clientId)
         {
             this.channel = channel;
@@ -45,6 +47,7 @@
             this.keyDecoder = keyDecoder;
             this.valueDecoder = valueDecoder;
             this.ClientId = clientId;
+            this.consumerTopicStats = ConsumerTopicStatsRegistry.GetConsumerTopicStat(clientId);
         }
 
         public override MessageAndMetadata<TKey, TValue> Next()
@@ -57,8 +60,8 @@
             this.currentTopicInfo.ResetConsumeOffset(this.consumedOffset);
             var topic = this.currentTopicInfo.Topic;
             Logger.DebugFormat("Setting {0} consumer offset to {1}", topic, this.consumedOffset);
-            //TODO: consumerTopicStats.getConsumerTopicStats(topic).messageRate.mark()
-            //TODO: consumerTopicStats.getConsumerAllTopicStats().messageRate.mark()
+            this.consumerTopicStats.GetConsumerTopicStats(topic).MessageRate.Mark();
+            this.consumerTopicStats.GetConsumerAllTopicStats().MessageRate.Mark();
             return item;
         }
 
@@ -144,8 +147,6 @@
                 this.valueDecoder);
 
         }
-
-        //TODO: private val consumerTopicStats = ConsumerTopicStatsRegistry.getConsumerTopicStat(clientId)
 
         public void ClearCurrentChunk()
         {

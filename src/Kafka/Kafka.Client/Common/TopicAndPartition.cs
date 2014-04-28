@@ -19,19 +19,6 @@
         {
         }
 
-        /*TODO
-         * Do we need it?
-        public TopicAndPartition(Partition partition)
-            : this(partition.Topic, partition.PartitionId)
-        {
-            
-        }
-
-        public TopicAndPartition(Replica replica) : this(replica.Topic, replica.PartitonId)
-        {
-            
-        }*/
-
         public override string ToString()
         {
             return string.Format("[{0},{1}]", this.Topic, this.Partiton);

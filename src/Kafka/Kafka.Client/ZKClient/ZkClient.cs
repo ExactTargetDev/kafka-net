@@ -323,7 +323,6 @@
                     // If the session expired we have to signal all conditions, because watches might have been removed and
                     // there is no guarantee that those
                     // conditions will be signaled at all after an Expired event
-                    // TODO PVo write a test for this
                     if (watchedEvent.State == KeeperState.Expired) 
                     {
                         this.EventLock.ZNodeEventCondition.SignalAll();

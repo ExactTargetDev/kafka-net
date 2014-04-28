@@ -29,7 +29,7 @@ namespace Kafka.Client.Api
 
         public static FetchRequest ReadFrom(ByteBuffer buffer)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public short VersionId { get; private set; }
@@ -154,15 +154,6 @@ namespace Kafka.Client.Api
         public override string ToString()
         {
             return this.Describe(true);
-        }
-
-        public override void HandleError(Exception e, Network.RequestChannel requestChannel, Network.RequestChannelRequest request)
-        {
-            var fetchResponsePartitionData = RequestInfo.ToDictionary(
-                k => k.Key, v => new FetchResponsePartitionData(ErrorMapping.CodeFor(e.GetType()), -1, MessageSet.Empty));
-            var errorResponse = new FetchResponse(CorrelationId, fetchResponsePartitionData);
-            throw new NotImplementedException();
-          //TODO:  requestChannel.SendResponse(new RequestChannel.Respose(request, new FetchResponseSend(errorResponse)));
         }
 
         public override string Describe(bool details)

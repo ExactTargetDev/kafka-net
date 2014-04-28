@@ -42,6 +42,8 @@
                  this.producerSendThread = new ProducerSendThread<TKey, TValue>("ProducerSendThread-" + config.ClientId, queue, eventHandler, config.QueueBufferingMaxMs, config.BatchNumMessages, config.ClientId);
                  this.producerSendThread.Start();
              }
+
+            this.producerTopicStats = ProducerTopicStatsRegistry.GetProducerTopicStats(config.ClientId);
          }
 
         private readonly AtomicBoolean hasShutdown = new AtomicBoolean(false);
@@ -52,7 +54,8 @@
         private ProducerSendThread<TKey, TValue> producerSendThread = null;
         private object lockObject = new object();
 
-        //TODO: private val producerTopicStats = ProducerTopicStatsRegistry.getProducerTopicStats(config.clientId)
+        private readonly ProducerTopicStats producerTopicStats;
+
         //TODO: KafkaMetricsReporter.startReporters(config.props)
 
         public void Send(params KeyedMessage<TKey, TValue>[] messages)
@@ -63,7 +66,8 @@
                 {
                     throw new ProducerClosedException();
                 }
-                //TODO: record stats
+
+                this.RecordStats(messages);
 
                 if (sync)
                 {
@@ -80,10 +84,8 @@
         {
             foreach (var message in messages)
             {
-
-               ///TODO: 
-               ///  producerTopicStats.getProducerTopicStats(message.topic).messageRate.mark()
-      //producerTopicStats.getProducerAllTopicsStats.messageRate.mark()
+                producerTopicStats.GetProducerTopicStats(message.Topic).MessageRate.Mark();
+                producerTopicStats.GetProducerAllTopicsStats().MessageRate.Mark();
             }
         }
 
@@ -119,8 +121,8 @@
                 }
                 if (!added)
                 {
-                    // TODO: producerTopicStats.getProducerTopicStats(message.topic).droppedMessageRate.mark()
-                    // TODO: producerTopicStats.getProducerAllTopicsStats.droppedMessageRate.mark()
+                    producerTopicStats.GetProducerTopicStats(message.Topic).DroppedMessageRate.Mark();
+                    producerTopicStats.GetProducerAllTopicsStats().DroppedMessageRate.Mark();
                     throw new QueueFullException(
                         "Event queue is full of unsent messages, could not send event: " + message);
                 }
