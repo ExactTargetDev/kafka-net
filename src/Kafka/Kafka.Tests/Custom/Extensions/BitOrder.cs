@@ -2,6 +2,8 @@
 {
     using System.IO;
 
+    using Kafka.Client.Common.Imported;
+
     using Xunit;
 
     using Kafka.Client.Extensions;
@@ -10,8 +12,8 @@
     {
         [Fact]
          public void TestBitOrder()
-         {
-             MemoryStream stream = new MemoryStream();
+        {
+            ByteBuffer stream = ByteBuffer.Allocate(14);
             stream.PutShort(0x1234);
             Assert.Equal(2, stream.Position);
             stream.PutInt(0x56789ABC);
@@ -23,7 +25,7 @@
 
             for (var i = 0; i < expectedBytes.Length; i++)
             {
-                Assert.Equal(expectedBytes[i], stream.GetBuffer()[i]);
+                Assert.Equal(expectedBytes[i], stream.Array[i]);
             }
          }
     }

@@ -41,5 +41,10 @@
                 return (this.Offset.GetHashCode() * 397) ^ this.FetchSize;
             }
         }
+
+        public override string ToString()
+        {
+            return string.Format("PartitionFetchInfo(Offset: {0}, FetchSize: {1})", this.Offset, this.FetchSize);
+        }
     }
 }

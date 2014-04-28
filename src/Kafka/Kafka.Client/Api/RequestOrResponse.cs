@@ -4,6 +4,7 @@
     using System.IO;
     using System.Reflection;
 
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Network;
 
     using log4net;
@@ -24,7 +25,7 @@
 
         public abstract int SizeInBytes { get; }
 
-        public abstract void WriteTo(MemoryStream bufffer);
+        public abstract void WriteTo(ByteBuffer bufffer);
 
         public virtual void HandleError(Exception e, RequestChannel requestChannel, RequestChannelRequest request)
         {

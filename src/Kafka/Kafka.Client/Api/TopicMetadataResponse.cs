@@ -6,11 +6,12 @@
     using System.Linq;
 
     using Kafka.Client.Clusters;
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     public class TopicMetadataResponse : RequestOrResponse
     {
-        public static TopicMetadataResponse ReadFrom(MemoryStream buffer)
+        public static TopicMetadataResponse ReadFrom(ByteBuffer buffer)
         {
             var correlationId = buffer.GetInt();
             var brokerCount = buffer.GetInt();
@@ -38,7 +39,7 @@
             }
         }
 
-        public override void WriteTo(MemoryStream bufffer)
+        public override void WriteTo(ByteBuffer bufffer)
         {
             throw new NotImplementedException();
         }

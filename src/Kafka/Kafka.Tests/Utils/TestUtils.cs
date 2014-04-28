@@ -2,6 +2,7 @@
 {
     using System.Collections.Generic;
 
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Messages;
     using Kafka.Client.Utils;
 
@@ -11,24 +12,24 @@
     {
         class MessageIterator : IteratorTemplate<Message>
         {
-            private IEnumerator<MessageAndOffset> iter;
+            private IIterator<MessageAndOffset> iter;
 
-            public MessageIterator(IEnumerator<MessageAndOffset> iter)
+            public MessageIterator(IIterator<MessageAndOffset> iter)
             {
                 this.iter = iter;
             }
 
             protected override Message MakeNext()
             {
-                if (this.iter.MoveNext())
+                if (this.iter.HasNext())
                 {
-                    return iter.Current.Message;
+                    return iter.Next().Message;
                 }
                 return this.AllDone();
             }
         }
 
-         public static IEnumerator<Message> GetMessageIterator(IEnumerator<MessageAndOffset> iter)
+         public static IIterator<Message> GetMessageIterator(IIterator<MessageAndOffset> iter)
          {
              return new MessageIterator(iter);
          }

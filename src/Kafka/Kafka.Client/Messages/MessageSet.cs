@@ -7,6 +7,8 @@ namespace Kafka.Client.Messages
 {
     using System.Linq;
 
+    using Kafka.Client.Common.Imported;
+
     /// <summary>
     /// A set of messages with offsets. A message set has a fixed serialized form, though the container
     /// for the bytes could be either in-memory or on disk. The format of each message is
@@ -16,7 +18,7 @@ namespace Kafka.Client.Messages
     /// 4 byte size containing an integer N
     /// N message bytes as described in the Message class
     /// </summary>
-    public abstract class MessageSet : IEnumerable<MessageAndOffset>
+    public abstract class MessageSet : IIterable<MessageAndOffset>, IEnumerable<MessageAndOffset>
     {
         public const int MessageSizeLength = 4;
 
@@ -24,7 +26,7 @@ namespace Kafka.Client.Messages
 
         public const int LogOverhead = MessageSizeLength + OffsetLength;
 
-        public static ByteBufferMessageSet Empty = new ByteBufferMessageSet(new MemoryStream());
+        public static ByteBufferMessageSet Empty = new ByteBufferMessageSet(ByteBuffer.Allocate(0));
 
         public static int MessageSetSize(IEnumerable<Message> messages)
         {
@@ -37,6 +39,8 @@ namespace Kafka.Client.Messages
             return LogOverhead + message.Size;
         }
 
+        public abstract IIterator<MessageAndOffset> Iterator();
+
         /// <summary>
         /// Write the messages in this set to the given channel starting at the given offset byte. 
         /// Less than the complete amount may be written, but no more than maxSize can be. The number
@@ -47,13 +51,6 @@ namespace Kafka.Client.Messages
         /// <param name="maxSize"></param>
         /// <returns></returns>
         public abstract int WriteTo(Stream channel, long offset, int maxSize);
-
-        public abstract IEnumerator<MessageAndOffset> GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return this.GetEnumerator();
-        }
 
         /// <summary>
         /// Gives the total size of this message set in bytes
@@ -66,17 +63,32 @@ namespace Kafka.Client.Messages
         /// </summary>
         public void Validate()
         {
-            foreach (var messageAndOffset in this)
+            var iter = this.Iterator();
+            while (iter.HasNext())
             {
-                if (!messageAndOffset.Message.IsValid)
+                if (!iter.Next().Message.IsValid)
                 {
                     throw new InvalidMessageException();
                 }
             }
         }
 
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
+        }
+
+        public IEnumerator<MessageAndOffset> GetEnumerator()
+        {
+            var iter = this.Iterator();
+            while (iter.HasNext())
+            {
+                yield return iter.Next();
+            }
+        }
+
         //TODO: toString
 
-
+       
     }
 }

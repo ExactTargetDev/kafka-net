@@ -2,12 +2,14 @@
 {
     using System.IO;
 
+    using Kafka.Client.Common.Imported;
+
     /// <summary>
     /// A transmission that is being received from a channel
     /// </summary>
     public abstract class Receive : Transmission
     {
-        public abstract MemoryStream Buffer { get; }
+        public abstract ByteBuffer Buffer { get; }
 
         public abstract int ReadFrom(Stream channel);
 
@@ -18,6 +20,7 @@
             {
                 var read = this.ReadFrom(channel);
                 Logger.DebugFormat("{0} bytes read", read);
+                
                 totalRead += read;
             }
 

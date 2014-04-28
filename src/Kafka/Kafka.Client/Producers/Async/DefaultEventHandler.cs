@@ -375,14 +375,15 @@
                             var successfullySentData = response.Status.Where(s => s.Value.Error == ErrorMapping.NoError).ToList();
                             foreach (var m in successfullySentData)
                             {
-                                var messages = messagesPerTopic[m.Key].ToList();
-                                foreach (var message in messages)
+                                var iter = messagesPerTopic[m.Key].Iterator();
+                                while (iter.HasNext())
                                 {
+                                    var message = iter.Next();
                                     Logger.DebugFormat(
-                                        "Successfully sent messsage: {0}",
-                                        message.Message.IsNull() ? 
-                                        null : 
-                                        Util.ReadString(message.Message.Payload));
+                                    "Successfully sent messsage: {0}",
+                                    message.Message.IsNull() ? 
+                                    null : 
+                                    Util.ReadString(message.Message.Payload));
                                 }
                             }
                         }

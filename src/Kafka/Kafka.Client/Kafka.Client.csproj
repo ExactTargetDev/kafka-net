@@ -162,6 +162,10 @@
     <Compile Include="Common\FailedToSendMessageException.cs" />
     <Compile Include="Common\Imported\AtomicBoolean.cs" />
     <Compile Include="Common\Imported\AtomicReference.cs" />
+    <Compile Include="Common\Imported\ByteBuffer.cs" />
+    <Compile Include="Common\Imported\HeapByteBuffer.cs" />
+    <Compile Include="Common\Imported\IIterable.cs" />
+    <Compile Include="Common\Imported\IIterator.cs" />
     <Compile Include="Common\InvalidMessageSizeException.cs" />
     <Compile Include="Common\KafkaException.cs" />
     <Compile Include="Common\Imported\AtomicInteger.cs" />
@@ -203,7 +207,6 @@
     <Compile Include="Consumers\ZookeeperTopicEventWatcher.cs" />
     <Compile Include="Extensions\DateTimeHelper.cs" />
     <Compile Include="Extensions\ListExtensions.cs" />
-    <Compile Include="Extensions\MemoryStreamExtensions.cs" />
     <Compile Include="Locks\ConditionVariable.cs" />
     <Compile Include="Locks\FIFOConditionVariable.cs" />
     <Compile Include="Locks\Helpers\FIFOWaitQueue.cs" />
@@ -214,7 +217,7 @@
     <Compile Include="Locks\ILock.cs" />
     <Compile Include="Locks\ReentrantLock.cs" />
     <Compile Include="Messages\ByteBufferMessageSet.cs" />
-    <Compile Include="Messages\ByteBufferMessageSetEnumerator.cs" />
+    <Compile Include="Messages\ByteBufferMessageSetIterator.cs" />
     <Compile Include="Messages\CompressionCodec.cs" />
     <Compile Include="Messages\CompressionCodecs.cs" />
     <Compile Include="Messages\CompressionFactory.cs" />

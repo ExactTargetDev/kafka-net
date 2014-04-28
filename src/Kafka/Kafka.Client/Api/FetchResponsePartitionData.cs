@@ -3,20 +3,22 @@
     using System.IO;
 
     using Kafka.Client.Common;
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
     using Kafka.Client.Messages;
 
     public class FetchResponsePartitionData
     {
-        public static FetchResponsePartitionData ReadFrom(MemoryStream buffer)
+        public static FetchResponsePartitionData ReadFrom(ByteBuffer buffer)
         {
             var error = buffer.GetShort();
             var hw = buffer.GetLong();
             var messageSetSize = buffer.GetInt();
-            var index = (int)buffer.Position;
-            buffer.Position += messageSetSize;
+            var messageSetBuffer = buffer.Slice();
+            messageSetBuffer.Limit(messageSetSize);
+            buffer.Position = buffer.Position + messageSetSize;
 
-            return new FetchResponsePartitionData(error, hw, new ByteBufferMessageSet(new MemoryStream(buffer.GetBuffer(), index, messageSetSize)));
+            return new FetchResponsePartitionData(error, hw, new ByteBufferMessageSet(messageSetBuffer));
         }
 
         public const int HeaderSize = 2 + /* error code */ 8 + /* high watermark */ 4 /* messageSetSize */;

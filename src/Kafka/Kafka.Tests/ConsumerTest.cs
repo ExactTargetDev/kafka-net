@@ -18,26 +18,29 @@
         {
             //TODO: move to separate class and config statically
             log4net.Config.BasicConfigurator.Configure(
-            new log4net.Appender.ConsoleAppender { Layout = new log4net.Layout.SimpleLayout() }
+              new log4net.Appender.ConsoleAppender { Layout = new log4net.Layout.SimpleLayout() }
           );
         }
 
         [Fact]
         public void Test()
         {
-            var config = new ConsumerConfiguration("192.168.1.14", 2181, "group2");
-            config.ClientId = "client123";
+            var config = new ConsumerConfiguration("192.168.1.14", 2181, "group5");
+            config.ClientId = "client1244";
+            config.ZooKeeper.ZkSessionTimeoutMs = 3 * 60 * 1000;
+            config.FetchWaitMaxMs = 5000;
             var consumer = Consumer.Create(config);
             var topic = new Dictionary<string, int>
                             {
-                               { "topic5", 1 }
+                                { "t1", 1 }
                             };
             var messageStreams = consumer.CreateMessageStreams(topic);
-            var topic5Stream = messageStreams["topic5"];
+            var topic5Stream = messageStreams["t1"];
 
             Task.Factory.StartNew(
                 () =>
                     {
+                        Console.WriteLine("Starting fetcher thread");
                         foreach (var stream in topic5Stream)
                         {
                             foreach (var message in stream)
@@ -47,7 +50,7 @@
                         }
                     });
 
-            Thread.Sleep(10000);
+            Thread.Sleep(TimeSpan.FromSeconds(15)); //TODO: delete me
             consumer.Shutdown();
 
         }

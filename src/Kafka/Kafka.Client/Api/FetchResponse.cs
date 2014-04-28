@@ -5,7 +5,7 @@
     using System.IO;
 
     using Kafka.Client.Common;
-
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     using System.Linq;
@@ -121,7 +121,7 @@
             return this.PartitionDataFor(topic, partition).Error;
         }
 
-        public static FetchResponse ReadFrom(MemoryStream buffer)
+        public static FetchResponse ReadFrom(ByteBuffer buffer)
         {
             var correlationId = buffer.GetInt();
             var topicCount = buffer.GetInt();
@@ -142,7 +142,7 @@
 
     internal class TopicData
     {
-        public static TopicData ReadFrom(MemoryStream buffer)
+        public static TopicData ReadFrom(ByteBuffer buffer)
         {
             var topic = ApiUtils.ReadShortString(buffer);
             var partitionCount = buffer.GetInt();
@@ -152,7 +152,7 @@
                         var partitonId = buffer.GetInt();
                         var partitionData = FetchResponsePartitionData.ReadFrom(buffer);
                         return Tuple.Create(partitonId, partitionData);
-                    });
+                    }).ToList();
             return new TopicData(topic, topicPartitionDataPairs.ToDictionary(k => k.Item1, v => v.Item2));
         }
 
@@ -219,7 +219,7 @@
             }
         }
 
-        private MemoryStream buffer;
+        private ByteBuffer buffer;
 
         //TODO: val sends = new MultiSend
 

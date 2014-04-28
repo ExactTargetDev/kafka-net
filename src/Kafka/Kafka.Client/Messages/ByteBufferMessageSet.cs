@@ -1,6 +1,7 @@
 ﻿namespace Kafka.Client.Messages
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -23,9 +24,52 @@
 
         private int shallowValidByteCount = -1;
 
-        public MemoryStream Buffer { get; private set; }
+        public ByteBuffer Buffer { get; private set; }
 
-        public ByteBufferMessageSet(MemoryStream buffer)
+        private static ByteBuffer Create(
+           AtomicLong offsetCounter, CompressionCodecs compressionCodec, List<Message> messages)
+        {
+            if (messages == null || !messages.Any())
+            {
+                return Empty.Buffer;
+            }
+            else if (CompressionCodecs.NoCompressionCodec == compressionCodec)
+            {
+                var buffer = ByteBuffer.Allocate(MessageSet.MessageSetSize(messages));
+                foreach (var message in messages)
+                {
+                    WriteMessage(buffer, message, offsetCounter.GetAndIncrement());
+                }
+                buffer.Rewind();
+                return buffer;
+            }
+            else
+            {
+                var byteArrayStream = new MemoryStream(MessageSet.MessageSetSize(messages));
+                var offset = -1L;
+
+                using (var output = new KafkaBinaryWriter(CompressionFactory.BuildWriter(compressionCodec, byteArrayStream)))
+                {
+
+                    foreach (var message in messages)
+                    {
+                        offset = offsetCounter.GetAndIncrement();
+                        output.Write(offset);
+                        output.Write(message.Size);
+                        output.Write(message.Buffer.Array, message.Buffer.ArrayOffset(), message.Buffer.Limit());
+                    }
+                }
+                var bytes = byteArrayStream.ToArray();
+                var msg = new Message(bytes, compressionCodec);
+                var buffer = ByteBuffer.Allocate(msg.Size + MessageSet.LogOverhead);
+                WriteMessage(buffer, msg, offset);
+                buffer.Rewind();
+                return buffer;
+            }
+        }
+
+
+        public ByteBufferMessageSet(ByteBuffer buffer)
         {
             this.Buffer = buffer;
         }
@@ -52,9 +96,9 @@
             {
                 var bytes = 0;
                 var iter = this.InternalIterator(true);
-                while (iter.MoveNext())
+                while (iter.HasNext())
                 {
-                    var messageAndOffset = iter.Current;
+                    var messageAndOffset = iter.Next();
                     bytes += MessageSet.EntrySize(messageAndOffset.Message);
                 }
 
@@ -66,34 +110,30 @@
         public override int WriteTo(Stream channel, long offset, int size)
         {
             // Ignore offset and size from input. We just want to write the whole buffer to the channel.
+            this.Buffer.Mark();
             var written = 0;
             while (written < this.SizeInBytes)
             {
-                channel.Write(this.Buffer.GetBuffer(), 0, (int)this.Buffer.Length);
+                channel.Write(Buffer.Array, Buffer.ArrayOffset(), Buffer.Limit());
                 written += (int)this.Buffer.Length;
             }
-
+            this.Buffer.Reset();
             return written;
         }
 
-
-        /// <summary>
-        /// default iterator that iterates over decompressed messages
-        /// </summary>
-        /// <returns></returns>
-        public override IEnumerator<MessageAndOffset> GetEnumerator()
+        public override IIterator<MessageAndOffset> Iterator()
         {
             return this.InternalIterator();
         }
 
-        public IEnumerator<MessageAndOffset> ShallowEnumerator()
+        public IIterator<MessageAndOffset> ShallowIterator()
         {
             return this.InternalIterator(true);
         }
 
-        public IEnumerator<MessageAndOffset> InternalIterator(bool isShallow = false)
+        public IIterator<MessageAndOffset> InternalIterator(bool isShallow = false)
         {
-            return new ByteBufferMessageSetEnumerator(this, isShallow);
+            return new ByteBufferMessageSetIterator(this, isShallow);
         }
 
         internal ByteBufferMessageSet AssignOffsets(AtomicLong offsetCounter, CompressionCodecs codec)
@@ -102,14 +142,14 @@
             {
                 // do as in-place conversion
                 var position = 0;
-                var markedPosition = this.Buffer.Position;
+                Buffer.Mark();
                 while (position < this.SizeInBytes - MessageSet.LogOverhead)
                 {
                     this.Buffer.Position = position;
                     this.Buffer.PutLong(offsetCounter.GetAndIncrement());
                     position += MessageSet.LogOverhead + Buffer.GetInt();
                 }
-                this.Buffer.Position = markedPosition;
+                Buffer.Reset();
                 return this;
             }
             else
@@ -124,7 +164,7 @@
         {
             get
             {
-                return (int)this.Buffer.Length; 
+                return this.Buffer.Limit();
             }
         }
 
@@ -136,48 +176,7 @@
             }
         }
 
-        private static MemoryStream Create(
-            AtomicLong offsetCounter, CompressionCodecs compressionCodec, List<Message> messages)
-        {
-            if (messages == null || !messages.Any())
-            {
-                return Empty.Buffer;
-            } 
-            else if (CompressionCodecs.NoCompressionCodec == compressionCodec)
-            {
-                var buffer = new MemoryStream(MessageSetSize(messages));
-                foreach (var message in messages)
-                {
-                    WriteMessage(buffer, message, offsetCounter.GetAndIncrement());
-                }
-                buffer.Position = 0;
-                return buffer;
-            }
-            else
-            {
-                var byteArrayStream = new MemoryStream(MessageSetSize(messages));
-                var offset = -1L;
-
-                using (var output = new KafkaBinaryWriter(CompressionFactory.BuildWriter(compressionCodec, byteArrayStream)))
-                {
-                    
-                    foreach (var message in messages)
-                    {
-                        offset = offsetCounter.GetAndIncrement();
-                        output.Write(offset);
-                        output.Write(message.Size);
-                        output.Write(message.Buffer.GetBuffer(), 0, (int) message.Buffer.Length);
-                    }
-                }
-
-                var msg = new Message(byteArrayStream.ToArray(), compressionCodec);
-                var result = new MemoryStream(msg.Size + LogOverhead);
-                WriteMessage(result, msg, offset);
-                result.Position = 0;
-                return result;
-            }
-        }
-
+       
 
         public static ByteBufferMessageSet Decompress(Message message)
         {
@@ -194,17 +193,17 @@
                 }
             }
 
-            var outputBuffer = new MemoryStream((int)outputStream.Length);
-            outputBuffer.Write(outputStream.GetBuffer(), 0, (int)outputStream.Length);
-            outputBuffer.Position = 0;
+            var outputBuffer = ByteBuffer.Allocate((int)outputStream.Length);
+            outputBuffer.Put(outputStream.ToArray());
+            outputBuffer.Rewind();
             return new ByteBufferMessageSet(outputBuffer);
         }
 
-        private static void WriteMessage(MemoryStream buffer, Message message, long offset)
+        private static void WriteMessage(ByteBuffer buffer, Message message, long offset)
         {
             buffer.PutLong(offset);
             buffer.PutInt(message.Size);
-            buffer.Write(message.Buffer.GetBuffer(), 0, (int)message.Buffer.Length);
+            buffer.Put(message.Buffer);
             message.Buffer.Position = 0;
         }
 

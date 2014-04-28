@@ -4,28 +4,29 @@
     using System.IO;
 
     using Kafka.Client.Api;
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     public class BoundedByteBufferSend : Send
     {
-        public MemoryStream Buffer { get; private set; }
+        public ByteBuffer Buffer { get; private set; }
 
-        private MemoryStream sizeBuffer = new MemoryStream(4);
+        private ByteBuffer sizeBuffer = ByteBuffer.Allocate(4);
 
-        public BoundedByteBufferSend(MemoryStream buffer)
+        public BoundedByteBufferSend(ByteBuffer buffer)
         {
             this.Buffer = buffer;
 
-            if (buffer.Length > int.MaxValue - sizeBuffer.Length)
+            if (buffer.Remaining() > int.MaxValue - sizeBuffer.Limit())
             {
                 throw new ArgumentException("Attempt to create a bounded buffer of " + buffer.Length + "bytes, but the maximum allowable size for a bounded buffer is " + (int.MaxValue - sizeBuffer.Length) );
             }
-            this.sizeBuffer.PutInt((int)buffer.Capacity);
-            this.sizeBuffer.Position = 0;
+            this.sizeBuffer.PutInt(buffer.Limit());
+            this.sizeBuffer.Rewind();
         }
 
         public BoundedByteBufferSend(int size)
-            : this(new MemoryStream(size))
+            : this(ByteBuffer.Allocate(size))
         {
         }
 
@@ -37,16 +38,16 @@
             } 
 
             request.WriteTo(Buffer);
-            Buffer.Position = 0;
+            Buffer.Rewind();
         }
 
         public override int WriteTo(Stream channel)
         {
             this.ExpectIncomplete();
             var written = 0;
-            channel.Write(this.sizeBuffer.GetBuffer(), 0, (int) sizeBuffer.Length);
+            channel.Write(this.sizeBuffer.Array, this.sizeBuffer.ArrayOffset(), this.sizeBuffer.Limit());
             written += (int)sizeBuffer.Length;
-            channel.Write(Buffer.GetBuffer(), 0, (int)Buffer.Length);
+            channel.Write(Buffer.Array, this.Buffer.ArrayOffset(), this.Buffer.Limit());
             written += (int)Buffer.Length;
 
             // custom: since .net Write doesn't return written bytes we assume that all was written.

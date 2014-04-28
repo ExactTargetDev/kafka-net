@@ -8,6 +8,8 @@ namespace Kafka.Client.Messages
 {
     using System.Collections;
 
+    using Kafka.Client.Common.Imported;
+
     /// <summary>
     /// A message. The format of an N byte message is the following:
     /// 1. 4 byte CRC32 of the message
@@ -37,14 +39,14 @@ namespace Kafka.Client.Messages
         private const byte CompressionCodeMask = 0x03;
         private const int NoCompression = 0;
 
-        private readonly MemoryStream buffer;
+        private readonly ByteBuffer buffer;
 
-        public Message(MemoryStream buffer)
+        public Message(ByteBuffer buffer)
         {
             this.buffer = buffer;
         }
 
-        public MemoryStream Buffer 
+        public ByteBuffer Buffer 
         { 
             get
             {
@@ -55,7 +57,7 @@ namespace Kafka.Client.Messages
 
         public Message(byte[] bytes, byte[] key, CompressionCodecs codec, int payloadOffset, int payloadSize)
         {
-            this.buffer = new MemoryStream(CrcLength +
+            this.buffer = ByteBuffer.Allocate(CrcLength +
                                       MagicLength +
                                       AttributesLength +
                                       KeySizeLength +
@@ -65,7 +67,7 @@ namespace Kafka.Client.Messages
                                            ? 0
                                            : (payloadSize >= 0 ? payloadSize : bytes.Length - payloadOffset)));
             this.buffer.Position = MagicOffset;
-            this.buffer.WriteByte(CurrentMagicValue);
+            this.buffer.Put(CurrentMagicValue);
             byte attributes = 0;
             if (codec != CompressionCodecs.NoCompressionCodec)
             {
@@ -74,7 +76,7 @@ namespace Kafka.Client.Messages
                         attributes | (CompressionCodeMask & Messages.CompressionCodec.GetCompressionCodecValue(codec)));
             }
 
-            this.buffer.WriteByte(attributes);
+            this.buffer.Put(attributes);
             if (key == null)
             {
                 this.buffer.PutInt(-1);
@@ -82,7 +84,7 @@ namespace Kafka.Client.Messages
             else
             {
                 this.buffer.PutInt(key.Length);
-                this.buffer.Write(key, 0, key.Length);
+                this.buffer.Put(key, 0, key.Length);
             }
 
             var size = (bytes == null)
@@ -93,8 +95,7 @@ namespace Kafka.Client.Messages
             {
                 this.buffer.Write(bytes, payloadOffset, size);
             }
-
-            this.buffer.Position = 0;
+            this.buffer.Rewind();
 
             Utils.Util.WriteUnsignedInt(this.buffer, CrcOffset, this.ComputeChecksum());
 
@@ -122,7 +123,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public long ComputeChecksum()
         {
-            return Utils.Util.Crc32(this.buffer.GetBuffer(), MagicOffset, (int)this.buffer.Length - MagicOffset);
+            return Utils.Util.Crc32(this.buffer.Array, buffer.ArrayOffset() + MagicOffset, (int)this.buffer.Length - MagicOffset);
         }
 
         /// <summary>
@@ -164,7 +165,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public int Size 
         {
-            get { return (int)this.buffer.Length; }
+            get { return this.buffer.Limit(); }
         }
 
         /// <summary>
@@ -218,7 +219,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public byte Magic
         {
-            get { return this.buffer.GetBuffer()[MagicOffset]; }
+            get { return this.buffer.Get(MagicOffset); }
         }
 
         /// <summary>
@@ -227,7 +228,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public byte Attributes
         {
-            get { return this.buffer.GetBuffer()[AttributesOffset]; }
+            get { return this.buffer.Get(AttributesOffset); }
         }
 
         /// <summary>
@@ -238,7 +239,7 @@ namespace Kafka.Client.Messages
         {
             get
             {
-                return Messages.CompressionCodec.GetCompressionCodec(this.buffer.GetBuffer()[AttributesOffset] &
+                return Messages.CompressionCodec.GetCompressionCodec(this.buffer.Get(AttributesOffset) &
                                                                           CompressionCodeMask);
             }
         }
@@ -246,12 +247,12 @@ namespace Kafka.Client.Messages
         /// <summary>
         /// A ByteBuffer containing the content of the message
         /// </summary>
-        public MemoryStream Payload
+        public ByteBuffer Payload
         {
             get { return this.SliceDelimited(this.PayloadSizeOffset); }
         }
 
-        public MemoryStream Key
+        public ByteBuffer Key
         {
             get { return this.SliceDelimited(KeySizeOffset);  }
         }
@@ -261,15 +262,22 @@ namespace Kafka.Client.Messages
         /// </summary>
         /// <param name="start"></param>
         /// <returns></returns>
-        private MemoryStream SliceDelimited(int start)
+        private ByteBuffer SliceDelimited(int start)
         {
-            var size = this.buffer.GetInt(start);
+            var size = buffer.GetInt(start);
             if (size < 0)
             {
                 return null;
             }
-
-            return new MemoryStream(this.buffer.GetBuffer(), start + 4, size, false, false);
+            else
+            {
+                var b = buffer.Duplicate();
+                b.Position = start + 4;
+                b = b.Slice();
+                b.Limit(size);
+                b.Rewind();
+                return b;
+            }
         }
 
         public override string ToString()
@@ -279,7 +287,7 @@ namespace Kafka.Client.Messages
 
         protected bool Equals(Message other)
         {
-            return StructuralComparisons.StructuralEqualityComparer.Equals(this.buffer.GetBuffer(), other.Buffer.GetBuffer());
+            return this.buffer.Equals(other.Buffer);
         }
 
         public override bool Equals(object obj)

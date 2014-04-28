@@ -27,7 +27,7 @@ namespace Kafka.Client.Api
 
         public const int DefaultCorrelationId = 0;
 
-        public static FetchRequest ReadFrom(MemoryStream buffer)
+        public static FetchRequest ReadFrom(ByteBuffer buffer)
         {
             throw new NotImplementedException();
         }
@@ -68,7 +68,7 @@ namespace Kafka.Client.Api
         {
         }
 
-        public override void WriteTo(MemoryStream buffer)
+        public override void WriteTo(ByteBuffer buffer)
         {
             buffer.PutShort(this.VersionId);
             buffer.PutInt(this.CorrelationId);

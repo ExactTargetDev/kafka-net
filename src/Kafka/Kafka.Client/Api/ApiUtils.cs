@@ -5,6 +5,7 @@
     using System.Text;
 
     using Kafka.Client.Common;
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     /// <summary>
@@ -19,7 +20,7 @@
         /// </summary>
         /// <param name="buffer">The buffer to read from</param>
         /// <returns></returns>
-        public static string ReadShortString(MemoryStream buffer)
+        public static string ReadShortString(ByteBuffer buffer)
         {
             var size = buffer.GetShort();
             if (size < 0)
@@ -37,7 +38,7 @@
         /// </summary>
         /// <param name="buffer">The buffer to write to</param>
         /// <param name="string">The string to write</param>
-        public static void WriteShortString(MemoryStream buffer, string @string)
+        public static void WriteShortString(ByteBuffer buffer, string @string)
         {
             if (@string == null)
             {
@@ -78,14 +79,14 @@
         }
 
         /// <summary>
-        ///  Read an integer out of the MemoryStream from the current position and check that it falls within the given
+        ///  Read an integer out of the ByteBuffer from the current position and check that it falls within the given
         /// range. If not, throw KafkaException.
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="name"></param>
         /// <param name="range"></param>
         /// <returns></returns>
-        public static int ReadIntInRange(MemoryStream buffer, string name, Tuple<int, int> range)
+        public static int ReadIntInRange(ByteBuffer buffer, string name, Tuple<int, int> range)
         {
             var value = buffer.GetInt();
             if (value < range.Item1 || value > range.Item2)
@@ -97,14 +98,14 @@
         }
 
         /// <summary>
-        ///  Read an short out of the MemoryStream from the current position and check that it falls within the given
+        ///  Read an short out of the ByteBuffer from the current position and check that it falls within the given
         /// range. If not, throw KafkaException.
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="name"></param>
         /// <param name="range"></param>
         /// <returns></returns>
-        public static short ReadShortInRange(MemoryStream buffer, string name, Tuple<short, short> range)
+        public static short ReadShortInRange(ByteBuffer buffer, string name, Tuple<short, short> range)
         {
             var value = buffer.GetShort();
             if (value < range.Item1 || value > range.Item2)
@@ -116,14 +117,14 @@
         }
 
         /// <summary>
-        ///  Read an long out of the MemoryStream from the current position and check that it falls within the given
+        ///  Read an long out of the ByteBuffer from the current position and check that it falls within the given
         /// range. If not, throw KafkaException.
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="name"></param>
         /// <param name="range"></param>
         /// <returns></returns>
-        public static long ReadLongInRange(MemoryStream buffer, string name, Tuple<long, long> range)
+        public static long ReadLongInRange(ByteBuffer buffer, string name, Tuple<long, long> range)
         {
             var value = buffer.GetLong();
             if (value < range.Item1 || value > range.Item2)

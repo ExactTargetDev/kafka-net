@@ -134,29 +134,29 @@ namespace Kafka.Client.Cfg
 
         public int SocketReceiveBufferBytes  { get; set; }
 
-        public int FetchMessageMaxBytes { get; private set; } //TODO: public setters
+        public int FetchMessageMaxBytes { get; set; } 
 
-        public int NumConsumerFetchers { get; private set; }
+        public int NumConsumerFetchers { get; set; }
 
-        public bool AutoCommitEnable { get; private set; }
+        public bool AutoCommitEnable { get; set; }
 
-        public int AutoCommitIntervalMs { get; private set; }
+        public int AutoCommitIntervalMs { get; set; }
 
-        public int QueuedMaxMessages { get; private set; }
+        public int QueuedMaxMessages { get; set; }
 
-        public int RebalanceMaxRetries { get; private set; }
+        public int RebalanceMaxRetries { get; set; }
 
-        public int FetchMinBytes { get; private set; }
+        public int FetchMinBytes { get;  set; }
 
-        public int FetchWaitMaxMs { get; private set; }
+        public int FetchWaitMaxMs { get; set; }
 
-        public int RebalanceBackoffMs { get; private set; }
+        public int RebalanceBackoffMs { get; set; }
 
-        public int RefreshLeaderBackoffMs { get; private set; }
+        public int RefreshLeaderBackoffMs { get; set; }
 
-        public string AutoOffsetReset { get; private set; }
+        public string AutoOffsetReset { get; set; }
 
-        public int ConsumerTimeoutMs { get; private set; }
+        public int ConsumerTimeoutMs { get; set; }
 
         public string ClientId { get; set; }
 

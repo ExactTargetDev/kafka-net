@@ -3,6 +3,8 @@
     using System;
     using System.IO;
 
+    using Kafka.Client.Common.Imported;
+
     public static class RequestKeys
     {
         public const short ProduceKey = 0;
@@ -47,7 +49,7 @@
             throw new NotImplementedException();
         }
 
-        public static Func<MemoryStream, RequestOrResponse> DeserializerForKey(short key)
+        public static Func<ByteBuffer, RequestOrResponse> DeserializerForKey(short key)
         {
             throw new NotImplementedException();
         }

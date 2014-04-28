@@ -4,6 +4,8 @@
     using System.IO;
     using System.Text;
 
+    using Kafka.Client.Common.Imported;
+
     public class Util
     {
         public static List<T> EnumeratorToArray<T>(IEnumerator<T> enumerator)
@@ -16,14 +18,14 @@
             return result;
         }
 
-        public static string ReadMemoryStream(MemoryStream stream)
+        public static List<T> IteratorToArray<T>(IIterator<T> enumerator)
         {
-            var buffer = new byte[stream.Length];
-            stream.Read(buffer, 0, buffer.Length);
-
-            stream.Position = 0;
-            return Encoding.UTF8.GetString(buffer);
-
+            var result = new List<T>();
+            while (enumerator.HasNext())
+            {
+                result.Add(enumerator.Next());
+            }
+            return result;
         }
     }
 }

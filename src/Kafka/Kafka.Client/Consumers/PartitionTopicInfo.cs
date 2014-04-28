@@ -133,7 +133,7 @@
             if (size > 0)
             {
 
-                var next = messages.ShallowEnumerator().ToEnumerable().Last().NextOffset;
+                var next = messages.ShallowIterator().ToEnumerable().Last().NextOffset;
                 Logger.DebugFormat("Updating fetch offset = {0} to {1}", this.fetchedOffset.Get(), next);
                 chunkQueue.Add(new FetchedDataChunk(messages, this, this.fetchedOffset.Get()));
                 fetchedOffset.Set(next);

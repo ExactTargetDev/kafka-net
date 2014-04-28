@@ -7,6 +7,7 @@
     using System.Text;
 
     using Kafka.Client.Common;
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
     using Kafka.Client.Messages;
 
@@ -58,7 +59,7 @@
             }
         }
 
-        public override void WriteTo(MemoryStream buffer)
+        public override void WriteTo(ByteBuffer buffer)
         {
             buffer.PutShort(this.VersionId);
             buffer.PutInt(this.CorrelationId);
@@ -81,7 +82,7 @@
                     var bytes = partitionMessageData.Buffer;
                     buffer.PutInt(partition);
                     buffer.PutInt((int)bytes.Length);
-                    buffer.Write(bytes.GetBuffer(), 0, (int)bytes.Length);
+                    buffer.Put(bytes);
                     bytes.Position = 0;
                 }
             }

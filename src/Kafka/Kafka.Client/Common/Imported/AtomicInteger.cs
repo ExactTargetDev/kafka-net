@@ -23,7 +23,7 @@
 
         public int GetAndIncrement()
         {
-            return Interlocked.Increment(ref this.value);
+            return Interlocked.Increment(ref this.value) - 1;
         }
     }
 }

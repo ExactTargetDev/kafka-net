@@ -4,6 +4,8 @@
     using System.Collections.Concurrent;
     using System.Collections.Generic;
 
+    using Kafka.Client.Common.Imported;
+
     public static class ListExtensions
     {
         private static readonly Random Rng = new Random();
@@ -48,11 +50,11 @@
             return result;
         }
 
-        public static IEnumerable<TElement> ToEnumerable<TElement>(this IEnumerator<TElement> enumerator)
+        public static IEnumerable<TElement> ToEnumerable<TElement>(this IIterator<TElement> iterator)
         {
-            while (enumerator.MoveNext())
+            while (iterator.HasNext())
             {
-                yield return enumerator.Current;
+                yield return iterator.Next();
             }
         }
 

@@ -5,6 +5,7 @@
 
     using Kafka.Client.Api;
     using Kafka.Client.Common;
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     using Newtonsoft.Json.Linq;
@@ -34,7 +35,7 @@
             return this.Host + ":" + this.Port;
         }
 
-        public void WriteTo(MemoryStream buffer)
+        public void WriteTo(ByteBuffer buffer)
         {
             buffer.PutInt(this.Id);
             ApiUtils.WriteShortString(buffer, this.Host);
@@ -99,7 +100,7 @@
             }
         }
 
-        internal static Broker ReadFrom(MemoryStream buffer)
+        internal static Broker ReadFrom(ByteBuffer buffer)
         {
             var id = buffer.GetInt();
             var host = ApiUtils.ReadShortString(buffer);

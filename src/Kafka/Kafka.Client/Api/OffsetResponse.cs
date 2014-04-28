@@ -5,14 +5,14 @@
     using System.IO;
 
     using Kafka.Client.Common;
-
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     using System.Linq;
 
     internal class OffsetResponse : RequestOrResponse
     {
-        public static OffsetResponse ReadFrom(MemoryStream buffer)
+        public static OffsetResponse ReadFrom(ByteBuffer buffer)
         {
             var correlationId = buffer.GetInt();
             var numTopics = buffer.GetInt();
@@ -81,7 +81,7 @@
             }
         }
 
-        public override void WriteTo(System.IO.MemoryStream bufffer)
+        public override void WriteTo(ByteBuffer bufffer)
         {
             throw new NotImplementedException();
         }

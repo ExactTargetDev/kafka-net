@@ -8,13 +8,14 @@
 
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     public class TopicMetadata
     {
         public const int NoLeaderNodeId = -1;
 
-        internal static TopicMetadata ReadFrom(MemoryStream buffer, Dictionary<int, Broker> brokers)
+        internal static TopicMetadata ReadFrom(ByteBuffer buffer, Dictionary<int, Broker> brokers)
         {
             var errorCode = ApiUtils.ReadShortInRange(buffer, "error code", Tuple.Create((short)-1, short.MaxValue));
             var topic = ApiUtils.ReadShortString(buffer);
@@ -53,7 +54,7 @@
             }
         }
 
-        public void WriteTo(MemoryStream buffer)
+        public void WriteTo(ByteBuffer buffer)
         {
              /* error code */
             buffer.PutShort(this.ErrorCode);

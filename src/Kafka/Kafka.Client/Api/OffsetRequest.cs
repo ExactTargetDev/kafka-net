@@ -6,7 +6,7 @@
     using System.Text;
 
     using Kafka.Client.Common;
-
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     using System.Linq;
@@ -23,7 +23,7 @@
         public const long LatestTime = -1;
         public const long EarliestTime = -2;
 
-        public static OffsetRequest ReadFrom(MemoryStream buffer)
+        public static OffsetRequest ReadFrom(ByteBuffer buffer)
         {
             throw new NotImplementedException();
         }
@@ -61,7 +61,7 @@
         {
         }
 
-        public override void WriteTo(MemoryStream buffer)
+        public override void WriteTo(ByteBuffer buffer)
         {
             buffer.PutShort(this.VersionId);
             buffer.PutInt(this.CorrelationId);

@@ -27,7 +27,7 @@ namespace Kafka.Client.Common.Imported
 
         public long GetAndIncrement()
         {
-            return Interlocked.Increment(ref this.value);
+            return Interlocked.Increment(ref this.value) - 1;
         }
 
         public override string ToString()

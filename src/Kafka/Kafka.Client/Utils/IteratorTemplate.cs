@@ -5,76 +5,84 @@ namespace Kafka.Client.Utils
     using System;
     using System.Collections;
 
-    public abstract class IteratorTemplate<T> : IEnumerator<T>
+    using Kafka.Client.Common.Imported;
+
+    public abstract class IteratorTemplate<T> : IIterator<T>
     {
-         
+
         private State state = State.NotReady;
 
         private T nextItem;
 
-        object IEnumerator.Current 
+        public virtual T Next()
         {
-            get
+            if (!this.HasNext())
             {
-                return this.Current;
-            } 
-        }
-
-        public virtual T Current 
-        { 
-            get
-            {
-                
-                return this.nextItem;
+                throw new InvalidOperationException();
             }
+            this.state = State.NotReady;
+            if (nextItem == null)
+            {
+                throw new InvalidOperationException("Expected item but none found.");
+            }
+            return nextItem;
         }
 
-        public void Dispose()
+        public T Peek()
         {
-            this.state = State.Done;
+            if (!HasNext())
+            {
+                throw new InvalidOperationException();
+            }
+            return this.nextItem;
         }
 
-        public bool MoveNext()
+        public bool HasNext()
         {
-            if (this.state == State.Failed)
+            if (state == State.Failed)
             {
                 throw new InvalidOperationException("Iterator is in failed state");
             }
-            if (this.state == State.Done)
+            switch (state)
             {
-                return false;
+                case State.Done:
+                    return false;
+                case State.Ready:
+                    return true;
+                default:
+                    return this.MaybeComputeNext();
             }
-            return this.MaybeComputeNext();
-        }
-
-        private bool MaybeComputeNext()
-        {
-            this.state = State.Failed;
-            this.nextItem = this.MakeNext();
-            if (state == State.Done)
-            {
-                return false;
-            }
-            this.state = State.Ready;
-            return true;
-        }
-
-        protected T AllDone()
-        {
-            this.state = State.Done;
-            return default(T);
         }
 
         protected abstract T MakeNext();
 
-        public void Reset()
+        internal bool MaybeComputeNext()
         {
-            this.state = State.NotReady;
+            state = State.Failed;
+            nextItem = this.MakeNext();
+            if (state == State.Done)
+            {
+                return false;
+            }
+            else
+            {
+                state = State.Ready;
+                return true;
+            }
         }
 
+        protected T AllDone()
+        {
+            state = State.Done;
+            return default(T);
+        }
+
+        protected void ResetState()
+        {
+            state = State.NotReady;
+        }
 
     }
-
 
     internal enum State
     {
@@ -83,5 +91,8 @@ namespace Kafka.Client.Utils
         NotReady,
         Failed
     }
+
+    
+
 
 }

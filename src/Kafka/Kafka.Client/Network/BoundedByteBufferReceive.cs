@@ -2,6 +2,7 @@
 {
     using System.IO;
 
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     /// <summary>
@@ -9,9 +10,9 @@
     /// </summary>
     public class BoundedByteBufferReceive : Receive
     {
-        private MemoryStream sizeBuffer = new MemoryStream(new byte[4], 0, 4, true, true);
+        private ByteBuffer sizeBuffer = ByteBuffer.Allocate(4);
 
-        private MemoryStream contentBuffer = null;
+        private ByteBuffer contentBuffer = null;
 
         public int MaxSize { get; private set; }
 
@@ -28,7 +29,7 @@
         /// <summary>
         /// Get the content buffer for this transmission
         /// </summary>
-        public override MemoryStream Buffer
+        public override ByteBuffer Buffer
         {
             get
             {
@@ -43,16 +44,16 @@
             var read = 0;
 
             // have we read the request size yet? 
-            if (this.sizeBuffer.Position < 4)
+            if (this.sizeBuffer.Remaining() > 0)
             {
-                read += channel.Read(this.sizeBuffer.GetBuffer(), 0, 4);
+                read += channel.Read(this.sizeBuffer.Array, 0, 4);
                 this.sizeBuffer.Position = read;
             }
 
             // have we allocated the request buffer yet?
-            if (this.contentBuffer == null && this.sizeBuffer.Position == 4)
+            if (this.contentBuffer == null && !this.sizeBuffer.HasRemaining())
             {
-                this.sizeBuffer.Position = 0;
+                this.sizeBuffer.Rewind();
                 var size = this.sizeBuffer.GetInt();
                 if (size <= 0)
                 {
@@ -72,13 +73,13 @@
             // if we have a buffer read some stuff into it
             if (this.contentBuffer != null)
             {
-                read = channel.Read(this.contentBuffer.GetBuffer(), 0, (int)this.contentBuffer.Length);
+                read = channel.Read(this.contentBuffer.Array, this.contentBuffer.ArrayOffset(), this.contentBuffer.Limit());
                 this.contentBuffer.Position += read;
 
                 // did we get everything?
-                if (this.contentBuffer.Position == this.contentBuffer.Length)
+                if (!this.contentBuffer.HasRemaining())
                 {
-                    this.contentBuffer.Position = 0;
+                    this.contentBuffer.Rewind();
                     this.complete = true;
                 }
             }
@@ -86,11 +87,9 @@
 
         }
 
-        private MemoryStream ByteBufferAllocate(int size)
+        private ByteBuffer ByteBufferAllocate(int size)
         {
-            var stream = new MemoryStream(size);
-            stream.SetLength(size);
-            return stream;
+            return ByteBuffer.Allocate(size);
         }
     }
 }

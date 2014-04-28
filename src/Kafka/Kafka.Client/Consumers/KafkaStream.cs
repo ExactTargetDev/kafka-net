@@ -4,6 +4,7 @@
     using System.Collections.Concurrent;
     using System.Collections.Generic;
 
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Messages;
     using Kafka.Client.Serializers;
 
@@ -12,7 +13,7 @@
         public abstract void Clear();
     }
 
-    public class KafkaStream<K, V> : KafkaStream, IEnumerable<MessageAndMetadata<K, V>>
+    public class KafkaStream<K, V> : KafkaStream , IEnumerable<MessageAndMetadata<K, V>>
     {
         private readonly BlockingCollection<FetchedDataChunk> queue;
 
@@ -34,20 +35,6 @@
         private ConsumerIterator<K, V> iter;
 
         /// <summary>
-        /// Create an iterator over messages in the stream.
-        /// </summary>
-        /// <returns></returns>
-        public IEnumerator<MessageAndMetadata<K, V>> GetEnumerator()
-        {
-            return this.iter;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return this.GetEnumerator();
-        }
-
-        /// <summary>
         /// This method clears the queue being iterated during the consumer rebalancing. This is mainly
         ///  to reduce the number of duplicates received by the consumer
         /// </summary>
@@ -56,5 +43,17 @@
             iter.ClearCurrentChunk();
         }
 
+        public IEnumerator<MessageAndMetadata<K, V>> GetEnumerator()
+        {
+            if (iter.HasNext())
+            {
+                yield return iter.Next();
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
+        }
     }
 }

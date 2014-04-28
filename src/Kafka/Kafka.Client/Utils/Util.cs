@@ -7,6 +7,7 @@ namespace Kafka.Client.Utils
     using System.Reflection;
     using System.Text;
 
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Producers;
 
     /// <summary>
@@ -14,21 +15,21 @@ namespace Kafka.Client.Utils
     /// </summary>
     public static class Util
     {
-     /// <summary>
-        ///  Read the given byte buffer into a byte array
-     /// </summary>
-     /// <param name="stream"></param>
-     /// <returns></returns>
-    
-        public static byte[] ReadBytes(MemoryStream stream)
-        {
-         return stream.ToArray();
-        }
+         /// <summary>
+         ///  Read the given byte buffer into a byte array
+         /// </summary>
+         /// <param name="stream"></param>
+         /// <returns></returns>
 
-        public static byte[] ReadBytes(MemoryStream stream, int offset, int size)
+        public static byte[] ReadBytes(ByteBuffer buffer)
+         {
+             return ReadBytes(buffer, 0, buffer.Limit());
+         }
+
+        public static byte[] ReadBytes(ByteBuffer buffer, int offset, int size)
         {
             var result = new byte[size];
-            Buffer.BlockCopy(stream.GetBuffer(), offset, result, 0, size);
+            Buffer.BlockCopy(buffer.Array, buffer.ArrayOffset(), result, 0, size);
             return result;
         }
 
@@ -38,7 +39,7 @@ namespace Kafka.Client.Utils
         /// </summary>
         /// <param name="buffer"></param>
         /// <returns></returns>
-        public static long ReadUnsignedInt(MemoryStream buffer)
+        public static long ReadUnsignedInt(ByteBuffer buffer)
         {
             return buffer.GetInt() & 0xffffffffL;
         }
@@ -50,7 +51,7 @@ namespace Kafka.Client.Utils
         /// <param name="buffer"></param>
         /// <param name="index"></param>
         /// <returns></returns>
-        public static long ReadUnsingedInt(MemoryStream buffer, int index)
+        public static long ReadUnsingedInt(ByteBuffer buffer, int index)
         {
             return buffer.GetInt(index) & 0xffffffffL;
         }
@@ -60,7 +61,7 @@ namespace Kafka.Client.Utils
         /// </summary>
         /// <param name="buffer">The buffer to write to</param>
         /// <param name="value">The value to write</param>
-        public static void WriteUnsignedInt(MemoryStream buffer, long value)
+        public static void WriteUnsignedInt(ByteBuffer buffer, long value)
         {
             buffer.PutInt((int) (value & 0xffffffffL));
         }
@@ -71,7 +72,7 @@ namespace Kafka.Client.Utils
         /// <param name="buffer">The buffer to write to</param>
         /// <param name="index"></param>
         /// <param name="value"></param>
-        public static void WriteUnsignedInt(MemoryStream buffer, int index, long value)
+        public static void WriteUnsignedInt(ByteBuffer buffer, int index, long value)
         {
             buffer.PutInt(index, (int)(value & 0xffffffffL));
         }
@@ -97,11 +98,11 @@ namespace Kafka.Client.Utils
             return (T)Activator.CreateInstance(Type.GetType(type), args);
         }
 
-        public static string ReadString(MemoryStream stream)
+        public static string ReadString(ByteBuffer buffer)
         {
-            var buffer = new byte[stream.Length - stream.Position];
-            stream.Read(buffer, 0, (int)(stream.Length - stream.Position));
-            return Encoding.UTF8.GetString(buffer);
+            var bytes = new byte[buffer.Remaining()];
+            buffer.Get(bytes);
+            return Encoding.UTF8.GetString(bytes);
         }
 
     }

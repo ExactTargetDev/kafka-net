@@ -6,6 +6,7 @@
     using System.Linq;
     using System.Text;
 
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     public class TopicMetadataRequest : RequestOrResponse
@@ -14,7 +15,7 @@
 
         public const string DefaultClientId = "";
 
-        public static TopicMetadataRequest ReadFrom(MemoryStream buffer)
+        public static TopicMetadataRequest ReadFrom(ByteBuffer buffer)
         {
             throw new NotImplementedException();
         }
@@ -37,7 +38,7 @@
         {
         }
 
-        public override void WriteTo(MemoryStream buffer)
+        public override void WriteTo(ByteBuffer buffer)
         {
             buffer.PutShort(this.VersionId);
             buffer.PutInt(this.CorrelationId);

@@ -31,8 +31,8 @@
         public string ClientId { get; set; }
 
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        
-        private readonly AtomicReference<IEnumerator<MessageAndOffset>> current = new AtomicReference<IEnumerator<MessageAndOffset>>(null);
+
+        private readonly AtomicReference<IIterator<MessageAndOffset>> current = new AtomicReference<IIterator<MessageAndOffset>>(null);
 
         private PartitionTopicInfo currentTopicInfo;
 
@@ -47,29 +47,26 @@
             this.ClientId = clientId;
         }
 
-        public override MessageAndMetadata<TKey, TValue> Current
+        public override MessageAndMetadata<TKey, TValue> Next()
         {
-            get
+            var item = base.Next();
+            if (this.consumedOffset < 0)
             {
-                var item = base.Current;
-                if (this.consumedOffset < 0)
-                {
-                    throw new KafkaException(string.Format("Offset returned by the message set is invalid {0}", this.consumedOffset));
-                }
-                this.currentTopicInfo.ResetConsumeOffset(this.consumedOffset);
-                var topic = this.currentTopicInfo.Topic;
-                Logger.DebugFormat("Setting {0} consumer offset to {1}", topic, this.consumedOffset);
-                //TODO: consumerTopicStats.getConsumerTopicStats(topic).messageRate.mark()
-                 //TODO: consumerTopicStats.getConsumerAllTopicStats().messageRate.mark()
-                return item;
+                throw new KafkaException(string.Format("Offset returned by the message set is invalid {0}", this.consumedOffset));
             }
+            this.currentTopicInfo.ResetConsumeOffset(this.consumedOffset);
+            var topic = this.currentTopicInfo.Topic;
+            Logger.DebugFormat("Setting {0} consumer offset to {1}", topic, this.consumedOffset);
+            //TODO: consumerTopicStats.getConsumerTopicStats(topic).messageRate.mark()
+            //TODO: consumerTopicStats.getConsumerAllTopicStats().messageRate.mark()
+            return item;
         }
 
         protected override MessageAndMetadata<TKey, TValue> MakeNext()
         {
             FetchedDataChunk currentDataChunk = null;
             var localCurrent = this.current.Get();
-            if (localCurrent == null || !localCurrent.MoveNext())
+            if (localCurrent == null || !localCurrent.HasNext())
             {
                 if (this.consumerTimeoutMs < 0)
                 {
@@ -80,7 +77,7 @@
                     if (!this.channel.TryTake(out currentDataChunk, consumerTimeoutMs))
                     {
                          // reste stat to make the iterator re-iterable
-                        this.Reset();
+                        this.ResetState();
                         throw new ConsumerTimeoutException();
                     } 
                 }
@@ -111,7 +108,7 @@
                             this.currentTopicInfo);
                         this.currentTopicInfo.ResetConsumeOffset(currentDataChunk.FetchOffset);
                     }
-                    localCurrent = currentDataChunk.Messages.GetEnumerator();
+                    localCurrent = currentDataChunk.Messages.Iterator();
                     this.current.Set(localCurrent);
                 }
 
@@ -128,12 +125,12 @@
                 }
             }
 
-            var item = localCurrent.Current;
+            var item = localCurrent.Next();
 
             // reject the messages that have already been consumed
-            while (item.Offset < this.currentTopicInfo.GetConsumeOffset() && localCurrent.MoveNext())
+            while (item.Offset < this.currentTopicInfo.GetConsumeOffset() && localCurrent.HasNext())
             {
-                item = localCurrent.Current;
+                item = localCurrent.Next();
             }
 
             item.Message.EnsureValid(); // validate checksum of message to ensure it is valid

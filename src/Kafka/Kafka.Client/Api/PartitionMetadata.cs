@@ -8,7 +8,7 @@
 
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
-
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     public class PartitionMetadata
@@ -23,7 +23,7 @@
 
         public short ErrorCode { get; private set; }
 
-        public static PartitionMetadata ReadFrom(MemoryStream buffer, Dictionary<int, Broker> brokers)
+        public static PartitionMetadata ReadFrom(ByteBuffer buffer, Dictionary<int, Broker> brokers)
         {
             var errorCode = ApiUtils.ReadShortInRange(
                 buffer, "error code", Tuple.Create<short, short>(-1, short.MaxValue));
@@ -72,7 +72,7 @@
             }
         }
 
-        public void WriteTo(MemoryStream buffer)
+        public void WriteTo(ByteBuffer buffer)
         {
             buffer.PutShort(this.ErrorCode);
             buffer.PutInt(this.PartitionId);

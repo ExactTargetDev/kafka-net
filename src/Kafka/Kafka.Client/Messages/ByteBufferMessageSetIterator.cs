@@ -4,48 +4,37 @@
     using System.IO;
 
     using Kafka.Client.Common;
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Utils;
 
     using Kafka.Client.Extensions;
 
-    internal class ByteBufferMessageSetEnumerator : IteratorTemplate<MessageAndOffset>
+    internal class ByteBufferMessageSetIterator : IteratorTemplate<MessageAndOffset>
     {
         private readonly ByteBufferMessageSet parent;
 
-        private readonly MemoryStream topIter;
+        private readonly ByteBuffer topIter;
 
         private readonly bool isShallow;
 
-        private IEnumerator<MessageAndOffset> innerIter = null;
+        private IIterator<MessageAndOffset> innerIter = null;
 
-        private bool? innerHasNext = null;
-
-        public ByteBufferMessageSetEnumerator(ByteBufferMessageSet parent, bool isShallow)
+        public ByteBufferMessageSetIterator(ByteBufferMessageSet parent, bool isShallow)
         {
             this.parent = parent;
-            this.topIter = new MemoryStream(parent.Buffer.GetBuffer(), (int)parent.Buffer.Position, (int)(parent.Buffer.Length - parent.Buffer.Position), false, false);
+            this.topIter = parent.Buffer.Slice();
             this.isShallow = isShallow;
-        }
-
-        private bool InnerHasNext()
-        {
-            if (this.innerHasNext.HasValue)
-            {
-                return this.innerHasNext.Value;
-            }
-            this.innerHasNext = this.innerIter.MoveNext();
-            return this.innerHasNext.Value;
         }
 
         public bool InnerDone()
         {
-            return this.innerIter == null || !this.InnerHasNext();
+            return this.innerIter == null || !innerIter.HasNext();
         }
 
         public MessageAndOffset MakeNextOuter()
         {
             // if there isn't at least an offset and size, we are done
-            if (this.topIter.Length - this.topIter.Position < 12)
+            if (this.topIter.Remaining() < 12)
             {
                 return this.AllDone();
             }
@@ -57,15 +46,16 @@
             }
 
             // we have an incomplete message
-            if (this.topIter.Length - this.topIter.Position < size)
+            if (this.topIter.Remaining() < size)
             {
                 return this.AllDone();
             }
 
             // read the current message and check correctness
-            var messagePayload = new byte[size];
-            this.topIter.Read(messagePayload, 0, messagePayload.Length);
-            var newMessage = new Message(new MemoryStream(messagePayload, 0, messagePayload.Length, true, true));
+            var message = topIter.Slice();
+            message.Limit(size);
+            topIter.Position = topIter.Position + size;
+            var newMessage = new Message(message);
 
             if (this.isShallow)
             {
@@ -79,11 +69,10 @@
                         this.innerIter = null;
                         return new MessageAndOffset(newMessage, offset);
                     default:
-                        this.innerIter = ByteBufferMessageSet.Decompress(newMessage).InternalIterator();
-                        if (!this.InnerHasNext())
+                        innerIter = ByteBufferMessageSet.Decompress(newMessage).InternalIterator();
+                        if (!innerIter.HasNext())
                         {
                             this.innerIter = null;
-                            this.innerHasNext = null;
                         }
 
                         return this.MakeNext();
@@ -105,9 +94,7 @@
                 }
                 else
                 {
-                    var current = this.innerIter.Current;
-                    innerHasNext = null;
-                    return current;
+                    return innerIter.Next();
                 }
             }
         }

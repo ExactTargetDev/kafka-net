@@ -6,7 +6,7 @@
     using System.Linq;
 
     using Kafka.Client.Common;
-
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
 
     public class ProducerResponse : RequestOrResponse
@@ -22,7 +22,7 @@
                 this.Status.GroupByScala(x => x.Key.Topic));
         }
 
-        public static ProducerResponse ReadFrom(MemoryStream buffer)
+        public static ProducerResponse ReadFrom(ByteBuffer buffer)
         {
             var correlationId = buffer.GetInt();
             var topicCount = buffer.GetInt();
@@ -72,7 +72,7 @@
             }
         }
 
-        public override void WriteTo(MemoryStream bufffer)
+        public override void WriteTo(ByteBuffer bufffer)
         {
             throw new NotImplementedException("Not used in client");
         }

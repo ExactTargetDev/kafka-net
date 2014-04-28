@@ -194,7 +194,7 @@
                                         var messages = (ByteBufferMessageSet)partitionData.Messages;
                                         var validBytes = messages.ValidBytes;
                                         var messageAndOffset =
-                                            messages.ShallowEnumerator().ToEnumerable().LastOrDefault();
+                                            messages.ShallowIterator().ToEnumerable().LastOrDefault();
                                         var newOffset = messageAndOffset != null
                                                             ? messageAndOffset.NextOffset
                                                             : currentOffset;

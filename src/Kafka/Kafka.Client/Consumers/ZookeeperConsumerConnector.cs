@@ -767,7 +767,10 @@
                 {
                     foreach (var stream in messageStreams.Values)
                     {
-                        stream.Clear();
+                        foreach (var s2 in stream)
+                        {
+                            s2.Clear();
+                        }
                     }
                 }
 
