@@ -1,5 +1,6 @@
 ﻿namespace Kafka.Client.Network
 {
+    using System;
     using System.IO;
 
     using Kafka.Client.Common.Imported;
@@ -55,6 +56,9 @@
             {
                 this.sizeBuffer.Rewind();
                 var size = this.sizeBuffer.GetInt();
+
+                Console.WriteLine("SIZEEEE = " + size); //TODO: delete me
+
                 if (size <= 0)
                 {
                     throw new InvalidRequestException(string.Format("{0} is not a valid request size", size));
@@ -73,7 +77,7 @@
             // if we have a buffer read some stuff into it
             if (this.contentBuffer != null)
             {
-                read = channel.Read(this.contentBuffer.Array, this.contentBuffer.ArrayOffset(), this.contentBuffer.Limit());
+                read = channel.Read(this.contentBuffer.Array, (int)(this.contentBuffer.ArrayOffset() + this.contentBuffer.Position), this.contentBuffer.Remaining());
                 this.contentBuffer.Position += read;
 
                 // did we get everything?

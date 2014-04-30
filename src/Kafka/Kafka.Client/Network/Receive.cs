@@ -22,6 +22,8 @@
                 Logger.DebugFormat("{0} bytes read", read);
                 
                 totalRead += read;
+
+
             }
 
             return totalRead;

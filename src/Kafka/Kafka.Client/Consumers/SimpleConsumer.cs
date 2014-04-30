@@ -11,7 +11,7 @@
 
     using log4net;
 
-    public class SimpleConsumer : IDisposable
+    public class SimpleConsumer
     {
         public string Host { get; private set; }
 
@@ -54,7 +54,7 @@
 
         private BlockingChannel Connect()
         {
-            this.Dispose();
+            this.Close();
             this.blockingChannel.Connect();
             return blockingChannel;
         }
@@ -74,7 +74,7 @@
             this.Connect();
         }
 
-        public void Dispose()
+        public void Close()
         {
             lock (@lock)
             {

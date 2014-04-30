@@ -107,7 +107,7 @@
         public override void Shutdown()
         {
             base.Shutdown();
-            simpleConsumer.Dispose();
+            simpleConsumer.Close();
         }
 
         public override void DoWork()

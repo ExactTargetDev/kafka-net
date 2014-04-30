@@ -136,6 +136,8 @@
                 item = localCurrent.Next();
             }
 
+            consumedOffset = item.NextOffset;
+
             item.Message.EnsureValid(); // validate checksum of message to ensure it is valid
 
             return new MessageAndMetadata<TKey, TValue>(
