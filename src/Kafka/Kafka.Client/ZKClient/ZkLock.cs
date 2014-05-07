@@ -2,15 +2,13 @@
 {
     using Spring.Threading.Locks;
 
-    public class ZkLock : ReentrantLock
+    public sealed class ZkLock : ReentrantLock
     {
-
         public ICondition DataChangedCondition { get; private set; }
 
         public ICondition StateChangedCondition { get; private set; }
 
         public ICondition ZNodeEventCondition { get; private set; }
-
 
         public ZkLock()
         {

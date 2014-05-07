@@ -34,12 +34,13 @@
 
         private KeeperState _currentState;
 
-        public KeeperState CurrentState { 
+        public KeeperState CurrentState
+        {
             get
             {
                 return _currentState;
             }
-            
+
             set
             {
                 this.EventLock.Lock();
@@ -74,7 +75,8 @@
         {
         }
 
-        public ZkClient(IZkConnection connection, int connectionTimeout) : this(connection, connectionTimeout, null)
+        public ZkClient(IZkConnection connection, int connectionTimeout)
+            : this(connection, connectionTimeout, null)
         {
         }
 
@@ -86,7 +88,7 @@
             this.Connect(connectionTimeout, this);
         }
 
-        public List<string> SubscribeChildChanges(string path, IZkChildListener listener) 
+        public List<string> SubscribeChildChanges(string path, IZkChildListener listener)
         {
             lock (_childListener)
             {
@@ -100,6 +102,7 @@
 
                 listeners.Add(listener);
             }
+
             return WatchForChilds(path);
         }
 
@@ -115,8 +118,8 @@
             }
         }
 
-         public void SubscribeDataChanges(string path, IZkDataListener listener) 
-         {
+        public void SubscribeDataChanges(string path, IZkDataListener listener)
+        {
             ConcurrentHashSet<IZkDataListener> listeners;
             lock (_dataListener)
             {
@@ -129,22 +132,22 @@
 
                 listeners.Add(listener);
             }
+
             WatchForData(path);
             Logger.Debug("Subscribed Data changes for " + path);
         }
 
-        public void UnsubscribeDataChanges(string path, IZkDataListener dataListener) 
+        public void UnsubscribeDataChanges(string path, IZkDataListener dataListener)
         {
             lock (_dataListener)
             {
-
                 ConcurrentHashSet<IZkDataListener> listeners = _dataListener.Get(path);
                 if (listeners != null)
                 {
                     listeners.TryRemove(dataListener);
                 }
 
-                if (listeners == null || listeners.Count == 0 )
+                if (listeners == null || listeners.Count == 0)
                 {
                     ConcurrentHashSet<IZkDataListener> _;
                     _dataListener.TryRemove(path, out _);
@@ -152,15 +155,15 @@
             }
         }
 
-         public void SubscribeStateChanges(IZkStateListener listener) 
-         {
-            lock (_stateListener) 
+        public void SubscribeStateChanges(IZkStateListener listener)
+        {
+            lock (_stateListener)
             {
                 _stateListener.Add(listener);
             }
         }
 
-        public void UnsubscribeStateChanges(IZkStateListener stateListener) 
+        public void UnsubscribeStateChanges(IZkStateListener stateListener)
         {
             lock (_stateListener)
             {
@@ -168,14 +171,14 @@
             }
         }
 
-        public void UnsubscribeAll() 
+        public void UnsubscribeAll()
         {
-            lock (_childListener) 
+            lock (_childListener)
             {
                 _childListener.Clear();
             }
 
-            lock (_dataListener) 
+            lock (_dataListener)
             {
                 _dataListener.Clear();
             }
@@ -193,26 +196,29 @@
         /// <param name="createParents"></param>
         public void CreatePersistent(String path, bool createParents = false)
         {
-            try 
+            try
             {
                 Create(path, null, CreateMode.Persistent);
-            } 
-            catch (ZkNodeExistsException e) 
-            {
-                if (!createParents) 
-                {
-                    throw;
-                }
-            } 
-            catch (ZkNoNodeException e) 
+            }
+            catch (ZkNodeExistsException)
             {
                 if (!createParents)
                 {
                     throw;
                 }
+            }
+            catch (ZkNoNodeException)
+            {
+                if (!createParents)
+                {
+                    throw;
+                }
+
                 var parentDir = path.Substring(0, path.LastIndexOf('/'));
+// ReSharper disable ConditionIsAlwaysTrueOrFalse
                 CreatePersistent(parentDir, createParents);
                 CreatePersistent(path, createParents);
+// ReSharper restore ConditionIsAlwaysTrueOrFalse
             }
         }
 
@@ -253,9 +259,9 @@
         /// <param name="data"></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        public String Create(string path, object data, CreateMode mode) 
+        public String Create(string path, object data, CreateMode mode)
         {
-            if (path == null) 
+            if (path == null)
             {
                 throw new NullReferenceException("path must not be null.");
             }
@@ -269,7 +275,7 @@
         /// </summary>
         /// <param name="path"></param>
         /// <param name="data"></param>
-        public void CreateEphemeral(string path, object data) 
+        public void CreateEphemeral(string path, object data)
         {
             this.Create(path, data, CreateMode.Ephemeral);
         }
@@ -280,7 +286,7 @@
         /// <param name="path"></param>
         /// <param name="data"></param>
         /// <returns></returns>
-        public string CreateEphemeralSequential(string path, object data) 
+        public string CreateEphemeralSequential(string path, object data)
         {
             return this.Create(path, data, CreateMode.EphemeralSequential);
         }
@@ -296,35 +302,35 @@
                     || watchedEvent.Type == EventType.NodeChildrenChanged;
 
             this.EventLock.Lock();
-            try 
+            try
             {
                 // We might have to install child change event listener if a new node was created
-                if (this.ShutdownTrigger) 
+                if (this.ShutdownTrigger)
                 {
                     Logger.Debug("ignoring event '{" + watchedEvent.Type + " | " + watchedEvent.Path + "}' since shutdown triggered");
                     return;
                 }
 
-                if (stateChanged) 
+                if (stateChanged)
                 {
                     this.ProcessStateChanged(watchedEvent);
                 }
 
-                if (dataChanged) 
+                if (dataChanged)
                 {
                     this.ProcessDataOrChildChange(watchedEvent);
                 }
-            } 
-            finally 
+            }
+            finally
             {
-                if (stateChanged) 
+                if (stateChanged)
                 {
                     this.EventLock.StateChangedCondition.SignalAll();
 
                     // If the session expired we have to signal all conditions, because watches might have been removed and
                     // there is no guarantee that those
                     // conditions will be signaled at all after an Expired event
-                    if (watchedEvent.State == KeeperState.Expired) 
+                    if (watchedEvent.State == KeeperState.Expired)
                     {
                         this.EventLock.ZNodeEventCondition.SignalAll();
                         this.EventLock.DataChangedCondition.SignalAll();
@@ -334,12 +340,12 @@
                     }
                 }
 
-                if (znodeChanged) 
+                if (znodeChanged)
                 {
                     this.EventLock.ZNodeEventCondition.SignalAll();
                 }
 
-                if (dataChanged) 
+                if (dataChanged)
                 {
                     this.EventLock.DataChangedCondition.SignalAll();
                 }
@@ -349,19 +355,20 @@
             }
         }
 
-        private void FireAllEvents() 
+        private void FireAllEvents()
         {
             foreach (var entry in _childListener)
             {
                 this.FireChildChangedEvents(entry.Key, entry.Value);
             }
+
             foreach (var entry in _dataListener)
             {
                 this.FireDataChangedEvents(entry.Key, entry.Value);
             }
         }
 
-        public List<string> GetChildren(string path) 
+        public List<string> GetChildren(string path)
         {
             return this.GetChildren(path, this.HasListeners(path));
         }
@@ -376,13 +383,13 @@
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public int CountChildren(string path) 
+        public int CountChildren(string path)
         {
-            try 
+            try
             {
                 return GetChildren(path).Count;
-            } 
-            catch (ZkNoNodeException e) 
+            }
+            catch (ZkNoNodeException)
             {
                 return 0;
             }
@@ -393,21 +400,21 @@
             return RetryUntilConnected(() => _connection.Exists(path, watch));
         }
 
-        public bool Exists(string path) 
+        public bool Exists(string path)
         {
             return Exists(path, this.HasListeners(path));
         }
 
-        private void ProcessStateChanged(WatchedEvent watchedEvent) 
+        private void ProcessStateChanged(WatchedEvent watchedEvent)
         {
             Logger.InfoFormat("zookeeper state changed ({0})", watchedEvent.State);
             CurrentState = watchedEvent.State;
-            if (ShutdownTrigger) 
+            if (ShutdownTrigger)
             {
                 return;
             }
 
-            try 
+            try
             {
                 this.FireStateChangedEvent(watchedEvent.State);
 
@@ -416,18 +423,18 @@
                     Reconnect();
                     FireNewSessionEvents();
                 }
-
-            } 
+            }
             catch (Exception e)
             {
                 throw new Exception("Exception while restarting zk client", e);
             }
         }
 
-        private void FireNewSessionEvents() 
+        private void FireNewSessionEvents()
         {
-            foreach (var stateListener in this._stateListener)
+            foreach (var s in this._stateListener)
             {
+                var stateListener = s;
                 _eventThread.Send(
                     new ZkEvent("New session event sent to " + stateListener)
                         {
@@ -440,9 +447,10 @@
 
         private void FireStateChangedEvent(KeeperState state)
         {
-            foreach (var stateListener in this._stateListener)
+            foreach (var s in this._stateListener)
             {
-                _eventThread.Send(new ZkEvent("State changed to " + state + " sent to " + stateListener) 
+                var stateListener = s;
+                _eventThread.Send(new ZkEvent("State changed to " + state + " sent to " + stateListener)
                 {
                     RunAction = () => stateListener.HandleStateChanged(state)
                 });
@@ -452,32 +460,33 @@
         private bool HasListeners(string path)
         {
             var dataListeners = _dataListener.Get(path);
-            if (dataListeners != null && dataListeners.Count > 0) 
+            if (dataListeners != null && dataListeners.Count > 0)
             {
                 return true;
             }
 
             var childListeners = _childListener.Get(path);
-            if (childListeners != null && childListeners.Count > 0) 
+            if (childListeners != null && childListeners.Count > 0)
             {
                 return true;
             }
+
             return false;
         }
 
-        public bool DeleteRecursive(String path) 
+        public bool DeleteRecursive(String path)
         {
             List<String> children;
-            try 
+            try
             {
                 children = GetChildren(path, false);
-            } 
-            catch (ZkNoNodeException e) 
+            }
+            catch (ZkNoNodeException)
             {
                 return true;
             }
 
-            foreach (var subPath in children) 
+            foreach (var subPath in children)
             {
                 if (!DeleteRecursive(path + "/" + subPath))
                 {
@@ -504,30 +513,30 @@
             if (watchedEvent.Type == EventType.NodeDataChanged || watchedEvent.Type == EventType.NodeDeleted || watchedEvent.Type == EventType.NodeCreated)
             {
                 var listeners = _dataListener.Get(path);
-                if (listeners != null && listeners.Count > 0) 
+                if (listeners != null && listeners.Count > 0)
                 {
                     this.FireDataChangedEvents(watchedEvent.Path, listeners);
                 }
             }
         }
 
-
-         private void FireDataChangedEvents(string path, IEnumerable<IZkDataListener> listeners) 
-         {
-            foreach (var listener in listeners) 
+        private void FireDataChangedEvents(string path, IEnumerable<IZkDataListener> listeners)
+        {
+            foreach (var l in listeners)
             {
+                var listener = l;
                 _eventThread.Send(new ZkEvent("Data of " + path + " changed sent to " + listener)
                 {
                     RunAction = () =>
                         {
-                             // reinstall watch
+                            // reinstall watch
                             this.Exists(path, true);
-                            try 
+                            try
                             {
                                 Object data = this.ReadData<object>(path, null, true);
                                 listener.HandleDataChange(path, data);
-                            } 
-                            catch (ZkNoNodeException e) 
+                            }
+                            catch (ZkNoNodeException)
                             {
                                 listener.HandleDataDeleted(path);
                             }
@@ -536,33 +545,34 @@
             }
         }
 
-         private void FireChildChangedEvents(string path, ConcurrentHashSet<IZkChildListener> childListeners)
-         {
-            try 
+        private void FireChildChangedEvents(string path, ConcurrentHashSet<IZkChildListener> childListeners)
+        {
+            try
             {
                 // reinstall the watch
-                foreach (var listener in childListeners) 
+                foreach (var l in childListeners)
                 {
+                    var listener = l;
                     _eventThread.Send(new ZkEvent("Children of " + path + " changed sent to " + listener)
                     {
                         RunAction = () =>
                             {
-                                try 
+                                try
                                 {
                                     // if the node doesn't exist we should listen for the root node to reappear
                                     Exists(path);
                                     var children = this.GetChildren(path);
                                     listener.HandleChildChange(path, children);
-                                } 
-                                catch (ZkNoNodeException e) 
+                                }
+                                catch (ZkNoNodeException)
                                 {
                                     listener.HandleChildChange(path, null);
                                 }
                             }
                     });
                 }
-            } 
-            catch (Exception e) 
+            }
+            catch (Exception e)
             {
                 Logger.Error("Failed to fire child changed event. Unable to getChildren.  ", e);
             }
@@ -576,25 +586,26 @@
             {
                 return true;
             }
+
             AcquireEventLock();
-            try 
+            try
             {
                 while (!Exists(path, true))
                 {
-
-                    var gotSignal = EventLock.ZNodeEventCondition.Await(time);
+                    var gotSignal = EventLock.ZNodeEventCondition.AwaitUntil(timeout);
                     if (!gotSignal)
                     {
                         return false;
                     }
                 }
+
                 return true;
-            } 
-            catch (ThreadInterruptedException e) 
+            }
+            catch (ThreadInterruptedException e)
             {
                 throw new ZkInterruptedException("Thread interrupted", e);
-            } 
-            finally 
+            }
+            finally
             {
                 EventLock.Unlock();
             }
@@ -605,16 +616,16 @@
             return _dataListener.Get(path);
         }
 
-        public void ShowFolders(Stream output) 
+        public void ShowFolders(Stream output)
         {
             try
             {
                 var bytes = Encoding.UTF8.GetBytes(ZkPathUtil.ToString(this));
                 output.Write(bytes, 0, bytes.Length);
-            } 
-            catch (IOException e) 
+            }
+            catch (IOException e)
             {
-                Logger.ErrorFormat("IOException during show folders", e);
+                Logger.Error("IOException during show folders", e);
             }
         }
 
@@ -628,98 +639,97 @@
             return WaitForKeeperState(KeeperState.SyncConnected, timeout);
         }
 
-        public bool WaitForKeeperState(KeeperState keeperState, TimeSpan timeout) 
+        public bool WaitForKeeperState(KeeperState keeperState, TimeSpan timeout)
         {
             if (_zookeeperEventThread != null && Thread.CurrentThread == _zookeeperEventThread)
             {
                 throw new Exception("Must not be done in the zookeeper event thread.");
             }
+
             Logger.Debug("Waiting for keeper state " + keeperState);
             this.AcquireEventLock();
-            try 
+            try
             {
                 bool stillWaiting = true;
-                while (CurrentState != keeperState) 
+                while (CurrentState != keeperState)
                 {
-                    if (!stillWaiting) 
+                    if (!stillWaiting)
                     {
                         return false;
                     }
+
                     stillWaiting = EventLock.StateChangedCondition.Await(timeout);
                 }
+
                 Logger.Debug("State is " + CurrentState);
                 return true;
-            } 
-            catch (ThreadInterruptedException e) 
+            }
+            catch (ThreadInterruptedException e)
             {
                 throw new ZkInterruptedException(e);
-            } 
-            finally 
+            }
+            finally
             {
                 EventLock.Unlock();
             }
         }
 
-        private void AcquireEventLock() 
+        private void AcquireEventLock()
         {
             try
             {
                 EventLock.LockInterruptibly();
-            } 
-            catch (ThreadInterruptedException e) 
+            }
+            catch (ThreadInterruptedException e)
             {
                 throw new ZkInterruptedException(e);
             }
         }
 
-        public TResult RetryUntilConnected<TResult>(Func<TResult> callable) 
+        public TResult RetryUntilConnected<TResult>(Func<TResult> callable)
         {
-            if (_zookeeperEventThread != null && Thread.CurrentThread == _zookeeperEventThread) 
+            if (_zookeeperEventThread != null && Thread.CurrentThread == _zookeeperEventThread)
             {
                 throw new Exception("Must not be done in the zookeeper event thread.");
             }
-            while (true) 
+
+            while (true)
             {
                 try
                 {
                     return callable();
-                } 
-                catch (KeeperException.ConnectionLossException e) 
+                }
+                catch (KeeperException.ConnectionLossException)
                 {
                     // we give the event thread some time to update the status to 'Disconnected'
                     Thread.Yield();
                     WaitUntilConnected();
-                } 
-                catch (KeeperException.SessionExpiredException e) 
+                }
+                catch (KeeperException.SessionExpiredException)
                 {
                     // we give the event thread some time to update the status to 'Expired'
                     Thread.Yield();
                     WaitUntilConnected();
-                } 
-                catch (KeeperException e) 
+                }
+                catch (KeeperException e)
                 {
                     throw ZkException.Create(e);
-                } 
-                catch (ThreadInterruptedException e) 
+                }
+                catch (ThreadInterruptedException e)
                 {
                     throw new ZkInterruptedException(e);
-                } 
-                catch (Exception e)
-                {
-                    throw e;
                 }
             }
         }
 
-
-        public bool Delete(string path) 
+        public bool Delete(string path)
         {
             try
             {
                 RetryUntilConnected<object>(() => { _connection.Delete(path); return null; });
                 return true;
-            } 
-            catch (ZkNoNodeException e) 
+            }
+            catch (ZkNoNodeException)
             {
                 return false;
             }
@@ -730,33 +740,36 @@
             return ZkSerializer.Serialize(data);
         }
 
-        private TResult Derializable<TResult>(byte[] data) 
+        private TResult Derializable<TResult>(byte[] data)
         {
-            if (data == null) 
+            if (data == null)
             {
                 return default(TResult);
             }
-            return (TResult) ZkSerializer.Deserialize(data);
+
+            return (TResult)ZkSerializer.Deserialize(data);
         }
 
         public TResult ReadData<TResult>(string path, bool returnNullIfPathNotExists = false)
         {
             TResult data = default(TResult);
-            try 
+            try
             {
                 data = ReadData<TResult>(path, null);
-            } 
-            catch (ZkNoNodeException e)
+            }
+            catch (ZkNoNodeException)
             {
-                if (!returnNullIfPathNotExists) 
+                if (!returnNullIfPathNotExists)
                 {
                     throw;
                 }
             }
+
             return data;
         }
 
-        public TResult ReadData<TResult>(string path, Stat stat) {
+        public TResult ReadData<TResult>(string path, Stat stat)
+        {
             return ReadData<TResult>(path, stat, HasListeners(path));
         }
 
@@ -765,29 +778,29 @@
             var data = RetryUntilConnected(
                 () => _connection.ReadData(path, stat, watch)
             );
+
             return Derializable<TResult>(data);
         }
 
-        public void WriteData(string path, object obj) 
+        public void WriteData(string path, object obj)
         {
             this.WriteData(path, obj, -1);
         }
 
-
-         public void UpdateDataSerialized<TResult>(string path, IDataUpdater<TResult> updater) 
-         {
+        public void UpdateDataSerialized<TResult>(string path, IDataUpdater<TResult> updater)
+        {
             var stat = new Stat();
             bool retry;
-            do 
+            do
             {
                 retry = false;
-                try 
+                try
                 {
                     var oldData = ReadData<TResult>(path, stat);
                     var newData = updater.Update(oldData);
                     WriteData(path, newData, stat.Version);
-                } 
-                catch (ZkBadVersionException e) 
+                }
+                catch (ZkBadVersionException)
                 {
                     retry = true;
                 }
@@ -795,12 +808,12 @@
             while (retry);
         }
 
-        public void WriteData(string path, object datat, int expectedVersion) 
+        public void WriteData(string path, object datat, int expectedVersion)
         {
-    	    this.WriteDataReturnStat(path, datat, expectedVersion);
+            this.WriteDataReturnStat(path, datat, expectedVersion);
         }
 
-        public Stat WriteDataReturnStat(string path, object datat, int expectedVersion) 
+        public Stat WriteDataReturnStat(string path, object datat, int expectedVersion)
         {
             var data = this.Serialize(datat);
             return RetryUntilConnected(
@@ -808,14 +821,15 @@
             );
         }
 
-        public void WatchForData(string path) 
+        public void WatchForData(string path)
         {
             RetryUntilConnected<object>(
                 () =>
-                    { 
-                        _connection.Exists(path, true);
-                        return null;
-                    }
+                {
+                    _connection.Exists(path, true);
+                    return null;
+                }
+
             );
         }
 
@@ -824,28 +838,32 @@
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public List<String> WatchForChilds(string path) 
+        public List<String> WatchForChilds(string path)
         {
-            if (_zookeeperEventThread != null && Thread.CurrentThread == _zookeeperEventThread) {
+            if (_zookeeperEventThread != null && Thread.CurrentThread == _zookeeperEventThread)
+            {
                 throw new Exception("Must not be done in the zookeeper event thread.");
             }
+
             return RetryUntilConnected(
                 () =>
-                    { 
-                        Exists(path, true);
-                        try
-                        {
-                            return GetChildren(path, true);
-                        }
-                        catch (ZkNoNodeException e)
-                        {
-                            // ignore, the "exists" watch will listen for the parent node to appear
-                        }
-                        return null;
-                    });
+                {
+                    Exists(path, true);
+                    try
+                    {
+                        return GetChildren(path, true);
+                    }
+                    catch (ZkNoNodeException)
+                    {
+                        // ignore, the "exists" watch will listen for the parent node to appear
+                    }
+
+                    return null;
+                });
         }
 
-        public void Connect(long maxMsToWaitUntilConnected, IWatcher watcher) {
+        public void Connect(long maxMsToWaitUntilConnected, IWatcher watcher)
+        {
             bool started = false;
             try
             {
@@ -856,56 +874,61 @@
                 _connection.Connect(watcher);
 
                 Logger.Debug("Awaiting connection to Zookeeper server");
-                if (!WaitUntilConnected(TimeSpan.FromMilliseconds(maxMsToWaitUntilConnected))) 
+                if (!WaitUntilConnected(TimeSpan.FromMilliseconds(maxMsToWaitUntilConnected)))
                 {
                     throw new ZkTimeoutException("Unable to connect to zookeeper server within timeout: " + maxMsToWaitUntilConnected);
                 }
+
                 started = true;
             }
-            catch (ThreadInterruptedException e) 
+            catch (ThreadInterruptedException)
             {
                 ZooKeeper.States state = _connection.ZookeeperState;
                 throw new Exception("Not connected with zookeeper server yet. Current state is " + state);
-            } 
-            finally 
+            }
+            finally
             {
                 EventLock.Unlock();
 
                 // we should close the zookeeper instance, otherwise it would keep
                 // on trying to connect
-                if (!started) 
+                if (!started)
                 {
                     this.Dispose();
                 }
             }
         }
 
-        public long GetCreationTime(String path) {
+        public long GetCreationTime(String path)
+        {
             try
             {
                 EventLock.LockInterruptibly();
                 return _connection.GetCreateTime(path);
-            } 
+            }
             catch (KeeperException e)
             {
                 throw ZkException.Create(e);
-            } 
-            catch (ThreadInterruptedException e) 
+            }
+            catch (ThreadInterruptedException e)
             {
                 throw new ZkInterruptedException(e);
-            } finally {
+            }
+            finally
+            {
                 EventLock.Unlock();
             }
         }
 
-
-         public void Dispose()
-         {
-            if (_connection == null) {
+        public void Dispose()
+        {
+            if (_connection == null)
+            {
                 return;
             }
+
             Logger.Debug("Closing ZkClient...");
-             EventLock.Lock();
+            EventLock.Lock();
             try
             {
                 ShutdownTrigger = true;
@@ -913,37 +936,38 @@
                 _eventThread.Join(2000);
                 _connection.Dispose();
                 _connection = null;
-            } 
-            catch (ThreadInterruptedException e) 
+            }
+            catch (ThreadInterruptedException e)
             {
                 throw new ZkInterruptedException(e);
-            } 
-            finally 
+            }
+            finally
             {
                 EventLock.Unlock();
             }
+
             Logger.Debug("Closing ZkClient...done");
         }
 
         private void Reconnect()
         {
             EventLock.Lock();
-            try 
+            try
             {
-                _connection.Dispose(); //TOOD: connect?  / close?
+                _connection.Dispose(); 
                 _connection.Connect(this);
-            } 
+            }
             catch (ThreadInterruptedException e)
             {
                 throw new ZkInterruptedException(e);
-            } 
-            finally 
+            }
+            finally
             {
                 EventLock.Unlock();
             }
         }
 
-        public int NumberOfListeners 
+        public int NumberOfListeners
         {
             get
             {
@@ -952,15 +976,16 @@
                 {
                     listeners += childListeners.Count;
                 }
+
                 foreach (var dataListeners in _dataListener.Values)
                 {
                     listeners += dataListeners.Count;
                 }
+
                 listeners += _stateListener.Count;
 
                 return listeners;
             }
         }
-
     }
 }

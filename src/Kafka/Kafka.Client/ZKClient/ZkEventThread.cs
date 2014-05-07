@@ -4,10 +4,8 @@
     using System.Collections.Concurrent;
     using System.Reflection;
     using System.Threading;
-    using System.Threading.Tasks;
 
     using Kafka.Client.Common.Imported;
-    using Kafka.Client.ZKClient.Exceptions;
 
     using log4net;
 
@@ -23,22 +21,19 @@
 
         private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
-        private CancellationToken token;
-
-        public Thread thread { get; private set; }
+        public Thread Thread { get; private set; }
 
         public ZkEventThread(string name)
         {
             this.Name = name;
-            token = tokenSource.Token;
         }
 
         public void Start()
         {
-            this.thread = new Thread(this.Run);
-            this.thread.Name = this.Name;
-            this.thread.IsBackground = true;
-            this.thread.Start();
+            this.Thread = new Thread(this.Run);
+            this.Thread.Name = this.Name;
+            this.Thread.IsBackground = true;
+            this.Thread.Start();
         }
 
         public void Run()
@@ -46,27 +41,28 @@
             Logger.Info("Starting ZkClient event thread.");
             try
             {
-                while (!tokenSource.IsCancellationRequested)
+                while (!this.tokenSource.IsCancellationRequested)
                 {
-                    ZkEvent zkEvent = _events.Take();
-                    int eventId = _eventId.GetAndIncrement();
+                    ZkEvent zkEvent = this._events.Take();
+                    int eventId = this._eventId.GetAndIncrement();
                     Logger.Debug("Delivering event #" + eventId + " " + zkEvent);
                     try
                     {
                         zkEvent.RunAction();
                     }
-                    catch (ThreadInterruptedException e)
+                    catch (ThreadInterruptedException)
                     {
-                        tokenSource.Cancel();
+                        this.tokenSource.Cancel();
                     }
                     catch (Exception e)
                     {
                         Logger.Error("Error handling event " + zkEvent, e);
                     }
+
                     Logger.Debug("Delivering event #" + eventId + " done");
                 }
             }
-            catch (ThreadInterruptedException e)
+            catch (ThreadInterruptedException)
             {
                 Logger.Info("Terminate ZkClient event thread.");
             }
@@ -83,12 +79,12 @@
 
         public void Interrupt()
         {
-            this.thread.Interrupt();
+            this.Thread.Interrupt();
         }
 
         public void Join(int i)
         {
-            this.thread.Join(i);
+            this.Thread.Join(i);
         }
     }
 }

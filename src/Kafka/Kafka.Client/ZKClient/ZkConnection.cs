@@ -35,30 +35,29 @@
 
         public ZkConnection(string zkServers, TimeSpan sessionTimeOut)
         {
-            _servers = zkServers;
-            _sessionTimeOut = sessionTimeOut;
+            this._servers = zkServers;
+            this._sessionTimeOut = sessionTimeOut;
         }
 
         public void Connect(IWatcher watcher) 
         {
-            Monitor.Enter(_zookeeperLock);
+            Monitor.Enter(this._zookeeperLock);
             try 
             {
-                if (_zk != null) 
+                if (this._zk != null) 
                 {
                     throw new Exception("zk client has already been started");
                 }
 
                 try 
                 {
-                    Logger.Debug("Creating new ZookKeeper instance to connect to " + _servers + ".");
-                    _zk = new ZooKeeper(_servers, _sessionTimeOut, watcher);
+                    Logger.Debug("Creating new ZookKeeper instance to connect to " + this._servers + ".");
+                    this._zk = new ZooKeeper(this._servers, this._sessionTimeOut, watcher);
                 } 
                 catch (Exception e) 
                 {
-                    throw new ZkException("Unable to connect to " + _servers, e);
+                    throw new ZkException("Unable to connect to " + this._servers, e);
                 }
-
             } 
             finally 
             {
@@ -71,11 +70,11 @@
             Monitor.Enter(this._zookeeperLock);
             try 
             {
-                if (_zk != null) 
+                if (this._zk != null) 
                 {
-                    Logger.Debug("Closing ZooKeeper connected to " + _servers);
-                    _zk.Dispose();
-                    _zk = null;
+                    Logger.Debug("Closing ZooKeeper connected to " + this._servers);
+                    this._zk.Dispose();
+                    this._zk = null;
                 }
             } 
             finally 
@@ -86,12 +85,12 @@
 
         public string Create(string path, byte[] data, CreateMode mode) 
         {
-            return _zk.Create(path, data, Ids.OPEN_ACL_UNSAFE, mode);
+            return this._zk.Create(path, data, Ids.OPEN_ACL_UNSAFE, mode);
         }
 
         public void Delete(string path) 
         {
-            _zk.Delete(path, -1);
+            this._zk.Delete(path, -1);
         }
 
         public bool Exists(string path, bool watch) 
@@ -128,7 +127,7 @@
         {
             get
             {
-                return this._zk != null ? _zk.State : null;
+                return this._zk != null ? this._zk.State : null;
             }
         }
 
@@ -147,17 +146,16 @@
             {
                 return stat.Ctime;
             }
+
             return -1;
         }
 
-        public String Servers 
+        public string Servers 
         {
             get
             {
-                return _servers;
+                return this._servers;
             }
-            
         }
-
     }
 }

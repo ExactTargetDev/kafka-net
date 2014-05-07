@@ -7,10 +7,10 @@
     {
         public static string ToString(ZkClient zkClient)
         {
-            return ToString(zkClient, "/", (s) => true);
+            return ToString(zkClient, "/", s => true);
         }
 
-        public static String ToString(ZkClient zkClient, String startPath, Func<string, bool> pathFilter) 
+        public static string ToString(ZkClient zkClient, string startPath, Func<string, bool> pathFilter) 
         {
             int level = 1;
             var builder = new StringBuilder("+ (" + startPath + ")");
@@ -19,34 +19,42 @@
             return builder.ToString();
         }
 
-        private static void AddChildrenToStringBuilder(ZkClient zkClient, Func<string, bool> pathFilter, int level, StringBuilder builder, String startPath) {
+        private static void AddChildrenToStringBuilder(ZkClient zkClient, Func<string, bool> pathFilter, int level, StringBuilder builder, string startPath)
+        {
             var children = zkClient.GetChildren(startPath);
-            foreach (var node in children) {
-                String nestedPath;
-                if (startPath.EndsWith("/")) {
+            foreach (var node in children) 
+            {
+                string nestedPath;
+                if (startPath.EndsWith("/")) 
+                {
                     nestedPath = startPath + node;
-                } else {
+                } 
+                else
+                {
                     nestedPath = startPath + "/" + node;
                 }
-                if (pathFilter(nestedPath)) {
+
+                if (pathFilter(nestedPath)) 
+                {
                     builder.Append(GetSpaces(level - 1) + "'-" + "+" + node + "\n");
                     AddChildrenToStringBuilder(zkClient, pathFilter, level + 1, builder, nestedPath);
-                } else {
+                }
+                else
+                {
                     builder.Append(GetSpaces(level - 1) + "'-" + "-" + node + " (contents hidden)\n");
                 }
             }
         }
 
-        private static String GetSpaces(int level)
+        private static string GetSpaces(int level)
         {
             var s = string.Empty;
             for (var i = 0; i < level; i++) 
             {
                 s += "  ";
             }
+
             return s;
         }
-    
     }
-
 }
