@@ -17,7 +17,7 @@
     /// <summary>
     ///  Helper functions common to clients (producer, consumer, or admin)
     /// </summary>
-    public static class ClientUtils
+    internal static class ClientUtils
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 

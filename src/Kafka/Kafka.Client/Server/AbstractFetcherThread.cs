@@ -17,7 +17,7 @@
 
     using Spring.Threading.Locks;
 
-    public abstract class AbstractFetcherThread : ShutdownableThread
+    internal abstract class AbstractFetcherThread : ShutdownableThread
     {
         private string clientId;
 

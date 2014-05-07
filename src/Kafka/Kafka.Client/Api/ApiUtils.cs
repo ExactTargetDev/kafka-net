@@ -1,17 +1,15 @@
 ﻿namespace Kafka.Client.Api
 {
     using System;
-    using System.IO;
     using System.Text;
 
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
-    using Kafka.Client.Extensions;
 
     /// <summary>
     /// Helper functions specific to parsing or serializing requests and responses
     /// </summary>
-    public class ApiUtils
+    internal class ApiUtils
     {
         public const string ProtocolEncoding = "UTF-8";
 

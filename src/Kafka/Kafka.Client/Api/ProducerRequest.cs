@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
     using System.Text;
 
@@ -15,6 +14,35 @@
     {
         public const short CurrentVersion = 0;
 
+        public static ProducerRequest ReadFrom(ByteBuffer buffer)
+        {
+            var versionId = buffer.GetShort();
+            var correlationId = buffer.GetInt();
+            var clientId = ApiUtils.ReadShortString(buffer);
+            var requiredAcks = buffer.GetShort();
+            var ackTimeoutMs = buffer.GetInt();
+
+            // built the topic structure
+            var topicCount = buffer.GetInt();
+            var partitionDataPairs = Enumerable.Range(1, topicCount).SelectMany(_ =>
+            {
+                // process topic
+                var topic = ApiUtils.ReadShortString(buffer);
+                var partitionCount = buffer.GetInt();
+                return Enumerable.Range(1, partitionCount).Select(__ =>
+                {
+                    var partition = buffer.GetInt();
+                    var messagesSetSize = buffer.GetInt();
+                    var messageSetBuffer = new byte[messagesSetSize];
+                    buffer.Get(messageSetBuffer, 0, messagesSetSize);
+                    return Tuple.Create(
+                        new TopicAndPartition(topic, partition),
+                        new ByteBufferMessageSet(ByteBuffer.Wrap(messageSetBuffer)));
+                });
+            });
+            return new ProducerRequest(versionId, correlationId, clientId, requiredAcks, ackTimeoutMs, partitionDataPairs.ToDictionary(k => k.Item1, v => v.Item2));
+        }
+
         public short VersionId { get; private set; }
 
         public string ClientId { get; private set; }
@@ -25,6 +53,10 @@
 
         public IDictionary<TopicAndPartition, ByteBufferMessageSet> Data { get; set; }
 
+        private readonly Lazy<IDictionary<string, IDictionary<TopicAndPartition, ByteBufferMessageSet>>> dataGroupedByTopic;
+
+        private readonly Dictionary<TopicAndPartition, int> topicPartitionMessageSizeMap;
+
         public ProducerRequest(
             int correlationId,
             string clientId,
@@ -34,7 +66,6 @@
             : this(CurrentVersion, correlationId, clientId, requiredAcks, ackTimeoutMs, data)
         {
         }
-
 
         public ProducerRequest(
             short versionId,
@@ -58,10 +89,6 @@
 
             this.topicPartitionMessageSizeMap = this.Data.ToDictionary(r => r.Key, v => v.Value.SizeInBytes);
         }
-
-        private readonly Lazy<IDictionary<string, IDictionary<TopicAndPartition, ByteBufferMessageSet>>> dataGroupedByTopic;
-
-        private readonly Dictionary<TopicAndPartition, int> topicPartitionMessageSizeMap;
 
         public int NumPartitions
         {
@@ -148,35 +175,6 @@
         public void EmptyData()
         {
             this.Data.Clear();
-        }
-
-        public static ProducerRequest ReadFrom(ByteBuffer buffer)
-        {
-            var versionId = buffer.GetShort();
-            var correlationId = buffer.GetInt();
-            var clientId = ApiUtils.ReadShortString(buffer);
-            var requiredAcks = buffer.GetShort();
-            var ackTimeoutMs = buffer.GetInt();
-
-            // built the topic structure
-            var topicCount = buffer.GetInt();
-            var partitionDataPairs = Enumerable.Range(1, topicCount).SelectMany(_ =>
-                {
-                    // process topic
-                    var topic = ApiUtils.ReadShortString(buffer);
-                    var partitionCount = buffer.GetInt();
-                    return Enumerable.Range(1, partitionCount).Select(__ =>
-                        {
-                            var partition = buffer.GetInt();
-                            var messagesSetSize = buffer.GetInt();
-                            var messageSetBuffer = new byte[messagesSetSize];
-                            buffer.Get(messageSetBuffer, 0, messagesSetSize);
-                            return Tuple.Create(
-                                new TopicAndPartition(topic, partition),
-                                new ByteBufferMessageSet(ByteBuffer.Wrap(messageSetBuffer)));
-                        });
-                });
-            return new ProducerRequest(versionId, correlationId, clientId, requiredAcks, ackTimeoutMs, partitionDataPairs.ToDictionary(k => k.Item1, v => v.Item2));
         }
     }
 }

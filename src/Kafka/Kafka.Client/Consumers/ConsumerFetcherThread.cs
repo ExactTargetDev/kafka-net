@@ -12,7 +12,7 @@
 
     using Kafka.Client.Extensions;
 
-    public class ConsumerFetcherThread : AbstractFetcherThread
+    internal class ConsumerFetcherThread : AbstractFetcherThread
     {
         private ConsumerConfig config;
 

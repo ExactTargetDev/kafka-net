@@ -2,13 +2,12 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
 
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
-
-    using System.Linq;
 
     internal class OffsetResponse : RequestOrResponse
     {
@@ -36,8 +35,7 @@
 
         public IDictionary<TopicAndPartition, PartitionOffsetsResponse> PartitionErrorAndOffsets { get; private set; }
 
-        private Lazy<IDictionary<string, IDictionary<TopicAndPartition, PartitionOffsetsResponse>>>
-            offsetsGroupedByTopic; 
+        private Lazy<IDictionary<string, IDictionary<TopicAndPartition, PartitionOffsetsResponse>>> offsetsGroupedByTopic; 
 
         internal OffsetResponse(
             int correlationId, IDictionary<TopicAndPartition, PartitionOffsetsResponse> partitionErrorAndOffsets)
@@ -58,18 +56,23 @@
 
         public override int SizeInBytes
         {
+            [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1407:ArithmeticExpressionsMustDeclarePrecedence", Justification = "Reviewed. Suppression is OK here.")]
             get 
             {
                return 4 + /* correlation id */
                4 + /* topic count */
-               this.offsetsGroupedByTopic.Value.Aggregate(0, (foldedTopic, currTopic) =>
+               this.offsetsGroupedByTopic.Value.Aggregate(
+               0, 
+               (foldedTopic, currTopic) =>
                    {
                        var topic = currTopic.Key;
                        var errorAndOffsetsMap = currTopic.Value;
                        return foldedTopic +
                            ApiUtils.ShortStringLength(topic) +
                            4 + /* partition count */
-                           errorAndOffsetsMap.Aggregate(0, (foldedPartitions, currPartition) =>
+                           errorAndOffsetsMap.Aggregate(
+                           0, 
+                           (foldedPartitions, currPartition) =>
                                {
                                    return foldedPartitions +
                                     4 + /* partition id */
@@ -90,8 +93,6 @@
         {
             return this.ToString();
         }
-
-
     }
 
     internal class PartitionOffsetsResponse
@@ -117,15 +118,18 @@
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
+
             if (obj.GetType() != this.GetType())
             {
                 return false;
             }
-            return Equals((PartitionOffsetsResponse)obj);
+
+            return this.Equals((PartitionOffsetsResponse)obj);
         }
 
         public override int GetHashCode()

@@ -1,23 +1,68 @@
-﻿using System;
-
-namespace Kafka.Client.Api
+﻿namespace Kafka.Client.Api
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
     using System.Text;
 
     using Kafka.Client.Cfg;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
-    using Kafka.Client.Messages;
-    using Kafka.Client.Network;
-    using Kafka.Client.ZKClient.Exceptions;
 
-    using System.Linq;
+    internal class PartitionFetchInfo
+    {
+        public long Offset { get; private set; }
 
-    public class FetchRequest : RequestOrResponse
+        public int FetchSize { get; private set; }
+
+        public PartitionFetchInfo(long offset, int fetchSize)
+        {
+            this.Offset = offset;
+            this.FetchSize = fetchSize;
+        }
+
+        protected bool Equals(PartitionFetchInfo other)
+        {
+            return this.Offset == other.Offset && this.FetchSize == other.FetchSize;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+
+            return this.Equals((PartitionFetchInfo)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (this.Offset.GetHashCode() * 397) ^ this.FetchSize;
+            }
+        }
+
+        public override string ToString()
+        {
+            return string.Format("PartitionFetchInfo(Offset: {0}, FetchSize: {1})", this.Offset, this.FetchSize);
+        }
+    }
+
+    internal class FetchRequest : RequestOrResponse
     {
         public const short CurrentVersion = 0;
 
@@ -44,6 +89,9 @@ namespace Kafka.Client.Api
 
         public IDictionary<TopicAndPartition, PartitionFetchInfo> RequestInfo { get; private set; }
 
+        /// <summary>
+        /// Partitions the request info into a map of maps (one for each topic).
+        /// </summary>
         private readonly Lazy<IDictionary<string, IDictionary<TopicAndPartition, PartitionFetchInfo>>>
             requestInfoGroupedByTopic;
 
@@ -59,12 +107,18 @@ namespace Kafka.Client.Api
 
             this.requestInfoGroupedByTopic = new Lazy<IDictionary<string, IDictionary<TopicAndPartition, PartitionFetchInfo>>>(
                 () => this.RequestInfo.GroupByScala(kvp => kvp.Key.Topic));
-
-
         }
 
+        /// <summary>
+        /// Public constructor for the clients
+        /// </summary>
+        /// <param name="correlationId"></param>
+        /// <param name="clientId"></param>
+        /// <param name="maxWait"></param>
+        /// <param name="minBytes"></param>
+        /// <param name="requestInfo"></param>
         public FetchRequest(int correlationId, string clientId, int maxWait, int minBytes, IDictionary<TopicAndPartition, PartitionFetchInfo> requestInfo)
-            : this(FetchRequest.CurrentVersion, correlationId, clientId, Request.OrdinaryConsumerId, maxWait, minBytes, requestInfo)
+            : this(CurrentVersion, correlationId, clientId, Request.OrdinaryConsumerId, maxWait, minBytes, requestInfo)
         {
         }
 
@@ -92,9 +146,9 @@ namespace Kafka.Client.Api
             }
         }
 
-
         public override int SizeInBytes
         {
+            [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1407:ArithmeticExpressionsMustDeclarePrecedence", Justification = "Reviewed. Suppression is OK here.")]
             get
             {
                 return 2 + /* versionId */
@@ -104,20 +158,20 @@ namespace Kafka.Client.Api
                 4 + /* maxWait */
                 4 + /* minBytes */
                 4 + /* topic count */
-                this.requestInfoGroupedByTopic.Value.Aggregate(0, (foldedTopics, currTopic) =>
+                this.requestInfoGroupedByTopic.Value.Aggregate(
+                    0, 
+                    (foldedTopics, currTopic) =>
                     {
                         var topic = currTopic.Key;
                         var partitionFetchInfos = currTopic.Value;
                         return foldedTopics +
                             ApiUtils.ShortStringLength(topic) + 
-                            4 + /* partition count */ + 
-                            partitionFetchInfos.Count * (4 + /* partition id */
+                            4 + /* partition count */ +partitionFetchInfos.Count * (4 + /* partition id */
                             8 + /* offset */
                             4 /* fetch size */);
                     });
             }
         }
-
 
         public bool IsFromFailover
         {
@@ -160,23 +214,22 @@ namespace Kafka.Client.Api
         {
             var fetchRequest = new StringBuilder();
             fetchRequest.Append("Name: " + this.GetType().Name);
-            fetchRequest.Append("; Version: " + VersionId);
-            fetchRequest.Append("; CorrelationId: " + CorrelationId);
-            fetchRequest.Append("; ClientId: " + ClientId);
-            fetchRequest.Append("; ReplicaId: " + ReplicaId);
-            fetchRequest.Append("; MaxWait: " + MaxWait + " ms");
-            fetchRequest.Append("; MinBytes: " + MinBytes + " bytes");
+            fetchRequest.Append("; Version: " + this.VersionId);
+            fetchRequest.Append("; CorrelationId: " + this.CorrelationId);
+            fetchRequest.Append("; ClientId: " + this.ClientId);
+            fetchRequest.Append("; ReplicaId: " + this.ReplicaId);
+            fetchRequest.Append("; MaxWait: " + this.MaxWait + " ms");
+            fetchRequest.Append("; MinBytes: " + this.MinBytes + " bytes");
             if (details)
             {
-                fetchRequest.Append("; RequestInfo: " + string.Join(",", RequestInfo));
+                fetchRequest.Append("; RequestInfo: " + this.RequestInfo.DictionaryToString());
             }
 
             return fetchRequest.ToString();
         }
-
     }
 
-    public class FetchRequestBuilder
+    internal class FetchRequestBuilder
     {
         private readonly AtomicInteger correlationId = new AtomicInteger(0);
 
@@ -225,17 +278,16 @@ namespace Kafka.Client.Api
         public FetchRequest Build()
         {
             var fetchRequest = new FetchRequest(
-                versionId,
-                correlationId.GetAndIncrement(),
-                clientId,
-                replicaId,
-                maxWait,
-                minBytes,
-                new Dictionary<TopicAndPartition, PartitionFetchInfo>(requestMap));
+                this.versionId,
+                this.correlationId.GetAndIncrement(),
+                this.clientId,
+                this.replicaId,
+                this.maxWait,
+                this.minBytes,
+                new Dictionary<TopicAndPartition, PartitionFetchInfo>(this.requestMap));
 
             this.requestMap.Clear();
             return fetchRequest;
         }
-
     }
 }

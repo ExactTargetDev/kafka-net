@@ -2,14 +2,13 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
     using System.Text;
 
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Extensions;
-
-    using System.Linq;
 
     internal class OffsetRequest : RequestOrResponse
     {
@@ -18,6 +17,7 @@
         public const string DefaultClientId = "";
 
         public const string SmallestTimeString = "smallest";
+
         public const string LargestTimeString = "largest";
 
         public const long LatestTime = -1;
@@ -41,10 +41,10 @@
 
         public OffsetRequest(
             IDictionary<TopicAndPartition, PartitionOffsetRequestInfo> requestInfo,
-            short versionId = OffsetRequest.CurrentVersion,
+            short versionId = CurrentVersion,
             int correlationId = 0,
-            string clientId = OffsetRequest.DefaultClientId,
-            int replicaId = Request.OrdinaryConsumerId) : base (RequestKeys.OffsetsKey, correlationId)
+            string clientId = DefaultClientId,
+            int replicaId = Request.OrdinaryConsumerId) : base(RequestKeys.OffsetsKey, correlationId)
         {
             this.RequestInfo = requestInfo;
             this.VersionId = versionId;
@@ -52,12 +52,11 @@
             this.ReplicaId = replicaId;
             this.requestInfoGroupedByTopic = new Lazy<IDictionary<string, IDictionary<TopicAndPartition, PartitionOffsetRequestInfo>>>(
                 () => this.RequestInfo.GroupByScala(r => r.Key.Topic));
-
         }
 
         public OffsetRequest(
             IDictionary<TopicAndPartition, PartitionOffsetRequestInfo> requestInfo, int correlationId, int replicaId)
-            : this(requestInfo, OffsetRequest.CurrentVersion, correlationId, OffsetRequest.DefaultClientId, replicaId)
+            : this(requestInfo, CurrentVersion, correlationId, DefaultClientId, replicaId)
         {
         }
 
@@ -68,8 +67,8 @@
             ApiUtils.WriteShortString(buffer, this.ClientId);
             buffer.PutInt(this.ReplicaId);
 
-            buffer.PutInt(requestInfoGroupedByTopic.Value.Count);
-            foreach (var topicAndPartitionInfos in requestInfoGroupedByTopic.Value)
+            buffer.PutInt(this.requestInfoGroupedByTopic.Value.Count);
+            foreach (var topicAndPartitionInfos in this.requestInfoGroupedByTopic.Value)
             {
                 var topic = topicAndPartitionInfos.Key;
                 var partitionInfos = topicAndPartitionInfos.Value;
@@ -88,14 +87,17 @@
 
         public override int SizeInBytes
         {
+            [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1407:ArithmeticExpressionsMustDeclarePrecedence", Justification = "Reviewed. Suppression is OK here.")]
             get 
             {
                 return 2 + /* versionId */
                     4 + /* correlationId */
-                    ApiUtils.ShortStringLength(ClientId) +
+                    ApiUtils.ShortStringLength(this.ClientId) +
                     4 + /* replicaId */
                     4 + /* topic count */
-                    requestInfoGroupedByTopic.Value.Aggregate(0, (foldedTopics, currTopic) =>
+                    this.requestInfoGroupedByTopic.Value.Aggregate(
+                    0, 
+                    (foldedTopics, currTopic) =>
                         {
                             var topic = currTopic.Key;
                             var partitionInfos = currTopic.Value;
@@ -103,11 +105,9 @@
                                 ApiUtils.ShortStringLength(topic) +
                                  4 + /* partition count */
                                  partitionInfos.Count *
-                                 (
-                                 4 + /* partition */
+                                 (4 + /* partition */
                                     8 + /* time */
-                                    4 /* maxNumOffsets */
-                                 );
+                                    4 /* maxNumOffsets */);
                         });
             }
         }
@@ -116,7 +116,7 @@
         {
             get
             {
-                return ReplicaId == Request.OrdinaryConsumerId;
+                return this.ReplicaId == Request.OrdinaryConsumerId;
             }
         }
 
@@ -129,17 +129,17 @@
         {
             var offsetRequest = new StringBuilder();
             offsetRequest.Append("Name: " + this.GetType().Name);
-            offsetRequest.Append("; Version: " + VersionId);
-            offsetRequest.Append("; CorrelationId: " + CorrelationId);
-            offsetRequest.Append("; ClientId: " + ClientId);
-            offsetRequest.Append("; ReplicaId: " + ReplicaId);
+            offsetRequest.Append("; Version: " + this.VersionId);
+            offsetRequest.Append("; CorrelationId: " + this.CorrelationId);
+            offsetRequest.Append("; ClientId: " + this.ClientId);
+            offsetRequest.Append("; ReplicaId: " + this.ReplicaId);
             if (details)
             {
-                offsetRequest.Append("; RequestInfo: " + string.Join(",", RequestInfo)); //TODO: better formatting? 
+                offsetRequest.Append("; RequestInfo: " + this.RequestInfo.DictionaryToString());
             }
+
             return offsetRequest.ToString();
         }
-
     }
 
     internal class PartitionOffsetRequestInfo
@@ -170,15 +170,18 @@
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
+
             if (obj.GetType() != this.GetType())
             {
                 return false;
             }
-            return Equals((PartitionOffsetRequestInfo)obj);
+
+            return this.Equals((PartitionOffsetRequestInfo)obj);
         }
 
         public override int GetHashCode()
@@ -189,5 +192,4 @@
             }
         }
     }
-
 }

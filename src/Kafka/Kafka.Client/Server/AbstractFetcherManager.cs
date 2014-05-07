@@ -17,7 +17,7 @@ namespace Kafka.Client.Server
     /// 
     /// Note: original namespace: kafka.server
     /// </summary>
-    public abstract class AbstractFetcherManager
+    internal abstract class AbstractFetcherManager
     {
 
         protected static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);

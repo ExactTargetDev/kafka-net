@@ -19,7 +19,7 @@
 
     using Spring.Threading.Locks;
 
-    public class ConsumerFetcherManager : AbstractFetcherManager
+    internal class ConsumerFetcherManager : AbstractFetcherManager
     {
         private readonly string consumerIdString;
 
