@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace Kafka.Client.Cfg
+namespace Kafka.Client.Cfg.Sections
 {
     using System.Configuration;
     using System.Xml.Linq;
 
     using Kafka.Client.Api;
-
+    using Kafka.Client.Cfg.Elements;
+    using Kafka.Client.Utils;
 
     public class ConsumerConfigurationSection : ConfigurationSection
     {
@@ -175,8 +176,9 @@ namespace Kafka.Client.Cfg
             {
                 if (this["clientId"] == null)
                 {
-                    return GroupId;
+                    return this.GroupId;
                 }
+
                 return (string)this["clientId"];
             }
         }
@@ -196,6 +198,5 @@ namespace Kafka.Client.Cfg
             section.DeserializeSection(element.CreateReader());
             return section;
         }
-
     }
 }

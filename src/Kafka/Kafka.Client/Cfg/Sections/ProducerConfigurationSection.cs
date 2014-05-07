@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-using System.Collections.Generic;
-using Kafka.Client.Messages;
-
-namespace Kafka.Client.Cfg
+namespace Kafka.Client.Cfg.Sections
 {
+    using System.Collections.Generic;
     using System.Configuration;
-    using Kafka.Client.Producers;
-    using System.Xml.Linq;
     using System.Linq;
+    using System.Xml.Linq;
+
+    using Kafka.Client.Cfg.Elements;
+    using Kafka.Client.Messages;
 
     public class ProducerConfigurationSection : ConfigurationSection
     {
@@ -75,6 +75,7 @@ namespace Kafka.Client.Cfg
                 return Messages.CompressionCodec.GetCompressionCodec((int)this["compressionCodec"]);
             }
         }
+
         [ConfigurationProperty(
            "compressedTopics",
            DefaultValue = null,
@@ -83,8 +84,10 @@ namespace Kafka.Client.Cfg
         {
             get
             {
-                if (string.IsNullOrEmpty(((string)this["compressedTopics"])))
-                { return new List<string>(); }
+                if (string.IsNullOrEmpty((string)this["compressedTopics"]))
+                {
+                    return new List<string>();
+                }
                 else
                 {
                     return
@@ -165,7 +168,6 @@ namespace Kafka.Client.Cfg
                 return (int)this["queueEnqueueTimeoutMs"];
             }
         }
-
 
         [ConfigurationProperty(
             "batchNumMessages",
@@ -257,6 +259,5 @@ namespace Kafka.Client.Cfg
             config.DeserializeSection(xml.CreateReader());
             return config;
         }
-
     }
 }

@@ -24,6 +24,9 @@ namespace Kafka.Client.Cfg
     using System.Globalization;
     using System.Net;
     using System.Text;
+
+    using Kafka.Client.Cfg.Elements;
+    using Kafka.Client.Cfg.Sections;
     using Kafka.Client.Producers;
     using Kafka.Client.Utils;
     using System.Xml.Linq;

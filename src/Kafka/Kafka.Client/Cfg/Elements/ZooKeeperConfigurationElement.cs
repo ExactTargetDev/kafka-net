@@ -15,9 +15,11 @@
  * limitations under the License.
  */
 
-namespace Kafka.Client.Cfg
+namespace Kafka.Client.Cfg.Elements
 {
     using System.Configuration;
+
+    using Kafka.Client.Utils;
 
     public class ZooKeeperConfigurationElement : ConfigurationElement
     {

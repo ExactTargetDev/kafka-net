@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace Kafka.Client.Cfg
+namespace Kafka.Client.Cfg.Elements
 {
     using System.Configuration;
 

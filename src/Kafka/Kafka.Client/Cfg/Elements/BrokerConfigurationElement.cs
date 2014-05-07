@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace Kafka.Client.Cfg
+namespace Kafka.Client.Cfg.Elements
 {
     using System.Configuration;
     using System.Globalization;
@@ -76,11 +76,6 @@ namespace Kafka.Client.Cfg
             {
                 this["port"] = value;
             }
-        }
-
-        public string GetBrokerPartitionInfoAsString()
-        {
-            return string.Format(CultureInfo.InvariantCulture, "{0}:{1}:{2}", Id, Host, Port);
         }
     }
 }

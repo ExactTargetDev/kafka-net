@@ -17,6 +17,7 @@
 
 namespace Kafka.Client.Cfg
 {
+    using Kafka.Client.Cfg.Sections;
     using Kafka.Client.Utils;
 
     public class SyncProducerConfiguration

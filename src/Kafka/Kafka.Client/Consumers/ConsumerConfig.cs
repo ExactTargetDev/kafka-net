@@ -23,6 +23,9 @@ namespace Kafka.Client.Cfg
     using System.Xml.Linq;
 
     using Kafka.Client.Api;
+    using Kafka.Client.Cfg.Elements;
+    using Kafka.Client.Cfg.Sections;
+    using Kafka.Client.Utils;
 
     /// <summary>
     /// Configuration used by the consumer
@@ -117,7 +120,7 @@ namespace Kafka.Client.Cfg
             this.ConsumerTimeoutMs = config.ConsumerTimeoutMs;
             this.ClientId = config.GroupId;
           
-                this.SetZooKeeperConfiguration(config.ZooKeeperServers);
+            this.SetZooKeeperConfiguration(config.ZooKeeperServers);
         }
 
         public ConsumerConfig(XElement xmlElement)
@@ -170,8 +173,6 @@ namespace Kafka.Client.Cfg
 
         public ZkConfig ZooKeeper { get; set; }
 
-        public BrokerConfiguration Broker { get; set; }
-
         private static void Validate(ConsumerConfigurationSection config)
         {
             ValidateClientId(config.ClientId);
@@ -219,16 +220,6 @@ namespace Kafka.Client.Cfg
             }
 
             return host;
-        }
-
-        private void SetBrokerConfiguration(BrokerConfigurationElement config)
-        {
-            this.Broker = new BrokerConfiguration
-            {
-                BrokerId = config.Id,
-                Host = GetIpAddress(config.Host),
-                Port = config.Port
-            };
         }
 
         private void SetZooKeeperConfiguration(ZooKeeperConfigurationElement config)

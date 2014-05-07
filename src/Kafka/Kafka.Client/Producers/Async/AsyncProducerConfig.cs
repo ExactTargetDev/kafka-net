@@ -18,6 +18,8 @@
 namespace Kafka.Client.Cfg
 {
     using System.Collections.Generic;
+
+    using Kafka.Client.Cfg.Sections;
     using Kafka.Client.Utils;
 
     /// <summary>
