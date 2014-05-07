@@ -7,7 +7,6 @@
     using System.Reflection;
     using System.Text;
     using System.Threading;
-    using System.Threading.Tasks;
 
     using Kafka.Client.Utils;
     using Kafka.Client.ZKClient.Exceptions;
@@ -65,20 +64,6 @@
 
         public IZkSerializer ZkSerializer { get; set; }
 
-        public ZkClient(string serverstring)
-            : this(serverstring, int.MaxValue)
-        {
-        }
-
-        public ZkClient(string zkServers, int connectionTimeout)
-            : this(new ZkConnection(zkServers), connectionTimeout)
-        {
-        }
-
-        public ZkClient(string zkServers, int sessionTimeout, int connectionTimeout) : this(new ZkConnection(zkServers, TimeSpan.FromMilliseconds(sessionTimeout)), connectionTimeout)
-        {
-        }
-
         public ZkClient(string zkServers, int sessionTimeout, int connectionTimeout, IZkSerializer zkSerializer)
             : this(new ZkConnection(zkServers, TimeSpan.FromMilliseconds(sessionTimeout)), connectionTimeout, zkSerializer)
         {
@@ -89,7 +74,7 @@
         {
         }
 
-        public ZkClient(IZkConnection connection, int connectionTimeout) : this(connection, connectionTimeout, new SerializableSerializer())
+        public ZkClient(IZkConnection connection, int connectionTimeout) : this(connection, connectionTimeout, null)
         {
         }
 
@@ -101,7 +86,8 @@
             this.Connect(connectionTimeout, this);
         }
 
-        public List<string> SubscribeChildChanges(string path, IZkChildListener listener) {
+        public List<string> SubscribeChildChanges(string path, IZkChildListener listener) 
+        {
             lock (_childListener)
             {
                 ConcurrentHashSet<IZkChildListener> listeners = _childListener.Get(path);
@@ -117,7 +103,8 @@
             return WatchForChilds(path);
         }
 
-        public void UnsubscribeChildChanges(string path, IZkChildListener childListener) {
+        public void UnsubscribeChildChanges(string path, IZkChildListener childListener)
+        {
             lock (_childListener)
             {
                 ConcurrentHashSet<IZkChildListener> listeners = _childListener.Get(path);
@@ -128,7 +115,8 @@
             }
         }
 
-         public void SubscribeDataChanges(string path, IZkDataListener listener) {
+         public void SubscribeDataChanges(string path, IZkDataListener listener) 
+         {
             ConcurrentHashSet<IZkDataListener> listeners;
             lock (_dataListener)
             {
@@ -145,7 +133,8 @@
             Logger.Debug("Subscribed Data changes for " + path);
         }
 
-        public void UnsubscribeDataChanges(string path, IZkDataListener dataListener) {
+        public void UnsubscribeDataChanges(string path, IZkDataListener dataListener) 
+        {
             lock (_dataListener)
             {
 
@@ -163,25 +152,34 @@
             }
         }
 
-         public void SubscribeStateChanges(IZkStateListener listener) {
-            lock (_stateListener) {
+         public void SubscribeStateChanges(IZkStateListener listener) 
+         {
+            lock (_stateListener) 
+            {
                 _stateListener.Add(listener);
             }
         }
 
-        public void UnsubscribeStateChanges(IZkStateListener stateListener) {
-            lock (_stateListener) {
+        public void UnsubscribeStateChanges(IZkStateListener stateListener) 
+        {
+            lock (_stateListener)
+            {
                 _stateListener.TryRemove(stateListener);
             }
         }
 
-        public void UnsubscribeAll() {
-            lock (_childListener) {
+        public void UnsubscribeAll() 
+        {
+            lock (_childListener) 
+            {
                 _childListener.Clear();
             }
-            lock (_dataListener) {
+
+            lock (_dataListener) 
+            {
                 _dataListener.Clear();
             }
+
             lock (_stateListener)
             {
                 _stateListener.Clear();
@@ -251,7 +249,9 @@
         /// <summary>
         /// Create a node.
         /// </summary>
-        /// <param name="String"></param>
+        /// <param name="path"></param>
+        /// <param name="data"></param>
+        /// <param name="mode"></param>
         /// <returns></returns>
         public String Create(string path, object data, CreateMode mode) 
         {
@@ -285,7 +285,8 @@
             return this.Create(path, data, CreateMode.EphemeralSequential);
         }
 
-        public void Process(WatchedEvent watchedEvent) {
+        public void Process(WatchedEvent watchedEvent)
+        {
             Logger.Debug("Received event: " + watchedEvent);
             _zookeeperEventThread = Thread.CurrentThread;
 
@@ -327,6 +328,7 @@
                     {
                         this.EventLock.ZNodeEventCondition.SignalAll();
                         this.EventLock.DataChangedCondition.SignalAll();
+
                         // We also have to notify all listeners that something might have changed
                         this.FireAllEvents();
                     }
@@ -502,16 +504,20 @@
             if (watchedEvent.Type == EventType.NodeDataChanged || watchedEvent.Type == EventType.NodeDeleted || watchedEvent.Type == EventType.NodeCreated)
             {
                 var listeners = _dataListener.Get(path);
-                if (listeners != null && listeners.Count > 0) {
+                if (listeners != null && listeners.Count > 0) 
+                {
                     this.FireDataChangedEvents(watchedEvent.Path, listeners);
                 }
             }
         }
 
 
-         private void FireDataChangedEvents(string path, IEnumerable<IZkDataListener> listeners) {
-            foreach (var listener in listeners) {
-                _eventThread.Send(new ZkEvent("Data of " + path + " changed sent to " + listener) {
+         private void FireDataChangedEvents(string path, IEnumerable<IZkDataListener> listeners) 
+         {
+            foreach (var listener in listeners) 
+            {
+                _eventThread.Send(new ZkEvent("Data of " + path + " changed sent to " + listener)
+                {
                     RunAction = () =>
                         {
                              // reinstall watch
@@ -532,18 +538,24 @@
 
          private void FireChildChangedEvents(string path, ConcurrentHashSet<IZkChildListener> childListeners)
          {
-            try {
+            try 
+            {
                 // reinstall the watch
-                foreach (var listener in childListeners) {
-                    _eventThread.Send(new ZkEvent("Children of " + path + " changed sent to " + listener) {
+                foreach (var listener in childListeners) 
+                {
+                    _eventThread.Send(new ZkEvent("Children of " + path + " changed sent to " + listener)
+                    {
                         RunAction = () =>
                             {
-                                try {
+                                try 
+                                {
                                     // if the node doesn't exist we should listen for the root node to reappear
                                     Exists(path);
                                     var children = this.GetChildren(path);
                                     listener.HandleChildChange(path, children);
-                                } catch (ZkNoNodeException e) {
+                                } 
+                                catch (ZkNoNodeException e) 
+                                {
                                     listener.HandleChildChange(path, null);
                                 }
                             }
@@ -560,7 +572,8 @@
         {
             DateTime timeout = DateTime.Now + time;
             Logger.Debug("Waiting until znode '" + path + "' becomes available.");
-            if (Exists(path)) {
+            if (Exists(path))
+            {
                 return true;
             }
             AcquireEventLock();
@@ -591,7 +604,6 @@
         {
             return _dataListener.Get(path);
         }
-
 
         public void ShowFolders(Stream output) 
         {

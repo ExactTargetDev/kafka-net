@@ -8,13 +8,14 @@
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Consumers;
-    using Kafka.Client.Locks;
     using Kafka.Client.Messages;
     using Kafka.Client.Utils;
 
     using System.Linq;
 
     using Kafka.Client.Extensions;
+
+    using Spring.Threading.Locks;
 
     public abstract class AbstractFetcherThread : ShutdownableThread
     {

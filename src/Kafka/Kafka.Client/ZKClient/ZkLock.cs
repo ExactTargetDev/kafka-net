@@ -1,6 +1,6 @@
 ﻿namespace Kafka.Client.ZKClient
 {
-    using Kafka.Client.Locks;
+    using Spring.Threading.Locks;
 
     public class ZkLock : ReentrantLock
     {

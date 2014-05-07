@@ -22,8 +22,5 @@
             : base(string.Empty, innerException)
         {
         }
-
-
-
     }
 }

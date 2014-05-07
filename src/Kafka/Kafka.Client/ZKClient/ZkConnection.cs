@@ -39,18 +39,23 @@
             _sessionTimeOut = sessionTimeOut;
         }
 
-        public void Connect(IWatcher watcher) {
+        public void Connect(IWatcher watcher) 
+        {
             Monitor.Enter(_zookeeperLock);
             try 
             {
-                if (_zk != null) {
+                if (_zk != null) 
+                {
                     throw new Exception("zk client has already been started");
                 }
 
-                try {
+                try 
+                {
                     Logger.Debug("Creating new ZookKeeper instance to connect to " + _servers + ".");
                     _zk = new ZooKeeper(_servers, _sessionTimeOut, watcher);
-                } catch (Exception e) {
+                } 
+                catch (Exception e) 
+                {
                     throw new ZkException("Unable to connect to " + _servers, e);
                 }
 
@@ -61,15 +66,20 @@
             }
         }
 
-        public void Dispose() {
+        public void Dispose() 
+        {
             Monitor.Enter(this._zookeeperLock);
-            try {
-                if (_zk != null) {
+            try 
+            {
+                if (_zk != null) 
+                {
                     Logger.Debug("Closing ZooKeeper connected to " + _servers);
                     _zk.Dispose();
                     _zk = null;
                 }
-            } finally {
+            } 
+            finally 
+            {
                 Monitor.Exit(this._zookeeperLock);
             }
         }
@@ -86,39 +96,39 @@
 
         public bool Exists(string path, bool watch) 
         {
-            return _zk.Exists(path, watch) != null;
+            return this._zk.Exists(path, watch) != null;
         }
 
         public List<string> GetChildren(string path, bool watch) 
         {
-            return _zk.GetChildren(path, watch);
+            return this._zk.GetChildren(path, watch);
         }
 
         public byte[] ReadData(string path, Stat stat, bool watch) 
         {
-            return _zk.GetData(path, watch, stat);
+            return this._zk.GetData(path, watch, stat);
         }
 
-        public void WriteData(String path, byte[] data) 
+        public void WriteData(string path, byte[] data) 
         {
-            WriteData(path, data, -1);
+            this.WriteData(path, data, -1);
         }
 
-        public void WriteData(String path, byte[] data, int version) 
+        public void WriteData(string path, byte[] data, int version) 
         {
-            _zk.SetData(path, data, version);
+            this._zk.SetData(path, data, version);
         }
 
-        public Stat WriteDataReturnStat(String path, byte[] data, int version) 
+        public Stat WriteDataReturnStat(string path, byte[] data, int version) 
         {
-            return _zk.SetData(path, data, version);
+            return this._zk.SetData(path, data, version);
         }
 
         public ZooKeeper.States ZookeeperState 
         {
             get
             {
-                return _zk != null ? _zk.State : null;
+                return this._zk != null ? _zk.State : null;
             }
         }
 
@@ -126,13 +136,13 @@
         {
             get
             {
-                return _zk;
+                return this._zk;
             }
         }
 
         public long GetCreateTime(string path) 
         {
-            var stat = _zk.Exists(path, false);
+            var stat = this._zk.Exists(path, false);
             if (stat != null)
             {
                 return stat.Ctime;

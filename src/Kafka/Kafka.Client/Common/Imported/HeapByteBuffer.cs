@@ -99,7 +99,7 @@
             return this;
         }
 
-        public ByteBuffer Put(ByteBuffer src)
+        public override ByteBuffer Put(ByteBuffer src)
         {
             if (src == this)
                 throw new ArgumentNullException("src");

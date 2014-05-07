@@ -9,7 +9,6 @@
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
-    using Kafka.Client.Locks;
     using Kafka.Client.Server;
     using Kafka.Client.Utils;
     using Kafka.Client.ZKClient;
@@ -17,6 +16,8 @@
     using System.Linq;
 
     using Kafka.Client.Extensions;
+
+    using Spring.Threading.Locks;
 
     public class ConsumerFetcherManager : AbstractFetcherManager
     {

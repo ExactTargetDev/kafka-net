@@ -20,7 +20,6 @@
         {
         }
 
-
         public static ZkException Create(KeeperException e)
         {
             switch (e.GetCode())

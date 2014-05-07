@@ -5,7 +5,6 @@
     /// </summary>
     public interface IDataUpdater<TData>
     {
-
         /// <summary>
         /// Updates the current Data of a znode.
         /// </summary>

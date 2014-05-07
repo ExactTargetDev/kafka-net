@@ -252,7 +252,7 @@
             return Get(dst, 0, dst.Length);
         }
 
-        public ByteBuffer Put(ByteBuffer src)
+        public virtual ByteBuffer Put(ByteBuffer src)
         {
             if (src == this)
                 throw new ArgumentException();

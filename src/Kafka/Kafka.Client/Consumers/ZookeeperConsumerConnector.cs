@@ -13,7 +13,6 @@
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
-    using Kafka.Client.Locks;
     using Kafka.Client.Serializers;
     using Kafka.Client.Utils;
     using Kafka.Client.ZKClient;
@@ -21,6 +20,8 @@
 
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+
+    using Spring.Threading.Locks;
 
     using ZooKeeperNet;
 
