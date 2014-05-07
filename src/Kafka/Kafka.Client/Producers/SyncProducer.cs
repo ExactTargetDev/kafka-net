@@ -1,6 +1,7 @@
 ﻿namespace Kafka.Client.Producers
 {
     using System;
+    using System.Diagnostics;
     using System.IO;
     using System.Reflection;
 
@@ -28,9 +29,7 @@
 
         public SyncProducerConfiguration Config { get; private set; }
 
-        //TODO: val producerRequestStats = ProducerRequestStatsRegistry.getProducerRequestStats(config.clientId)
-
-
+        private ProducerRequestStats producerRequestStats;
 
         public SyncProducer(SyncProducerConfiguration config)
         {
@@ -39,6 +38,7 @@
             this.Config = config;
             this.blockingChannel = new BlockingChannel(config.Host, config.Port, BlockingChannel.UseDefaultBufferSize, config.SendBufferBytes, config.RequestTimeoutMs);
             this.BrokerInfo = string.Format("host_{0}-port_{1}", config.Host, config.Port);
+            this.producerRequestStats = ProducerRequestStatsRegistry.GetProducerRequestStats(config.ClientId);
         }
 
         private void VerifyRequest(RequestOrResponse request)
@@ -50,14 +50,14 @@
              */
             if (Logger.IsDebugEnabled)
             {
-                /* TODO
-                 * val buffer = new BoundedByteBufferSend(request).buffer
-                  trace("verifying sendbuffer of size " + buffer.limit)
-                  val requestTypeId = buffer.getShort()
-                  if(requestTypeId == RequestKeys.ProduceKey) {
-                    val request = ProducerRequest.readFrom(buffer)
-                    trace(request.toString)
-                  }*/
+                var buffer = new BoundedByteBufferSend(request).Buffer;
+                Logger.Debug("Verifying sendbuffer of size " + buffer.Limit());
+                var requestTypeId = buffer.GetShort();
+                if (requestTypeId == RequestKeys.ProduceKey)
+                {
+                    var innerRequest = ProducerRequest.ReadFrom(buffer);
+                    Logger.Debug(innerRequest.ToString());
+                }
             }
 
         }
@@ -95,12 +95,17 @@
         public ProducerResponse Send(ProducerRequest producerRequest)
         {
             var requestSize = producerRequest.SizeInBytes;
-            //TODO: producerRequestStats.getProducerRequestStats(brokerInfo).requestSizeHist.update(requestSize)
-            // TODO: producerRequestStats.getProducerRequestAllBrokersStats.requestSizeHist.update(requestSize)
+            producerRequestStats.GetProducerRequestStats(BrokerInfo).RequestSizeHist.Update(requestSize);
+            producerRequestStats.GetProducerRequestAllBrokersStats().RequestSizeHist.Update(requestSize);
 
             Receive response = null;
-            //TODO timer
-            response = this.DoSend(producerRequest, producerRequest.RequiredAcks != 0);
+            var specificTimer = producerRequestStats.GetProducerRequestStats(BrokerInfo).RequestTimer;
+            var aggregateTimer = producerRequestStats.GetProducerRequestAllBrokersStats().RequestTimer;
+
+            aggregateTimer.Time(() => specificTimer.Time(() =>
+                {
+                    response = this.DoSend(producerRequest, producerRequest.RequiredAcks != 0);
+                }));
 
             if (producerRequest.RequiredAcks != 0)
             {
@@ -140,7 +145,9 @@
                     Logger.InfoFormat("Disconnecting from {0}:{1}", Config.Host, Config.Port);
                     this.blockingChannel.Disconnect();
                 }
-            } catch (Exception e) {
+            } 
+            catch (Exception e) 
+            {
                 Logger.ErrorFormat("Error on disconnect", e);
             }
         }

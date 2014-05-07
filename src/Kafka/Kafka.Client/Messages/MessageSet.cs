@@ -6,6 +6,7 @@ using Kafka.Client.Common;
 namespace Kafka.Client.Messages
 {
     using System.Linq;
+    using System.Text;
 
     using Kafka.Client.Common.Imported;
 
@@ -87,8 +88,28 @@ namespace Kafka.Client.Messages
             }
         }
 
-        //TODO: toString
-
-       
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+            builder.Append(this.GetType().Name + "(");
+            var iter = this.Iterator();
+            var i = 0;
+            while (iter.HasNext() && i < 100)
+            {
+                var message = iter.Next();
+                builder.Append(message);
+                if (iter.HasNext())
+                {
+                    builder.Append(", ");
+                }
+                i++;
+            }
+            if (iter.HasNext())
+            {
+                builder.Append("...");
+            }
+            builder.Append(")");
+            return builder.ToString();
+        }
     }
 }

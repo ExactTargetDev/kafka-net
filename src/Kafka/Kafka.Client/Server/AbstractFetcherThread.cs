@@ -6,6 +6,7 @@
     using Kafka.Client.Api;
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
+    using Kafka.Client.Common.Imported;
     using Kafka.Client.Consumers;
     using Kafka.Client.Locks;
     using Kafka.Client.Messages;
@@ -60,6 +61,11 @@
             this.simpleConsumer = new SimpleConsumer(
                 sourceBroker.Host, sourceBroker.Port, socketTimeout, socketBufferSize, clientId);
             this.brokerInfo = string.Format("host_{0}-port_{1}", sourceBroker.Host, sourceBroker.Port);
+
+            this.metricId = new ClientIdAndBroker(clientId, brokerInfo);
+
+            this.fetcherStats = new FetcherStats(metricId);
+            this.fetcherLagStats = new FetcherLagStats(metricId);
             this.fetchRequestBuilder =
                 new FetchRequestBuilder().ClientId(clientId)
                                          .ReplicaId(fetcherBrokerId)
@@ -77,7 +83,11 @@
 
         private string brokerInfo;
 
-        //TODO: metrics and stats
+        private ClientIdAndBroker metricId;
+
+        private FetcherStats fetcherStats;
+
+        private FetcherLagStats fetcherLagStats;
 
         private FetchRequestBuilder fetchRequestBuilder;
 
@@ -167,7 +177,7 @@
                 }
             }
 
-            //TODO: fetcherStats.requestRate.mark()
+            fetcherStats.RequestRate.Mark();
 
             if (response != null)
             {
@@ -200,7 +210,9 @@
                                                             : currentOffset;
 
                                         partitionMap[topicAndPartition] = newOffset;
-                                        //TODO: stats
+                                        fetcherLagStats.GetFetcherLagStats(topic, partitionId).Lag = partitionData.Hw
+                                                                                                     - newOffset;
+                                        fetcherStats.ByteRate.Mark(validBytes);
 
                                         // Once we hand off the partition Data to the subclass, we can't mess with it any more in this thread
                                         this.ProcessPartitionData(topicAndPartition, currentOffset, partitionData);
@@ -340,5 +352,84 @@
             }
         }
 
+    }
+
+    internal class FetcherLagMetrics
+    {
+        private ClientIdBrokerTopicPartition metricId;
+        private AtomicLong lagVal = new AtomicLong(-1);
+
+        public FetcherLagMetrics(ClientIdBrokerTopicPartition metricId)
+        {
+            this.metricId = metricId;
+            MetersFactory.NewGauge(metricId + "-ConsumerLag", () => this.lagVal.Get());
+        }
+
+        internal long Lag
+        {
+            get
+            {
+                return this.lagVal.Get();
+            }
+            set
+            {
+                this.lagVal.Set(value);
+            }
+        }
+    }
+
+    internal class FetcherLagStats
+    {
+        private ClientIdAndBroker metricId;
+
+        private Func<ClientIdBrokerTopicPartition, FetcherLagMetrics> valueFactory;
+
+        private Pool<ClientIdBrokerTopicPartition, FetcherLagMetrics> stats;
+
+        public FetcherLagStats(ClientIdAndBroker metricId)
+        {
+            this.metricId = metricId;
+            this.valueFactory = (k) => new FetcherLagMetrics(k);
+            this.stats = new Pool<ClientIdBrokerTopicPartition, FetcherLagMetrics>(valueFactory);
+        }
+
+        internal FetcherLagMetrics GetFetcherLagStats(string topic, int partitionId)
+        {
+            return stats.GetAndMaybePut(
+                new ClientIdBrokerTopicPartition(metricId.ClientId, metricId.BrokerInfo, topic, partitionId));
+        }
+    }
+
+    internal class FetcherStats
+    {
+        private ClientIdAndBroker metricId;
+
+        public FetcherStats(ClientIdAndBroker metricId)
+        {
+            this.metricId = metricId;
+            this.RequestRate = MetersFactory.NewMeter(metricId + "-RequestsPerSec", "requests", TimeSpan.FromSeconds(1));
+            this.ByteRate = MetersFactory.NewMeter(metricId + "-BytesPerSec", "bytes", TimeSpan.FromSeconds(1));
+        }
+
+        internal IMeter RequestRate { get; private set; }
+
+        internal IMeter ByteRate { get; private set; }
+
+    }
+
+    internal class ClientIdBrokerTopicPartition
+    {
+        public string ClientId { get; private set; }
+        public string BrokerInfo { get; private set; }
+        public string Topic { get; private set; }
+        public int PartitonId { get; private set; }
+
+        public ClientIdBrokerTopicPartition(string clientId, string brokerInfo, string topic, int partitonId)
+        {
+            this.ClientId = clientId;
+            this.BrokerInfo = brokerInfo;
+            this.Topic = topic;
+            this.PartitonId = partitonId;
+        }
     }
 }

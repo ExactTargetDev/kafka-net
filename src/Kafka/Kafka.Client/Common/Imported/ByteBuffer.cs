@@ -396,7 +396,7 @@
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            throw new System.NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public override void SetLength(long value)

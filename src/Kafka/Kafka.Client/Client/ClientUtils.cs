@@ -90,7 +90,7 @@
             var config = new ProducerConfig();
             config.ClientId = clientId;
             config.RequestTimeoutMs = timeoutMs;
-            config.Brokers = brokers.Select(b =>new BrokerConfiguration { BrokerId = b.Id, Host = b.Host, Port = b.Port }).ToList();
+            config.Brokers = brokers.Select(b => new BrokerConfiguration { BrokerId = b.Id, Host = b.Host, Port = b.Port }).ToList();
             return FetchTopicMetadata(topics, brokers, config, correlationId);
         }
 

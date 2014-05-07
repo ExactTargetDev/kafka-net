@@ -45,9 +45,14 @@
 
             this.brokerPartitionInfo = new BrokerPartitionInfo(this.config, this.producerPool, this.topicPartitionInfos);
             this.topicMetadataRefreshInterval = TimeSpan.FromMilliseconds(config.TopicMetadataRefreshIntervalMs);
+
+            this.producerStats = ProducerStatsRegistry.GetProducerStats(config.ClientId);
+            this.producerTopicStats = ProducerTopicStatsRegistry.GetProducerTopicStats(config.ClientId);
+
         }
 
-        public bool IsSync {
+        public bool IsSync 
+        {
             get
             {
                 return this.config.ProducerType == ProducerTypes.Sync;
@@ -66,20 +71,20 @@
 
         private Dictionary<string, int> sendPartitionPerTopicCache = new Dictionary<string, int>();
 
-        //TODO: private val producerStats = ProducerStatsRegistry.getProducerStats(config.clientId)
-        //TODO: private val producerTopicStats = ProducerTopicStatsRegistry.getProducerTopicStats(config.clientId)*/
+        private readonly ProducerStats producerStats;
+
+        private readonly ProducerTopicStats producerTopicStats;
 
         public void Handle(IEnumerable<KeyedMessage<TKey, TValue>> events)
         {
             var serializedData = this.Serialize(events);
 
-            /*TODO
-             *  serializedData.foreach {
-      keyed =>
-        val dataSize = keyed.message.payloadSize
-        producerTopicStats.getProducerTopicStats(keyed.topic).byteRate.mark(dataSize)
-        producerTopicStats.getProducerAllTopicsStats.byteRate.mark(dataSize)
-    }*/
+            foreach (var keyed in serializedData)
+            {
+                var dataSize = keyed.Message.PayloadSize;
+                this.producerTopicStats.GetProducerTopicStats(keyed.Topic).ByteRate.Mark(dataSize);
+                this.producerTopicStats.GetProducerAllTopicsStats().ByteRate.Mark(dataSize);
+            }
 
             var outstandingProduceRequests = serializedData;
             var remainingRetries = this.config.MessageSendMaxRetries + 1;
@@ -121,7 +126,7 @@
                             new HashSet<string>(outstandingProduceRequests.Select(r => r.Topic)), correlationId.GetAndIncrement());
                         sendPartitionPerTopicCache.Clear();
                         remainingRetries -= 1;
-                        //TODO: producerStats.resendRate.mark();
+                        producerStats.ResendRate.Mark();
                     }
                     catch
                     {
@@ -134,7 +139,7 @@
 
             if (outstandingProduceRequests.Count() > 0)
             {
-                //TODO: proproducerStats.failedSendRate.mark()
+                producerStats.FailedSendRate.Mark();
                 var correlationIdEnd = correlationId.Get();
                 Logger.ErrorFormat("Failed to send requests for topics {0} with correlation ids in [{1}, {2}]", string.Join(",", outstandingProduceRequests.Select(r => r.Topic)), correlationIdStart, correlationIdEnd);
 
@@ -209,7 +214,7 @@
                         }
                         catch (Exception ex)
                         {
-                            //TODO: producerStats.serializationErrorRate.mark()
+                            producerStats.SerializationErrorRate.Mark();
                             if (IsSync)
                             {
                                 throw ex;
@@ -227,47 +232,60 @@
         private IDictionary<int, Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>> PartitionAndCollate(List<KeyedMessage<TKey, Message>> messages)
         {
             var ret = new Dictionary<int, Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>>();
-            foreach (var message in messages)
+            try
             {
-                var topicPartitionsList = this.GetPartitionListForTopic(message);
-                var partitionIndex = this.GetPartition(message.Topic, message.PartitionKey, topicPartitionsList);
-                var brokerPartition = topicPartitionsList.ElementAt(partitionIndex);
 
-                // postpone the failure until the send operation, so that requests for other brokers are handled correctly
-                var leaderBrokerId = brokerPartition.LeaderBrokerIdOpt ?? -1;
 
-                Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>> dataPerBroker = null;
-                if (ret.ContainsKey(leaderBrokerId))
+                foreach (var message in messages)
                 {
-                    dataPerBroker = ret[leaderBrokerId];
-                }
-                else
-                {
-                    dataPerBroker = new Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>();
-                    ret[leaderBrokerId] = dataPerBroker;
-                }
+                    var topicPartitionsList = this.GetPartitionListForTopic(message);
+                    var partitionIndex = this.GetPartition(message.Topic, message.PartitionKey, topicPartitionsList);
+                    var brokerPartition = topicPartitionsList.ElementAt(partitionIndex);
 
-                var topicAndPartition = new TopicAndPartition(message.Topic, brokerPartition.PartitionId);
-                List<KeyedMessage<TKey, Message>> dataPerTopicPartition = null;
-                if (dataPerBroker.ContainsKey(topicAndPartition))
-                {
-                    dataPerTopicPartition = dataPerBroker[topicAndPartition];
+                    // postpone the failure until the send operation, so that requests for other brokers are handled correctly
+                    var leaderBrokerId = brokerPartition.LeaderBrokerIdOpt ?? -1;
+
+                    Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>> dataPerBroker = null;
+                    if (ret.ContainsKey(leaderBrokerId))
+                    {
+                        dataPerBroker = ret[leaderBrokerId];
+                    }
+                    else
+                    {
+                        dataPerBroker = new Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>();
+                        ret[leaderBrokerId] = dataPerBroker;
+                    }
+
+                    var topicAndPartition = new TopicAndPartition(message.Topic, brokerPartition.PartitionId);
+                    List<KeyedMessage<TKey, Message>> dataPerTopicPartition = null;
+                    if (dataPerBroker.ContainsKey(topicAndPartition))
+                    {
+                        dataPerTopicPartition = dataPerBroker[topicAndPartition];
+                    }
+                    else
+                    {
+                        dataPerTopicPartition = new List<KeyedMessage<TKey, Message>>();
+                        dataPerBroker[topicAndPartition] = dataPerTopicPartition;
+                    }
+                    dataPerTopicPartition.Add(message);
                 }
-                else
-                {
-                    dataPerTopicPartition = new List<KeyedMessage<TKey, Message>>();
-                    dataPerBroker[topicAndPartition] = dataPerTopicPartition;
-                }
-                dataPerTopicPartition.Add(message);
+                return ret;
             }
-            return ret;
-
-            /* TODO
-             *  }catch {    // Swallow recoverable exceptions and return None so that they can be retried.
-      case ute: UnknownTopicOrPartitionException => warn("Failed to collate messages by topic,partition due to: " + ute.getMessage); None
-      case lnae: LeaderNotAvailableException => warn("Failed to collate messages by topic,partition due to: " + lnae.getMessage); None
-      case oe: Throwable => error("Failed to collate messages by topic, partition due to: " + oe.getMessage); None
-    }*/
+            catch (UnknownTopicOrPartitionException e)
+            {
+                Logger.Warn("Failed to collate messages by topic,partition due to: " + e.Message, e);
+                return null;
+            }
+            catch (LeaderNotAvailableException e)
+            {
+                Logger.Warn("Failed to collate messages by topic,partition due to: " + e.Message, e);
+                return null;
+            }
+            catch (Exception e)
+            {
+                Logger.Error("Failed to collate messages by topic, partition due to: " + e.Message, e);
+                return null;
+            }
         }
 
         private IList<PartitionAndLeader> GetPartitionListForTopic(KeyedMessage<TKey, Message> m)

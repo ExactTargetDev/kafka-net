@@ -22,11 +22,11 @@
     {
         private readonly string consumerIdString;
 
-        private readonly ConsumerConfiguration config;
+        private readonly ConsumerConfig config;
 
         private readonly ZkClient zkClient;
 
-        public ConsumerFetcherManager(string consumerIdString, ConsumerConfiguration config, ZkClient zkClient)
+        public ConsumerFetcherManager(string consumerIdString, ConsumerConfig config, ZkClient zkClient)
             : base(
                 string.Format("ConsumerFetcherManager-{0}", DateTime.Now), config.ClientId, config.NumConsumerFetchers)
         {

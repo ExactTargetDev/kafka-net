@@ -59,22 +59,21 @@
                 }
                 channel.ReceiveTimeout = ReadTimeoutMs;
                 channel.NoDelay = true;
-                //TODO: channel.configureBlocking(true)
-                //TODO: channel.socket.setKeepAlive(true)
+                channel.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, 1); //TODO: verify this option!
 
                 this.writeChannel = channel.GetStream();
                 this.readChannel = channel.GetStream();
                 this.conneted = true;
 
-                /*TODO 
-                 * // settings may not match what we requested above
-      val msg = "Created socket with SO_TIMEOUT = %d (requested %d), SO_RCVBUF = %d (requested %d), SO_SNDBUF = %d (requested %d)."
-      debug(msg.format(channel.socket.getSoTimeout,
-                       readTimeoutMs,
-                       channel.socket.getReceiveBufferSize, 
-                       readBufferSize,
-                       channel.socket.getSendBufferSize,
-                       writeBufferSize))*/
+                // settings may not match what we requested above
+                Logger.DebugFormat("Created socket with SO_TIMEOUT = {0} (requested {1}), SO_RCBBUG = {2} (requested {3}), SO_SNDBUF = {4} (requested {5}).",
+                        channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout),
+                        ReadTimeoutMs,
+                        channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout),
+                        ReadBufferSize,
+                        channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer),
+                        WriteBufferSize); //TODO: verify
+
             }
         }
 

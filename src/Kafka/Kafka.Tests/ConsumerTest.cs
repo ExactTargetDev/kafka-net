@@ -25,32 +25,39 @@
         [Fact]
         public void Test()
         {
-            var config = new ConsumerConfiguration("192.168.1.14", 2181, "group5");
-            config.ClientId = "client1244";
-            config.ZooKeeper.ZkSessionTimeoutMs = 3 * 60 * 1000;
+            var config = new ConsumerConfig("192.168.1.14", 2181, "gg");
+            config.ClientId = "ca";
+            config.ZooKeeper.ZkSessionTimeoutMs = 60 * 1000;
             config.FetchWaitMaxMs = 5000;
             var consumer = Consumer.Create(config);
             var topic = new Dictionary<string, int>
                             {
-                                { "t1", 1 }
+                                { "tx", 1 }
                             };
             var messageStreams = consumer.CreateMessageStreams(topic);
-            var topic5Stream = messageStreams["t1"];
+            var topic5Stream = messageStreams["tx"];
 
             Task.Factory.StartNew(
                 () =>
                     {
-                        Console.WriteLine("Starting fetcher thread");
-                        foreach (var stream in topic5Stream)
+                        try
                         {
-                            foreach (var message in stream)
+                            Thread.Sleep(5000);
+                            Console.WriteLine("Starting fetcher thread");
+                            foreach (var stream in topic5Stream)
                             {
-                                Console.WriteLine(Encoding.UTF8.GetString(message.Key));
+                                foreach (var message in stream)
+                                {
+                                    Console.WriteLine("New message: " + Encoding.UTF8.GetString(message.Message));
+                                }
                             }
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.StackTrace);
                         }
                     });
 
-            Thread.Sleep(TimeSpan.FromSeconds(15)); //TODO: delete me
             consumer.Shutdown();
 
         }
@@ -62,7 +69,7 @@
             var request = new TopicMetadataRequest(new List<string> {"topic5"}, 5);
             var response = consumer.Send(request);
 
-            consumer.Dispose();
+            consumer.Close();
         }
     }
 }

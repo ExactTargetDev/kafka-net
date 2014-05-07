@@ -5,7 +5,7 @@
     /// </summary>
     public enum ProducerTypes
     {
-          Unknow = 0,
+        Unknown = 0,
         Sync = 1,
         Async = 2 
     }

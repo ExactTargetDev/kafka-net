@@ -68,7 +68,7 @@
     {
         public static readonly FetchedDataChunk ShutdownCommand = new FetchedDataChunk(null, null, -1L);
 
-        public ConsumerConfiguration config { get; private set; }
+        public ConsumerConfig config { get; private set; }
 
         public bool EnableFetcher { get; private set; }
 
@@ -100,7 +100,7 @@
 
         private ZookeeperTopicEventWatcher wildcardTopicWatcher;
 
-        public ZookeeperConsumerConnector(ConsumerConfiguration config, bool enableFetcher = true)
+        public ZookeeperConsumerConnector(ConsumerConfig config, bool enableFetcher = true)
         {
             this.config = config;
             this.EnableFetcher = enableFetcher;
@@ -157,7 +157,7 @@
         public IList<KafkaStream<TKey, TValue>> CreateMessageStreamsByFilter<TKey, TValue>(
             TopicFilter topicFilter, int numStreams = 1, IDecoder<TKey> keyDecoder = null, IDecoder<TValue> valueDecoder = null)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         private void CreateFetcher()
@@ -424,7 +424,6 @@
 
             public void HandleDataDeleted(string dataPath)
             {
-                // TODO: This need to be implemented when we support delete topic
                 Logger.WarnFormat("Topic for path {0} gets deleted, which should not happen at this time", dataPath);
             }
         }
@@ -955,7 +954,7 @@
                 var q = e.Item2.Item1;
                 topicThreadIdAndQueues[topicThreadId] = q;
                 Logger.DebugFormat("Adding topicThreadId {0} and queue {1} to topicThreadIdAndQueues Data structure", topicThreadId, string.Join(",", q));
-                //TODO: gauge
+                MetersFactory.NewGauge(config.ClientId + "-" + config.GroupId + "-" + topicThreadId.Item1 + "-" + topicThreadId.Item2 + "-FetchQueueSize", () => q.Count);
             }
 
             var groupedByTopic = threadQueueStreamPairs.GroupBy(x => x.Item1.Item1).ToList();

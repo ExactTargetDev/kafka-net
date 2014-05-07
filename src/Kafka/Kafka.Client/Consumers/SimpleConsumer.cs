@@ -37,7 +37,7 @@
             }
         }
 
-        // TODO: private val fetchRequestAndResponseStats = FetchRequestAndResponseStatsRegistry.getFetchRequestAndResponseStats(clientId)
+        private FetchRequestAndResponseStats fetchRequestAndResponseStats;
 
         private bool isClosed = false;
 
@@ -48,8 +48,10 @@
             this.SoTimeout = soTimeout;
             this.BufferSize = bufferSize;
             this.ClientId = clientId;
-            ConsumerConfiguration.ValidateClientId(clientId);
+            ConsumerConfig.ValidateClientId(clientId);
             this.blockingChannel = new BlockingChannel(Host, Port, BufferSize, BlockingChannel.UseDefaultBufferSize, SoTimeout);
+            this.fetchRequestAndResponseStats =
+                FetchRequestAndResponseStatsRegistry.GetFetchRequestAndResponseStats(clientId);
         }
 
         private BlockingChannel Connect()
@@ -97,6 +99,7 @@
                 catch (Exception e)
                 {
                     Logger.WarnFormat("Reconnect due to socket error {0}",e.Message);
+
                     // retry once
                     try
                     {
@@ -127,13 +130,17 @@
         /// <returns></returns>
         internal FetchResponse Fetch(FetchRequest request)
         {
-            Receive response;
-            // TODO timers
-            response = this.SendRequest(request);
+            Receive response = null;
+            var specificTimer = fetchRequestAndResponseStats.GetFetchRequestAndResponseStats(BrokerInfo).RequestTimer;
+            var aggregateTimer = fetchRequestAndResponseStats.GetFetchRequestAndResponseAllBrokersStats().RequestTimer;
+            aggregateTimer.Time(() => specificTimer.Time(() =>
+                { response = this.SendRequest(request); }));
 
             var fetchResponse = FetchResponse.ReadFrom(response.Buffer);
             var fetchedSize = fetchResponse.SizeInBytes;
-            //TODO stats
+
+            fetchRequestAndResponseStats.GetFetchRequestAndResponseStats(BrokerInfo).RequestSizeHist.Update(fetchedSize);
+            fetchRequestAndResponseStats.GetFetchRequestAndResponseAllBrokersStats().RequestSizeHist.Update(fetchedSize);
 
             return fetchResponse;
         }

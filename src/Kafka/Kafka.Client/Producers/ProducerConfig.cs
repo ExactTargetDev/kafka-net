@@ -32,7 +32,7 @@ namespace Kafka.Client.Cfg
     /// <summary>
     /// High-level API configuration for the producer
     /// </summary>
-    public class ProducerConfig : AsyncProducerConfiguration, ISyncProducerConfigShared, IAsyncProducerConfigShared
+    public class ProducerConfig : AsyncProducerConfig
     {
         public const string DefaultPartitioner = "Kafka.Client.Producers.DefaultPartitioner";
 
@@ -86,28 +86,7 @@ namespace Kafka.Client.Cfg
 
             this.PartitionerClass = config.Partitioner;
 
-            if (config.ZooKeeperServers.ElementInformation.IsPresent)
-            {
-                this.SetZooKeeperServers(config.ZooKeeperServers);
-            }
-            else
-            {
-                this.SetKafkaBrokers(config.Brokers);
-            }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether ZooKeeper based automatic broker discovery is enabled.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if this instance is zoo keeper enabled; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsZooKeeperEnabled
-        {
-            get
-            {
-                return this.ZooKeeper != null;
-            }
+            this.SetKafkaBrokers(config.Brokers);
         }
 
         private IList<BrokerConfiguration> broker;
@@ -125,9 +104,9 @@ namespace Kafka.Client.Cfg
             }
         }
 
-        private ZooKeeperConfiguration zooKeeper;
+        private ZkConfig zooKeeper;
 
-        public ZooKeeperConfiguration ZooKeeper
+        public ZkConfig ZooKeeper
         {
             get
             {
@@ -167,30 +146,6 @@ namespace Kafka.Client.Cfg
 
         public int TopicMetadataRefreshIntervalMs { get; set; }
 
-        private void SetZooKeeperServers(ZooKeeperConfigurationElement config)
-        {
-            if (config.Servers.Count == 0)
-            {
-                throw new ConfigurationErrorsException();
-            }
-
-            var sb = new StringBuilder();
-            foreach (ZooKeeperServerConfigurationElement server in config.Servers)
-            {
-                sb.Append(GetIpAddress(server.Host));
-                sb.Append(':');
-                sb.Append(server.Port);
-                sb.Append(',');
-            }
-
-            sb.Remove(sb.Length - 1, 1);
-            this.ZooKeeper = new ZooKeeperConfiguration(
-                sb.ToString(),
-                config.SessionTimeout,
-                config.ConnectionTimeout,
-                config.SyncTime);
-        }
-
         private void SetKafkaBrokers(BrokerConfigurationElementCollection brokersColl)
         {
             this.Brokers = new List<BrokerConfiguration>();
@@ -208,24 +163,6 @@ namespace Kafka.Client.Cfg
 
         private static void Validate(ProducerConfigurationSection config)
         {
-            if (config.ZooKeeperServers.ElementInformation.IsPresent
-                && config.Brokers.ElementInformation.IsPresent)
-            {
-                throw new ConfigurationErrorsException("ZooKeeper configuration cannot be set when brokers configuration is used");
-            }
-
-            if (!config.ZooKeeperServers.ElementInformation.IsPresent
-                && !config.Brokers.ElementInformation.IsPresent)
-            {
-                throw new ConfigurationErrorsException("ZooKeeper server or Kafka broker configuration must be set");
-            }
-
-            if (config.ZooKeeperServers.ElementInformation.IsPresent
-                && config.ZooKeeperServers.Servers.Count == 0)
-            {
-                throw new ConfigurationErrorsException("At least one ZooKeeper server address is required");
-            }
-
             if (config.Brokers.ElementInformation.IsPresent
                 && config.Brokers.Count == 0)
             {

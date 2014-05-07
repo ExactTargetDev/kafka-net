@@ -346,4 +346,34 @@
         }
        
     }
+    public class ZkConfig
+    {
+        public const int DefaultSessionTimeout = 6000;
+
+        public const int DefaultConnectionTimeout = 6000;
+
+        public const int DefaultSyncTime = 2000;
+
+        public ZkConfig()
+            : this(null, DefaultSessionTimeout, DefaultConnectionTimeout, DefaultSyncTime)
+        {
+        }
+
+        public ZkConfig(string zkconnect, int zksessionTimeoutMs, int zkconnectionTimeoutMs, int zksyncTimeMs)
+        {
+            this.ZkConnect = zkconnect;
+            this.ZkConnectionTimeoutMs = zkconnectionTimeoutMs;
+            this.ZkSessionTimeoutMs = zksessionTimeoutMs;
+            this.ZkSyncTimeMs = zksyncTimeMs;
+        }
+
+        public string ZkConnect { get; set; }
+
+        public int ZkSessionTimeoutMs { get; set; }
+
+        public int ZkConnectionTimeoutMs { get; set; }
+
+        public int ZkSyncTimeMs { get; set; }
+    }
+
 }

@@ -9,7 +9,7 @@
         /// </summary>
         /// <param name="config">at the minimum, need to specify the groupid of the consumer and the zookeeper connection string zookeeper.connect.</param>
         /// <returns></returns>
-         public static IConsumerConnector Create(ConsumerConfiguration config)
+         public static IConsumerConnector Create(ConsumerConfig config)
          {
              var consumeConnect = new ZookeeperConsumerConnector(config);
              return consumeConnect;

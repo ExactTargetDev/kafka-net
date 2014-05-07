@@ -14,7 +14,7 @@
 
     public class ConsumerFetcherThread : AbstractFetcherThread
     {
-        private ConsumerConfiguration config;
+        private ConsumerConfig config;
 
         private ConsumerFetcherManager consumerFetcherManager;
 
@@ -22,7 +22,7 @@
 
         public ConsumerFetcherThread(
             string name,
-            ConsumerConfiguration config,
+            ConsumerConfig config,
             Broker sourceBroker,
             IDictionary<TopicAndPartition, PartitionTopicInfo> partitionMap,
             ConsumerFetcherManager consumerFetcherManager) : base(

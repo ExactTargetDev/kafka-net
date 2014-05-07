@@ -10,6 +10,50 @@
          {
              return new NoOpMeter();
          }
+
+        public static ITimer NewTimer(string name, TimeSpan durationUnit, TimeSpan rateUnit)
+        {
+            return new NoOpTimer();
+        }
+
+        public static IHistogram NewHistogram(string name)
+        {
+            return new NoOpHistogram();
+        }
+
+        public static IGauge NewGauge<T>(string name, Func<T> func)
+        {
+            return new NoOpGauge();
+        }
+    }
+
+    internal class NoOpHistogram : IHistogram
+    {
+        public void Update(int value)
+        {
+            // no -op
+        }
+    }
+
+    internal class NoOpTimer : ITimer
+    {
+        public ITiming Time()
+        {
+            return new NoOpTiming();
+        }
+    }
+
+    internal class NoOpTiming : ITiming
+    {
+        public void Stop()
+        {
+            // no-op
+        }
+    }
+
+    internal class NoOpGauge : IGauge
+    {
+        // no op
     }
 
     internal class NoOpMeter : IMeter

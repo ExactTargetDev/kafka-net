@@ -57,8 +57,6 @@
                 this.sizeBuffer.Rewind();
                 var size = this.sizeBuffer.GetInt();
 
-                Console.WriteLine("SIZEEEE = " + size); //TODO: delete me
-
                 if (size <= 0)
                 {
                     throw new InvalidRequestException(string.Format("{0} is not a valid request size", size));

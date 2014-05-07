@@ -47,7 +47,7 @@ namespace Kafka.Client.Api
         private readonly Lazy<IDictionary<string, IDictionary<TopicAndPartition, PartitionFetchInfo>>>
             requestInfoGroupedByTopic;
 
-        internal FetchRequest(short versionId = CurrentVersion, int correlationId = DefaultCorrelationId, string clientId = ConsumerConfiguration.DefaultClientId, int replicaId = Request.OrdinaryConsumerId, int maxWait = DefaultMaxWait, int minBytes = DefaultMinBytes, IDictionary<TopicAndPartition, PartitionFetchInfo> requestInfo = null)
+        internal FetchRequest(short versionId = CurrentVersion, int correlationId = DefaultCorrelationId, string clientId = ConsumerConfig.DefaultClientId, int replicaId = Request.OrdinaryConsumerId, int maxWait = DefaultMaxWait, int minBytes = DefaultMinBytes, IDictionary<TopicAndPartition, PartitionFetchInfo> requestInfo = null)
             : base(RequestKeys.FetchKey, correlationId)
         {
             this.VersionId = versionId;
@@ -182,7 +182,7 @@ namespace Kafka.Client.Api
 
         private readonly short versionId = FetchRequest.CurrentVersion;
 
-        private string clientId = ConsumerConfiguration.DefaultClientId;
+        private string clientId = ConsumerConfig.DefaultClientId;
 
         private int replicaId = Request.OrdinaryConsumerId;
 
