@@ -1,7 +1,7 @@
 ﻿namespace Kafka.Client.Consumers
 {
+    using System;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
     using System.Globalization;
     using System.Reflection;
 
@@ -23,22 +23,23 @@
     {
         private readonly BlockingCollection<FetchedDataChunk> channel;
 
-        private readonly int consumerTimeoutMs;
+        private int consumerTimeoutMs;
 
         private readonly IDecoder<TKey> keyDecoder;
+
         private readonly IDecoder<TValue> valueDecoder;
 
         public string ClientId { get; set; }
 
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private readonly AtomicReference<IIterator<MessageAndOffset>> current = new AtomicReference<IIterator<MessageAndOffset>>(null);
+        private AtomicReference<IIterator<MessageAndOffset>> current = new AtomicReference<IIterator<MessageAndOffset>>(null);
 
         private PartitionTopicInfo currentTopicInfo;
 
         private long consumedOffset = -1;
 
-        private ConsumerTopicStats consumerTopicStats;
+        private readonly ConsumerTopicStats consumerTopicStats;
 
         public ConsumerIterator(BlockingCollection<FetchedDataChunk> channel, int consumerTimeoutMs, IDecoder<TKey> keyDecoder, IDecoder<TValue> valueDecoder, string clientId)
         {
@@ -57,6 +58,7 @@
             {
                 throw new KafkaException(string.Format("Offset returned by the message set is invalid {0}", this.consumedOffset));
             }
+
             this.currentTopicInfo.ResetConsumeOffset(this.consumedOffset);
             var topic = this.currentTopicInfo.Topic;
             Logger.DebugFormat("Setting {0} consumer offset to {1}", topic, this.consumedOffset);
@@ -67,7 +69,7 @@
 
         protected override MessageAndMetadata<TKey, TValue> MakeNext()
         {
-            FetchedDataChunk currentDataChunk = null;
+            FetchedDataChunk currentDataChunk;
             var localCurrent = this.current.Get();
             if (localCurrent == null || !localCurrent.HasNext())
             {
@@ -77,7 +79,7 @@
                 }
                 else
                 {
-                    if (!this.channel.TryTake(out currentDataChunk, consumerTimeoutMs))
+                    if (!this.channel.TryTake(out currentDataChunk, this.consumerTimeoutMs))
                     {
                          // reste stat to make the iterator re-iterable
                         this.ResetState();
@@ -111,6 +113,7 @@
                             this.currentTopicInfo);
                         this.currentTopicInfo.ResetConsumeOffset(currentDataChunk.FetchOffset);
                     }
+
                     localCurrent = currentDataChunk.Messages.Iterator();
                     this.current.Set(localCurrent);
                 }
@@ -136,7 +139,7 @@
                 item = localCurrent.Next();
             }
 
-            consumedOffset = item.NextOffset;
+            this.consumedOffset = item.NextOffset;
 
             item.Message.EnsureValid(); // validate checksum of message to ensure it is valid
 
@@ -147,7 +150,6 @@
                 item.Offset,
                 this.keyDecoder,
                 this.valueDecoder);
-
         }
 
         public void ClearCurrentChunk()
@@ -155,7 +157,17 @@
             Logger.Debug("Clearing the current Data chunk for this consumer iterator");
             this.current.Set(null);
         }
+    }
 
+    public class ConsumerTimeoutException : Exception
+    {
+        public ConsumerTimeoutException()
+        {
+        }
 
+        public ConsumerTimeoutException(string message)
+            : base(message)
+        {
+        }
     }
 }

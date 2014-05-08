@@ -3,13 +3,12 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Diagnostics.Contracts;
+    using System.Globalization;
     using System.Net;
     using System.Reflection;
     using System.Threading;
 
-    using Kafka.Client.Cfg;
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
@@ -69,7 +68,7 @@
     {
         public static readonly FetchedDataChunk ShutdownCommand = new FetchedDataChunk(null, null, -1L);
 
-        public ConsumerConfig config { get; private set; }
+        public ConsumerConfig Config { get; private set; }
 
         public bool EnableFetcher { get; private set; }
 
@@ -87,11 +86,11 @@
 
         private Pool<TopicAndPartition, long> checkpointedOffsets = new Pool<TopicAndPartition, long>();
 
-        private Pool<Tuple<string, string>, BlockingCollection<FetchedDataChunk>> topicThreadIdAndQueues = new Pool<Tuple<string, string>, BlockingCollection<FetchedDataChunk>>();
+        private readonly Pool<Tuple<string, string>, BlockingCollection<FetchedDataChunk>> topicThreadIdAndQueues = new Pool<Tuple<string, string>, BlockingCollection<FetchedDataChunk>>();
 
-        private KafkaScheduler scheduler = new KafkaScheduler();
+        private readonly KafkaScheduler scheduler = new KafkaScheduler();
 
-        private AtomicBoolean messageStreamCreated = new AtomicBoolean(false);
+        private readonly AtomicBoolean messageStreamCreated = new AtomicBoolean(false);
 
         private ZKSessionExpireListener sessionExpirationListener;
 
@@ -103,10 +102,10 @@
 
         public ZookeeperConsumerConnector(ConsumerConfig config, bool enableFetcher = true)
         {
-            this.config = config;
+            this.Config = config;
             this.EnableFetcher = enableFetcher;
 
-            string consumerUuid = null;
+            string consumerUuid;
             if (config.ConsumerId != null)
             {
                 consumerUuid = config.ConsumerId;
@@ -134,10 +133,9 @@
             }
 
             // TODO: KafkaMetricsReporter.startReporters(config.props)
-
         }
 
-        private string consumerIdString;
+        private readonly string consumerIdString;
 
         private string logIdent;
 
@@ -152,7 +150,8 @@
             {
                 throw new Exception(this.GetType().Name + " can create message streams at most once");
             }
-            return this.Consume<TKey, TValue>(topicCountMap, keyDecoder, valueDecoder);
+
+            return this.Consume(topicCountMap, keyDecoder, valueDecoder);
         }
 
         public IList<KafkaStream<TKey, TValue>> CreateMessageStreamsByFilter<TKey, TValue>(
@@ -165,17 +164,17 @@
         {
             if (this.EnableFetcher)
             {
-                this.fetcher = new ConsumerFetcherManager(consumerIdString, config, zkClient);
+                this.fetcher = new ConsumerFetcherManager(consumerIdString, this.Config, zkClient);
             }
         }
 
         public void ConnectZk()
         {
-            Logger.InfoFormat("Connecting to zookeeper instance at " + config.ZooKeeper.ZkConnect);
+            Logger.InfoFormat("Connecting to zookeeper instance at " + this.Config.ZooKeeper.ZkConnect);
             this.zkClient = new ZkClient(
-                this.config.ZooKeeper.ZkConnect,
-                this.config.ZooKeeper.ZkSessionTimeoutMs,
-                this.config.ZooKeeper.ZkConnectionTimeoutMs,
+                this.Config.ZooKeeper.ZkConnect,
+                this.Config.ZooKeeper.ZkSessionTimeoutMs,
+                this.Config.ZooKeeper.ZkConnectionTimeoutMs,
                 new ZkStringSerializer());
         }
 
@@ -191,21 +190,25 @@
                     {
                         wildcardTopicWatcher.Shutdown();
                     }
+
                     try
                     {
-                        if (config.AutoCommitEnable)
+                        if (this.Config.AutoCommitEnable)
                         {
                             scheduler.Shutdown();
                         }
+
                         if (fetcher != null)
                         {
                             fetcher.StopConnections();
                         }
+
                         this.SendShutdownToAllQueues();
-                        if (config.AutoCommitEnable)
+                        if (this.Config.AutoCommitEnable)
                         {
                             this.CommitOffsets();
                         }
+
                         if (zkClient != null)
                         {
                             zkClient.Dispose();
@@ -216,6 +219,7 @@
                     {
                         Logger.Fatal("error during consumer connector shutdown", e);
                     }
+
                     Logger.Info("ZKConsumerConnector shut down completed");
                 }
             }
@@ -229,20 +233,20 @@
                 throw new ArgumentNullException("topicCountMap");
             }
 
-            var topicCount = TopicCounts.ConstructTopicCount(consumerIdString, topicCountMap);
+            var topicCount = TopicCount.ConstructTopicCount(consumerIdString, topicCountMap);
 
             var topicThreadIds = topicCount.GetConsumerThreadIdsPerTopic();
 
             // make a list of (queue,stream) pairs, one pair for each threadId
             var queuesAndStreams = topicThreadIds.Values.SelectMany(threadIdSet => threadIdSet.Select(_ =>
                 {
-                    var queue = new BlockingCollection<FetchedDataChunk>(this.config.QueuedMaxMessages);
+                    var queue = new BlockingCollection<FetchedDataChunk>(this.Config.QueuedMaxMessages);
                     var stream = new KafkaStream<TKey, TValue>(
-                        queue, this.config.ConsumerTimeoutMs, keyDecoder, valueDecoder, this.config.ClientId);
+                        queue, this.Config.ConsumerTimeoutMs, keyDecoder, valueDecoder, this.Config.ClientId);
                     return Tuple.Create(queue, stream);
                 })).ToList();
 
-            var dirs = new ZKGroupDirs(config.GroupId);
+            var dirs = new ZKGroupDirs(this.Config.GroupId);
             this.RegisterConsumerInZK(dirs, consumerIdString, topicCount);
             ReinitializeConsumer(topicCount, queuesAndStreams);
 
@@ -267,7 +271,7 @@
                                                                                version = 1,
                                                                                subscription = topicCount.TopicCountMap,
                                                                                pattern = topicCount.Pattern,
-                                                                               timestamp = timestamp
+                                                                               timestamp
                                                                            });
 
                 ZkUtils.CreateEphemeralPathExpectConflictHandleZKBug(
@@ -276,7 +280,7 @@
                     consumerRegistrationInfo,
                     null,
                     (consumerZKstring, consumer) => true,
-                    config.ZooKeeper.ZkSessionTimeoutMs);
+                    this.Config.ZooKeeper.ZkSessionTimeoutMs);
 
             Logger.InfoFormat("end registering consumer {0} in ZK", consumerIdString);
         }
@@ -287,7 +291,7 @@
             {
                 Logger.DebugFormat("clearing up queue");
                 queue.Clear();
-                queue.TryAdd(ZookeeperConsumerConnector.ShutdownCommand);
+                queue.TryAdd(ShutdownCommand);
                 Logger.Debug("Cleared queue and sent shutdown command");
             }
         }
@@ -313,11 +317,12 @@
                 Logger.Error("zk client is null. Cannot commit offsets");
                 return;
             }
+
             foreach (var topicAndInfo in TopicRegistry)
             {
                 var topic = topicAndInfo.Key;
                 var infos = topicAndInfo.Value;
-                var topicDirs = new ZKGroupTopicDirs(config.GroupId, topic);
+                var topicDirs = new ZKGroupTopicDirs(this.Config.GroupId, topic);
                 foreach (var info in infos.Values)
                 {
                     var newOffset = info.GetConsumeOffset();
@@ -326,7 +331,7 @@
                         try
                         {
                             ZkUtils.UpdatePersistentPath(
-                                zkClient, topicDirs.ConsumerOffsetDir + "/" + info.PartitionId, newOffset.ToString());
+                                zkClient, topicDirs.ConsumerOffsetDir + "/" + info.PartitionId, newOffset.ToString(CultureInfo.InvariantCulture));
                             checkpointedOffsets[new TopicAndPartition(topic, info.PartitionId)] = newOffset;
                         }
                         catch (Exception e)
@@ -334,16 +339,16 @@
                             // log it and let it go
                             Logger.Warn("Exception during commitOffsets", e);
                         }
+
                         Logger.DebugFormat("Committed offset {0} for topic {1}", newOffset, info);
                     }
                 }
             }
         }
 
-
         internal class ZKSessionExpireListener : IZkStateListener
         {
-            private ZookeeperConsumerConnector parent;
+            private readonly ZookeeperConsumerConnector parent;
 
             public ZKGroupDirs Dirs { get; private set; }
 
@@ -387,7 +392,6 @@
 
                 // There is no need to resubscribe to child and state changes.
                 // The child change watchers will be set inside rebalance when we read the children list.
-
             }
         }
 
@@ -409,7 +413,7 @@
                 try
                 {
                     Logger.InfoFormat(
-                        "Topic info for path {0} changed to {1}, triggering rebalance", dataPath, data.ToString());
+                        "Topic info for path {0} changed to {1}, triggering rebalance", dataPath, data);
 
                     // queue up the rebalance event
                     LoadbalancerListener.RebalanceEventTriggered();
@@ -442,22 +446,21 @@
 
         internal class ZKRebalancerListener<TKey, TValue> : IZkChildListener, IZKRebalancerListener
         {
+            private readonly ZookeeperConsumerConnector parent;
 
-            private ZookeeperConsumerConnector parent;
+            private readonly string group;
 
-            private string group;
-
-            private string consumerIdString;
+            private readonly string consumerIdString;
 
             public object KafkaMessageAndMetadataStreams { get; private set; }
 
-            private bool isWatcherTriggered = false;
+            private bool isWatcherTriggered;
 
-            private ReentrantLock @lock;
+            private readonly ReentrantLock @lock;
 
-            private ICondition cond;
+            private readonly ICondition cond;
 
-            private Thread watcherExecutorThread;
+            private readonly Thread watcherExecutorThread;
 
             public ZKRebalancerListener(
                 ZookeeperConsumerConnector parent,
@@ -476,7 +479,7 @@
                 this.watcherExecutorThread = new Thread(() =>
                     {
                         Logger.InfoFormat("starting watcher executor thread for consumer {0}", consumerIdString);
-                        var doRebalance = false;
+                        bool doRebalance;
                         while (!parent.isShuttingDown.Get())
                         {
                             try
@@ -486,8 +489,7 @@
                                 {
                                     if (!isWatcherTriggered)
                                     {
-                                        cond.Await(TimeSpan.FromMilliseconds(1000));
-                                            // wake up periodically so that it can check the shutdown flag
+                                        cond.Await(TimeSpan.FromMilliseconds(1000)); // wake up periodically so that it can check the shutdown flag
                                     }
                                 }
                                 finally
@@ -495,8 +497,8 @@
                                     doRebalance = isWatcherTriggered;
                                     isWatcherTriggered = false;
                                     @lock.Unlock();
-
                                 }
+
                                 if (doRebalance)
                                 {
                                     this.SyncedRebalance();
@@ -507,6 +509,7 @@
                                 Logger.Error("Error during syncedRebalance", e);
                             }
                         }
+
                         Logger.InfoFormat("Stoppping watcher executer thread for consumer {0}", consumerIdString);
                     });
                 this.watcherExecutorThread.Name = consumerIdString + "_watcher_executor";
@@ -552,6 +555,7 @@
                     {
                         this.DeletePartitionOwnershipFromZK(topic, partition);
                     }
+
                     Pool<int, PartitionTopicInfo> _;
                     localTopicRegistry.TryRemove(topic, out _);
                 }
@@ -572,7 +576,7 @@
                     }
                     else
                     {
-                        for (var i = 1; i <= parent.config.RebalanceMaxRetries; i++)
+                        for (var i = 1; i <= parent.Config.RebalanceMaxRetries; i++)
                         {
                             Logger.InfoFormat("begin rebalancing consumer {0} try #{1}", consumerIdString, i);
                             var done = false;
@@ -590,6 +594,7 @@
                                  **/
                                 Logger.Info("Exception during rebalance", e);
                             }
+
                             Logger.InfoFormat("end rebalancing consumer {0} try #{1}", consumerIdString, i);
                             if (done)
                             {
@@ -604,19 +609,19 @@
 
                             // stop all fetchers and clear all the queues to avoid Data duplication
                             CloseFetchersForQueues(cluster, (IDictionary<string, IList<KafkaStream<TKey, TValue>>>)KafkaMessageAndMetadataStreams, parent.topicThreadIdAndQueues.Select(x => x.Value).ToList());
-                            Thread.Sleep(parent.config.RebalanceBackoffMs);
+                            Thread.Sleep(parent.Config.RebalanceBackoffMs);
                         }
                     }
                 }
 
                 throw new ConsumerRebalanceFailedException(
-                    consumerIdString + " can't rebalance after " + parent.config.RebalanceMaxRetries + " retries");
+                    consumerIdString + " can't rebalance after " + parent.Config.RebalanceMaxRetries + " retries");
             }
 
             private bool Rebalance(Cluster cluster)
             {
                 var myTopicThreadIdsMap =
-                    TopicCounts.ConstructTopicCount(group, consumerIdString, parent.zkClient)
+                    TopicCount.ConstructTopicCount(group, consumerIdString, parent.zkClient)
                                .GetConsumerThreadIdsPerTopic();
                 var consumersPerTopicMap = ZkUtils.GetConsumersPerTopic(parent.zkClient, group);
                 var brokers = ZkUtils.GetAllBrokersInCluster(parent.zkClient);
@@ -670,7 +675,7 @@
                         {
                             var myConsumerPosition = curConsumers.IndexOf(consumerThreadId);
                             Contract.Assert(myConsumerPosition >= 0);
-                            var startPart = nPartsPerConsumer * myConsumerPosition
+                            var startPart = (nPartsPerConsumer * myConsumerPosition)
                                             + Math.Min(nConsumersWithExtraPart, myConsumerPosition);
                             var nParts = nPartsPerConsumer + (myConsumerPosition + 1 > nConsumersWithExtraPart ? 0 : 1);
 
@@ -719,7 +724,6 @@
                         return false;
                     }
                 }
-       
             }
 
             private void CloseFetchersForQueues(
@@ -741,7 +745,7 @@
                       * by the consumer, there will be no more messages returned by this iterator until the rebalancing finishes
                       * successfully and the fetchers restart to fetch more Data chunks
                       **/
-                    if (parent.config.AutoCommitEnable)
+                    if (parent.Config.AutoCommitEnable)
                     {
                         parent.CommitOffsets();
                     }
@@ -830,15 +834,11 @@
                                 successfullyOwnedPartitions.Add(Tuple.Create(topic, partition));
                                 return true;
                             }
-                            catch (ZkNodeExistsException e)
+                            catch (ZkNodeExistsException)
                             {
                                 // The node hasn't been deleted by the original owner. So wait a bit and retry.
                                 Logger.InfoFormat("waiting for the partition ownership to be deleted:" + partition);
                                 return false;
-                            }
-                            catch (Exception e)
-                            {
-                                throw e;
                             }
                         }).ToList();
                 var hasPartitionOwnershipFailed = partitionOwnershipSuccessful.Aggregate(
@@ -852,6 +852,7 @@
                     {
                         this.DeletePartitionOwnershipFromZK(topicAndPartition.Item1, topicAndPartition.Item2);
                     }
+
                     return false;
                 }
 
@@ -865,7 +866,6 @@
                 string topic,
                 string consumerThreadId)
             {
-
                 var partTopicInfoMap = currentTopicRegistry.Get(topic);
 
                 var znode = topicDirs.ConsumerOffsetDir + "/" + partition;
@@ -883,27 +883,25 @@
                     queue,
                     consumedOffset,
                     fetchedOffset,
-                    new AtomicInteger(parent.config.FetchMessageMaxBytes),
-                    parent.config.ClientId);
+                    new AtomicInteger(parent.Config.FetchMessageMaxBytes),
+                    parent.Config.ClientId);
 
                 partTopicInfoMap[partition] = partTopicInfo;
                 Logger.DebugFormat("{0} selected new offset {1}", partTopicInfo, offset);
                 parent.checkpointedOffsets[new TopicAndPartition(topic, partition)] = offset;
-
             }
-
         }
 
         private void ReinitializeConsumer<TKey, TValue>(
             TopicCount topicCount, IList<Tuple<BlockingCollection<FetchedDataChunk>, KafkaStream<TKey, TValue>>> queuesAndStreams)
         {
-            var dirs = new ZKGroupDirs(config.GroupId);
+            var dirs = new ZKGroupDirs(this.Config.GroupId);
 
             // listener to consumer and partition changes
             if (loadBalancerListener == null)
             {
                 var topicStreamsMaps = new Dictionary<string, IList<KafkaStream<TKey, TValue>>>();
-                loadBalancerListener = new ZKRebalancerListener<TKey, TValue>(this, config.GroupId, consumerIdString, topicStreamsMaps); 
+                loadBalancerListener = new ZKRebalancerListener<TKey, TValue>(this, this.Config.GroupId, consumerIdString, topicStreamsMaps); 
             }
 
             // create listener for session expired event if not exist yet
@@ -955,7 +953,7 @@
                 var q = e.Item2.Item1;
                 topicThreadIdAndQueues[topicThreadId] = q;
                 Logger.DebugFormat("Adding topicThreadId {0} and queue {1} to topicThreadIdAndQueues Data structure", topicThreadId, string.Join(",", q));
-                MetersFactory.NewGauge(config.ClientId + "-" + config.GroupId + "-" + topicThreadId.Item1 + "-" + topicThreadId.Item2 + "-FetchQueueSize", () => q.Count);
+                MetersFactory.NewGauge(this.Config.ClientId + "-" + this.Config.GroupId + "-" + topicThreadId.Item1 + "-" + topicThreadId.Item2 + "-FetchQueueSize", () => q.Count);
             }
 
             var groupedByTopic = threadQueueStreamPairs.GroupBy(x => x.Item1.Item1).ToList();
@@ -968,8 +966,7 @@
                 Logger.DebugFormat("adding topic {0} and {1} stream to map", topic, streams.Count);
             }
 
-
-             // listener to consumer and partition changes
+            // listener to consumer and partition changes
             zkClient.SubscribeStateChanges(sessionExpirationListener);
 
             zkClient.SubscribeChildChanges(dirs.ConsumerRegistryDir, loadBalancerListener);
@@ -985,5 +982,11 @@
             loadBalancerListener.SyncedRebalance();
         }
         
+
+        internal class WildcardStreamsHandler<TKey, TValue>
+        {
+            // TODO: finish me
+        }
     }
+
 }

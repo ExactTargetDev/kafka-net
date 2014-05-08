@@ -1,6 +1,7 @@
 ﻿namespace Kafka.Client.Consumers
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
 
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
@@ -9,15 +10,12 @@
 
     internal class FetchRequestAndResponseMetrics
     {
-        private ClientIdAndBroker metricId;
-
         public KafkaTimer RequestTimer { get; private set; }
 
         public IHistogram RequestSizeHist { get; private set; }
 
         public FetchRequestAndResponseMetrics(ClientIdAndBroker metricId)
         {
-            this.metricId = metricId;
             this.RequestTimer = new KafkaTimer(MetersFactory.NewTimer(metricId + "FetchRequestRateAndTimeMs", TimeSpan.FromMilliseconds(1), TimeSpan.FromSeconds(1)));
             this.RequestSizeHist = MetersFactory.NewHistogram(metricId + "FetchResponseSize");
         }
@@ -40,26 +38,31 @@
         {
             this.clientId = clientId;
             this.valueFactory = k => new FetchRequestAndResponseMetrics(k);
-            this.stats = new Pool<ClientIdAndBroker, FetchRequestAndResponseMetrics>(valueFactory);
+            this.stats = new Pool<ClientIdAndBroker, FetchRequestAndResponseMetrics>(this.valueFactory);
             this.allBrokerStats = new FetchRequestAndResponseMetrics(new ClientIdAndBroker(clientId, "AllBrokers"));
         }
 
         public FetchRequestAndResponseMetrics GetFetchRequestAndResponseAllBrokersStats()
         {
-            return allBrokerStats;
+            return this.allBrokerStats;
         }
 
         public FetchRequestAndResponseMetrics GetFetchRequestAndResponseStats(string brokerInfo)
         {
-            return stats.GetAndMaybePut(new ClientIdAndBroker(clientId, brokerInfo + "-"));
+            return this.stats.GetAndMaybePut(new ClientIdAndBroker(this.clientId, brokerInfo + "-"));
         }
     }
 
+    /// <summary>
+    /// Stores the fetch request and response stats information of each consumer client in a (clientId -> FetchRequestAndResponseStats) map.
+    /// </summary>
     internal static class FetchRequestAndResponseStatsRegistry
     {
-        private static Func<string, FetchRequestAndResponseStats> valueFactory;
+        [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1311:StaticReadonlyFieldsMustBeginWithUpperCaseLetter", Justification = "Reviewed. Suppression is OK here.")]
+        private static readonly Func<string, FetchRequestAndResponseStats> valueFactory;
 
-        private static Pool<string, FetchRequestAndResponseStats> globalStas;
+        [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1311:StaticReadonlyFieldsMustBeginWithUpperCaseLetter", Justification = "Reviewed. Suppression is OK here.")]
+        private static readonly Pool<string, FetchRequestAndResponseStats> globalStas;
 
         static FetchRequestAndResponseStatsRegistry()
         {

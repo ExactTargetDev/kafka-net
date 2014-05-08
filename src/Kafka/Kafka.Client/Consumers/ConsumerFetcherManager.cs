@@ -2,23 +2,25 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
 
-    using Kafka.Client.Cfg;
     using Kafka.Client.Client;
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
+    using Kafka.Client.Extensions;
     using Kafka.Client.Server;
     using Kafka.Client.Utils;
     using Kafka.Client.ZKClient;
 
-    using System.Linq;
-
-    using Kafka.Client.Extensions;
-
     using Spring.Threading.Locks;
 
+    /// <summary>
+    /// Usage:
+    /// Once ConsumerFetcherManager is created, StartConnections() and StopAllConnections() can be called repeatedly
+    /// until Shutdown() is called.
+    /// </summary>
     internal class ConsumerFetcherManager : AbstractFetcherManager
     {
         private readonly string consumerIdString;
@@ -29,17 +31,15 @@
 
         public ConsumerFetcherManager(string consumerIdString, ConsumerConfig config, ZkClient zkClient)
             : base(
-                string.Format("ConsumerFetcherManager-{0}", DateTime.Now), config.ClientId, config.NumConsumerFetchers)
+                string.Format("ConsumerFetcherManager-{0}", DateTimeHelper.CurrentTimeMilis()), config.ClientId, config.NumConsumerFetchers)
         {
-
             this.NoLeaderPartitionSet = new HashSet<TopicAndPartition>();
             this.consumerIdString = consumerIdString;
             this.config = config;
             this.zkClient = zkClient;
 
-            this.Lock = new ReentrantLock();
-            this.cond = this.Lock.NewCondition();
-
+            this.@lock = new ReentrantLock();
+            this.cond = this.@lock.NewCondition();
         }
 
         private IDictionary<TopicAndPartition, PartitionTopicInfo> partitionMap;
@@ -48,7 +48,7 @@
 
         private HashSet<TopicAndPartition> NoLeaderPartitionSet { get; set; }
 
-        internal ReentrantLock Lock { get; private set; }
+        private ReentrantLock @lock;
 
         private ICondition cond;
 
@@ -60,34 +60,34 @@
         {
             return
                 new ConsumerFetcherThread(
-                    string.Format("ConsumerFetcherThread-{0}-{1}-{2}", consumerIdString, fetcherId, sourceBroker.Id),
-                    config,
+                    string.Format("ConsumerFetcherThread-{0}-{1}-{2}", this.consumerIdString, fetcherId, sourceBroker.Id),
+                    this.config,
                     sourceBroker,
-                    partitionMap,
+                    this.partitionMap,
                     this);
         }
 
-        public void StartConnections(IEnumerable<PartitionTopicInfo> topicInfos, Cluster cluster)
+        public void StartConnections(List<PartitionTopicInfo> topicInfos, Cluster cluster)
         {
-            leaderFinderThread = new LeaderFinderThread(this, consumerIdString + "-leader-finder-thread");
-            leaderFinderThread.Start();
+            this.leaderFinderThread = new LeaderFinderThread(this, this.consumerIdString + "-leader-finder-thread");
+            this.leaderFinderThread.Start();
 
-            Lock.Lock();
+            this.@lock.Lock();
             try
             {
-
-                partitionMap = topicInfos.ToDictionary(x => new TopicAndPartition(x.Topic, x.PartitionId), x => x);
+                this.partitionMap = topicInfos.ToDictionary(x => new TopicAndPartition(x.Topic, x.PartitionId), x => x);
                 this.cluster = cluster;
                 var noLeaders = topicInfos.Select(x => new TopicAndPartition(x.Topic, x.PartitionId)).ToList();
                 foreach (var noLeader in noLeaders)
                 {
                     this.NoLeaderPartitionSet.Add(noLeader);
                 }
-                cond.SignalAll();
+
+                this.cond.SignalAll();
             }
             finally
             {
-                Lock.Unlock();
+                this.@lock.Unlock();
             }
         }
 
@@ -99,17 +99,17 @@
             * these partitions.
             */
             Logger.InfoFormat("Stopping leader finder thread");
-            if (leaderFinderThread != null)
+            if (this.leaderFinderThread != null)
             {
-                leaderFinderThread.Shutdown();
-                leaderFinderThread = null;
+                this.leaderFinderThread.Shutdown();
+                this.leaderFinderThread = null;
             }
 
             Logger.InfoFormat("Stopping all fetchers");
             this.CloseAllFetchers();
 
             // no need to hold the lock for the following since leaderFindThread and all fetchers have been stopped
-            partitionMap = null;
+            this.partitionMap = null;
             this.NoLeaderPartitionSet.Clear();
 
             Logger.InfoFormat("All connections stopped");
@@ -118,7 +118,7 @@
         public void AddPartitionsWithError(IEnumerable<TopicAndPartition> partitionList)
         {
             Logger.DebugFormat("Adding partitions with error {0}", string.Join(",", partitionList));
-            this.Lock.Lock();
+            this.@lock.Lock();
             try
             {
                 if (this.partitionMap != null)
@@ -127,12 +127,13 @@
                     {
                         this.NoLeaderPartitionSet.Add(partiton);
                     }
+
                     this.cond.SignalAll();
                 }
             }
             finally
             {
-                this.Lock.Unlock();
+                this.@lock.Unlock();
             }
         }
 
@@ -149,24 +150,24 @@
             public override void DoWork()
             {
                 var leaderForPartitionsMap = new Dictionary<TopicAndPartition, Broker>();
-                this.parent.Lock.Lock();
+                this.parent.@lock.Lock();
                 try
                 {
                     while (this.parent.NoLeaderPartitionSet.Count == 0)
                     {
                         Logger.Debug("No partition for leader election.");
-                        parent.cond.Await();
+                        this.parent.cond.Await();
                     }
 
-                    Logger.DebugFormat("Partitions without leader {0}", string.Join(",", parent.NoLeaderPartitionSet));
-                    var brokers = ZkUtils.GetAllBrokersInCluster(parent.zkClient);
+                    Logger.DebugFormat("Partitions without leader {0}", string.Join(",", this.parent.NoLeaderPartitionSet));
+                    var brokers = ZkUtils.GetAllBrokersInCluster(this.parent.zkClient);
                     var topicsMetadata =
                         ClientUtils.FetchTopicMetadata(
-                            new HashSet<string>(parent.NoLeaderPartitionSet.Select(m => m.Topic)),
+                            new HashSet<string>(this.parent.NoLeaderPartitionSet.Select(m => m.Topic)),
                             brokers,
-                            parent.config.ClientId,
-                            parent.config.SocketTimeoutMs,
-                            parent.correlationId.GetAndIncrement()).TopicsMetadata;
+                            this.parent.config.ClientId,
+                            this.parent.config.SocketTimeoutMs,
+                            this.parent.correlationId.GetAndIncrement()).TopicsMetadata;
 
                     if (Logger.IsDebugEnabled)
                     {
@@ -176,7 +177,7 @@
                         }
                     }
 
-                    foreach (var tmd in  topicsMetadata)
+                    foreach (var tmd in topicsMetadata)
                     {
                         var topic = tmd.Topic;
                         foreach (var pmd in tmd.PartitionsMetadata)
@@ -186,7 +187,7 @@
                             {
                                 var leaderBroker = pmd.Leader;
                                 leaderForPartitionsMap[topicAndPartition] = leaderBroker;
-                                parent.NoLeaderPartitionSet.Remove(topicAndPartition);
+                                this.parent.NoLeaderPartitionSet.Remove(topicAndPartition);
                             }
                         }
                     }
@@ -195,49 +196,49 @@
                 {
                     if (!isRunning.Get())
                     {
-                        throw e; /* If this thread is stopped, propagate this exception to kill the thread. */
+                        throw; /* If this thread is stopped, propagate this exception to kill the thread. */
                     }
                     else
                     {
-                        Logger.Warn("Failed to find leader for " + string.Join(",", parent.NoLeaderPartitionSet), e);
+                        Logger.Warn("Failed to find leader for " + string.Join(",", this.parent.NoLeaderPartitionSet), e);
                     }
                 }
                 finally
                 {
-                    this.parent.Lock.Unlock();
+                    this.parent.@lock.Unlock();
                 }
 
                 try
                 {
-                    parent.AddFetcherForPartitions(
+                    this.parent.AddFetcherForPartitions(
                         leaderForPartitionsMap.ToDictionary(
                             kvp => kvp.Key,
                             kvp =>
-                            new BrokerAndInitialOffset(kvp.Value, parent.partitionMap.Get(kvp.Key).GetFetchOffset())));
+                            new BrokerAndInitialOffset(kvp.Value, this.parent.partitionMap.Get(kvp.Key).GetFetchOffset())));
                 }
                 catch (Exception e)
                 {
                     if (!isRunning.Get())
                     {
-                        throw e; /* If this thread is stopped, propagate this exception to kill the thread. */
+                        throw; /* If this thread is stopped, propagate this exception to kill the thread. */
                     }
                     else
                     {
                         Logger.Warn(string.Format("Failed to add leader for partitions {0}; will retry", string.Join(",", leaderForPartitionsMap.Keys)), e);
-                        parent.Lock.Lock();
+                        this.parent.@lock.Lock();
 
                         foreach (var leader in leaderForPartitionsMap.Keys)
                         {
-                            parent.NoLeaderPartitionSet.Add(leader);
+                            this.parent.NoLeaderPartitionSet.Add(leader);
                         }
-                        parent.Lock.Unlock();
+
+                        this.parent.@lock.Unlock();
                     }
                 }
-               
-                parent.ShutdownIdleFetcherThreads();
-                Thread.Sleep(parent.config.RefreshLeaderBackoffMs);
+
+                this.parent.ShutdownIdleFetcherThreads();
+                Thread.Sleep(this.parent.config.RefreshLeaderBackoffMs);
             }
         }
-
     }
 }

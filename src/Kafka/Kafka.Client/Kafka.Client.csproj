@@ -181,7 +181,7 @@
     <Compile Include="Common\NotLeaderForPartitionException.cs" />
     <Compile Include="Common\OffsetMetadataTooLargeException.cs" />
     <Compile Include="Common\OffsetOutOfRangeException.cs" />
-    <Compile Include="Common\ProducerClosedException.cs" />
+    <Compile Include="Producers\ProducerClosedException.cs" />
     <Compile Include="Common\QueueFullException.cs" />
     <Compile Include="Common\ReplicaNotAvailableException.cs" />
     <Compile Include="Common\RequestTimedOutException.cs" />
@@ -190,13 +190,10 @@
     <Compile Include="Common\UnknownCodecException.cs" />
     <Compile Include="Common\UnknownException.cs" />
     <Compile Include="Common\UnknownTopicOrPartitionException.cs" />
-    <Compile Include="Consumers\Consumer.cs" />
     <Compile Include="Consumers\ConsumerFetcherManager.cs" />
     <Compile Include="Consumers\ConsumerFetcherThread.cs" />
     <Compile Include="Consumers\ConsumerIterator.cs" />
-    <Compile Include="Consumers\ConsumerTimeoutException.cs" />
     <Compile Include="Consumers\ConsumerTopicStats.cs" />
-    <Compile Include="Consumers\Blacklist.cs" />
     <Compile Include="Consumers\FetchedDataChunk.cs" />
     <Compile Include="Consumers\FetchRequestAndResponseStats.cs" />
     <Compile Include="Consumers\IConsumerConnector.cs" />
@@ -205,7 +202,6 @@
     <Compile Include="Consumers\SimpleConsumer.cs" />
     <Compile Include="Consumers\TopicCount.cs" />
     <Compile Include="Consumers\TopicFilter.cs" />
-    <Compile Include="Consumers\Whitelist.cs" />
     <Compile Include="Consumers\ZookeeperConsumerConnector.cs" />
     <Compile Include="Consumers\ZookeeperTopicEventWatcher.cs" />
     <Compile Include="Extensions\DateTimeHelper.cs" />
@@ -292,7 +288,9 @@
     <None Include="KafkaClient.snk" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="TODO.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

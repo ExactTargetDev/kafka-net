@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace Kafka.Client.Cfg
+namespace Kafka.Client.Consumers
 {
     using System.Configuration;
     using System.Globalization;
@@ -88,14 +88,17 @@ namespace Kafka.Client.Cfg
             this.RefreshLeaderBackoffMs = RefreshMetadataBackoffMs;
             this.AutoOffsetReset = DefaultAutoOffsetReset;
             this.ConsumerTimeoutMs = DefaultConsumerTimeoutMs;
-            this.ClientId = GroupId;
+            this.ClientId = this.GroupId;
         }
 
         public ConsumerConfig(string host, int port, string groupId)
             : this()
         {
-            this.ZooKeeper = new ZkConfig(host + ":" + port, ZkConfig.DefaultSessionTimeout, 
-                ZkConfig.DefaultConnectionTimeout, ZkConfig.DefaultSyncTime);
+            this.ZooKeeper = new ZkConfig(
+                host + ":" + port,
+                ZkConfig.DefaultSessionTimeout,
+                ZkConfig.DefaultConnectionTimeout,
+                ZkConfig.DefaultSyncTime);
             this.GroupId = groupId;
         }
 
@@ -128,48 +131,100 @@ namespace Kafka.Client.Cfg
         {
         }
 
+        /// <summary>
+        /// a string that uniquely identifies a set of consumers within the same consumer group
+        /// </summary>
         public string GroupId { get; set; }
 
+        /// <summary>
+        /// consumer id: generated automatically if not set.
+        /// Set this explicitly for only testing purpose.
+        /// </summary>
         public string ConsumerId { get; set; }
 
+        /// <summary>
+        /// the socket timeout for network requests. The actual timeout set will be max.fetch.wait + socket.timeout.ms.
+        /// </summary>
         public int SocketTimeoutMs { get; set; }
 
-        public int SocketReceiveBufferBytes  { get; set; }
+        /// <summary>
+        /// the socket receive buffer for network requests 
+        /// </summary>
+        public int SocketReceiveBufferBytes { get; set; }
 
+        /// <summary>
+        /// the number of byes of messages to attempt to fetch
+        /// </summary>
         public int FetchMessageMaxBytes { get; set; } 
 
+        /// <summary>
+        /// the number threads used to fetch data
+        /// </summary>
         public int NumConsumerFetchers { get; set; }
 
+        /// <summary>
+        /// if true, periodically commit to zookeeper the offset of messages already fetched by the consumer
+        /// </summary>
         public bool AutoCommitEnable { get; set; }
 
+        /// <summary>
+        /// the frequency in ms that the consumer offsets are committed to zookeeper
+        /// </summary>
         public int AutoCommitIntervalMs { get; set; }
 
+        /// <summary>
+        /// max number of message chunks buffered for consumption, each chunk can be up to fetch.message.max.bytes
+        /// </summary>
         public int QueuedMaxMessages { get; set; }
 
+        /// <summary>
+        /// max number of retries during rebalance
+        /// </summary>
         public int RebalanceMaxRetries { get; set; }
 
+        /// <summary>
+        /// the minimum amount of data the server should return for a fetch request. If insufficient data is available the request will block 
+        /// </summary>
         public int FetchMinBytes { get;  set; }
 
+        /// <summary>
+        /// the maximum amount of time the server will block before answering the fetch request if there isn't sufficient data to immediately satisfy fetch.min.bytes
+        /// </summary>
         public int FetchWaitMaxMs { get; set; }
 
+        /// <summary>
+        /// backoff time between retries during rebalance
+        /// </summary>
         public int RebalanceBackoffMs { get; set; }
 
+        /// <summary>
+        /// backoff time to refresh the leader of a partition after it loses the current leader
+        /// </summary>
         public int RefreshLeaderBackoffMs { get; set; }
 
+        /// <summary>
+        /// what to do if an offset is out of range.
+        /// smallest : automatically reset the offset to the smallest offset
+        /// largest : automatically reset the offset to the largest offset
+        /// anything else: throw exception to the consumer
+        /// </summary>
         public string AutoOffsetReset { get; set; }
 
+        /// <summary>
+        /// throw a timeout exception to the consumer if no message is available for consumption after the specified interval
+        /// </summary>
         public int ConsumerTimeoutMs { get; set; }
 
+        /// <summary>
+        /// Client id is specified by the kafka consumer client, used to distinguish different clients
+        /// </summary>
         public string ClientId { get; set; }
-
 
         public static ConsumerConfig Configure(string section)
         {
             var config = ConfigurationManager.GetSection(section) as ConsumerConfigurationSection;
             return new ConsumerConfig(config);
         }
-
-       
 
         public ZkConfig ZooKeeper { get; set; }
 
@@ -195,14 +250,14 @@ namespace Kafka.Client.Cfg
             if (OffsetRequest.SmallestTimeString != autoOffsetReset
                 && OffsetRequest.LargestTimeString != autoOffsetReset)
             {
-                throw new ConfigurationException("Wrong value " + autoOffsetReset + "of auto.reset.offset in ConsumerConfig. "
+                throw new ConfigurationErrorsException("Wrong value " + autoOffsetReset + "of auto.reset.offset in ConsumerConfig. "
                                                  + "Valid values are: " + OffsetRequest.SmallestTimeString + " and " + OffsetRequest.LargestTimeString);
             }
         }
 
         public static void ValidateChars(string prop, string value)
         {
-            //TODO:
+            // TODO: extract to Config trait
         }
 
         private static string GetIpAddress(string host)

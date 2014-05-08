@@ -307,7 +307,7 @@
             var consumerPerTopicMap = new Dictionary<string, List<string>>();
             foreach (var consumer in consumers)
             {
-                var topicCount = TopicCounts.ConstructTopicCount(group, consumer, zkClient);
+                var topicCount = TopicCount.ConstructTopicCount(group, consumer, zkClient);
                 foreach (var topicAndConsumer in topicCount.GetConsumerThreadIdsPerTopic())
                 {
                     var topic = topicAndConsumer.Key;

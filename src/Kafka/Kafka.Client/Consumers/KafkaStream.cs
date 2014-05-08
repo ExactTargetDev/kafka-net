@@ -4,50 +4,44 @@
     using System.Collections.Concurrent;
     using System.Collections.Generic;
 
-    using Kafka.Client.Common.Imported;
     using Kafka.Client.Messages;
     using Kafka.Client.Serializers;
 
-    public abstract class KafkaStream
-    {
-        public abstract void Clear();
-    }
-
-    public class KafkaStream<K, V> : KafkaStream , IEnumerable<MessageAndMetadata<K, V>>
+    public class KafkaStream<TKey, TValue> : IEnumerable<MessageAndMetadata<TKey, TValue>>
     {
         private readonly BlockingCollection<FetchedDataChunk> queue;
 
-        private readonly IDecoder<K> keyDecoder;
+        private readonly IDecoder<TKey> keyDecoder;
 
-        private readonly IDecoder<V> valueDecoder;
+        private readonly IDecoder<TValue> valueDecoder;
 
         public string ClientId { get; set; }
 
-        public KafkaStream(BlockingCollection<FetchedDataChunk> queue, int consumerTimeoutMs, IDecoder<K> keyDecoder, IDecoder<V> valueDecoder, string clientId)
+        public KafkaStream(BlockingCollection<FetchedDataChunk> queue, int consumerTimeoutMs, IDecoder<TKey> keyDecoder, IDecoder<TValue> valueDecoder, string clientId)
         {
             this.queue = queue;
             this.keyDecoder = keyDecoder;
             this.valueDecoder = valueDecoder;
             this.ClientId = clientId;
-            this.iter = new ConsumerIterator<K, V>(queue, consumerTimeoutMs, keyDecoder, valueDecoder, clientId);
+            this.iter = new ConsumerIterator<TKey, TValue>(queue, consumerTimeoutMs, keyDecoder, valueDecoder, clientId);
         }
 
-        private ConsumerIterator<K, V> iter;
+        private readonly ConsumerIterator<TKey, TValue> iter;
 
         /// <summary>
         /// This method clears the queue being iterated during the consumer rebalancing. This is mainly
         ///  to reduce the number of duplicates received by the consumer
         /// </summary>
-        public override void Clear()
+        public void Clear()
         {
-            iter.ClearCurrentChunk();
+            this.iter.ClearCurrentChunk();
         }
 
-        public IEnumerator<MessageAndMetadata<K, V>> GetEnumerator()
+        public IEnumerator<MessageAndMetadata<TKey, TValue>> GetEnumerator()
         {
-            if (iter.HasNext())
+            if (this.iter.HasNext())
             {
-                yield return iter.Next();
+                yield return this.iter.Next();
             }
         }
 

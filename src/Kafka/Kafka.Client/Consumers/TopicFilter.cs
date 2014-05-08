@@ -2,6 +2,7 @@
 {
     using System;
     using System.Reflection;
+    using System.Text.RegularExpressions;
 
     using log4net;
 
@@ -31,5 +32,39 @@
         protected static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public abstract bool IsTopicAllowed(string topic);
+    }
+
+    public class Whitelist : TopicFilter
+    {
+        public Whitelist(string rawRegexp)
+            : base(rawRegexp)
+        {
+        }
+
+        public override bool IsTopicAllowed(string topic)
+        {
+            var allowed = new Regex(RawRegexp).IsMatch(topic);
+
+            Logger.DebugFormat("{0} {1}", topic, allowed ? "allowed" : "filtered");
+
+            return allowed;
+        }
+    }
+
+    public class Blacklist : TopicFilter
+    {
+        public Blacklist(string rawRegexp)
+            : base(rawRegexp)
+        {
+        }
+
+        public override bool IsTopicAllowed(string topic)
+        {
+            var allowed = !new Regex(RawRegexp).IsMatch(topic);
+
+            Logger.DebugFormat("{0} {1}", topic, allowed ? "allowed" : "filtered");
+
+            return allowed;
+        }
     }
 }

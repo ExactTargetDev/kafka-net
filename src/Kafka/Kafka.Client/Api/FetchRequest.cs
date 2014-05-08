@@ -9,6 +9,7 @@
     using Kafka.Client.Cfg;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
+    using Kafka.Client.Consumers;
     using Kafka.Client.Extensions;
 
     internal class PartitionFetchInfo

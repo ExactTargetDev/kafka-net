@@ -4,14 +4,12 @@
     using System.Globalization;
     using System.Linq;
     using System.Reflection;
-    using System.Threading;
 
     using Kafka.Client.Common.Imported;
+    using Kafka.Client.Extensions;
     using Kafka.Client.Messages;
 
     using log4net;
-
-    using Kafka.Client.Extensions;
 
     public class PartitionTopicInfo
     {
@@ -19,11 +17,11 @@
 
         private readonly BlockingCollection<FetchedDataChunk> chunkQueue;
 
-        private AtomicLong consumedOffset;
+        private readonly AtomicLong consumedOffset;
 
-        private AtomicLong fetchedOffset;
+        private readonly AtomicLong fetchedOffset;
 
-        private AtomicInteger fetchSize;
+        private readonly AtomicInteger fetchSize;
 
         private readonly string clientId;
 
@@ -73,7 +71,7 @@
             this.fetchedOffset = fetchedOffset;
             this.fetchSize = fetchSize;
             this.clientId = clientId;
-            consumerTopicStats = ConsumerTopicStatsRegistry.GetConsumerTopicStat(clientId);
+            this.consumerTopicStats = ConsumerTopicStatsRegistry.GetConsumerTopicStat(clientId);
             if (Logger.IsDebugEnabled)
             {
                 Logger.DebugFormat(
@@ -127,18 +125,21 @@
             }
         }
 
+        /// <summary>
+        /// Enqueue a message set for processing.
+        /// </summary>
+        /// <param name="messages"></param>
         public void Enqueue(ByteBufferMessageSet messages)
         {
             var size = messages.ValidBytes;
             if (size > 0)
             {
-
                 var next = messages.ShallowIterator().ToEnumerable().Last().NextOffset;
                 Logger.DebugFormat("Updating fetch offset = {0} to {1}", this.fetchedOffset.Get(), next);
-                chunkQueue.Add(new FetchedDataChunk(messages, this, this.fetchedOffset.Get()));
-                fetchedOffset.Set(next);
+                this.chunkQueue.Add(new FetchedDataChunk(messages, this, this.fetchedOffset.Get()));
+                this.fetchedOffset.Set(next);
                 Logger.DebugFormat("Updated fetch offset of {0} to {1}", this, next);
-                this.consumerTopicStats.GetConsumerTopicStats(Topic).ByteRate.Mark(size);
+                this.consumerTopicStats.GetConsumerTopicStats(this.Topic).ByteRate.Mark(size);
                 this.consumerTopicStats.GetConsumerAllTopicStats().ByteRate.Mark(size);
             }
             else if (messages.SizeInBytes > 0)

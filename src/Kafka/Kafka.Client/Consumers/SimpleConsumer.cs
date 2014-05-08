@@ -5,12 +5,14 @@
     using System.Reflection;
 
     using Kafka.Client.Api;
-    using Kafka.Client.Cfg;
     using Kafka.Client.Common;
     using Kafka.Client.Network;
 
     using log4net;
 
+    /// <summary>
+    /// A consumer of kafka messages
+    /// </summary>
     public class SimpleConsumer
     {
         public string Host { get; private set; }
@@ -33,13 +35,13 @@
         {
             get
             {
-                return string.Format("host_{0}-port_{1}", Host, Port);
+                return string.Format("host_{0}-port_{1}", this.Host, this.Port);
             }
         }
 
-        private FetchRequestAndResponseStats fetchRequestAndResponseStats;
+        private readonly FetchRequestAndResponseStats fetchRequestAndResponseStats;
 
-        private bool isClosed = false;
+        private bool isClosed;
 
         public SimpleConsumer(string host, int port, int soTimeout, int bufferSize, string clientId)
         {
@@ -49,24 +51,26 @@
             this.BufferSize = bufferSize;
             this.ClientId = clientId;
             ConsumerConfig.ValidateClientId(clientId);
-            this.blockingChannel = new BlockingChannel(Host, Port, BufferSize, BlockingChannel.UseDefaultBufferSize, SoTimeout);
+            this.blockingChannel = new BlockingChannel(this.Host, this.Port, this.BufferSize, BlockingChannel.UseDefaultBufferSize, this.SoTimeout);
             this.fetchRequestAndResponseStats =
                 FetchRequestAndResponseStatsRegistry.GetFetchRequestAndResponseStats(clientId);
         }
 
+// ReSharper disable UnusedMethodReturnValue.Local
         private BlockingChannel Connect()
+// ReSharper restore UnusedMethodReturnValue.Local
         {
             this.Close();
             this.blockingChannel.Connect();
-            return blockingChannel;
+            return this.blockingChannel;
         }
 
         private void Disconnect()
         {
-            if (blockingChannel.IsConnected)
+            if (this.blockingChannel.IsConnected)
             {
-                Logger.DebugFormat("Disconnecting from {0}:{1}", Host, Port);
-                blockingChannel.Disconnect();
+                Logger.DebugFormat("Disconnecting from {0}:{1}", this.Host, this.Port);
+                this.blockingChannel.Disconnect();
             }
         }
 
@@ -81,16 +85,16 @@
             lock (@lock)
             {
                 this.Disconnect();
-                isClosed = true;
+                this.isClosed = true;
             }
         }
 
         private Receive SendRequest(RequestOrResponse request)
         {
-            lock(@lock)
+            lock (@lock)
             {
                 this.GetOrMakeConnection();
-                Receive response = null;
+                Receive response;
                 try
                 {
                     this.blockingChannel.Send(request);
@@ -98,21 +102,22 @@
                 }
                 catch (Exception e)
                 {
-                    Logger.WarnFormat("Reconnect due to socket error {0}",e.Message);
+                    Logger.WarnFormat("Reconnect due to socket error {0}", e.Message);
 
                     // retry once
                     try
                     {
                         this.Reconnect();
-                        blockingChannel.Send(request);
-                        response = blockingChannel.Receive();
+                        this.blockingChannel.Send(request);
+                        response = this.blockingChannel.Receive();
                     }
-                    catch (Exception ee)
+                    catch (Exception)
                     {
                         this.Disconnect();
-                        throw ee;
+                        throw;
                     }
                 }
+
                 return response;
             }
         }
@@ -131,20 +136,24 @@
         internal FetchResponse Fetch(FetchRequest request)
         {
             Receive response = null;
-            var specificTimer = fetchRequestAndResponseStats.GetFetchRequestAndResponseStats(BrokerInfo).RequestTimer;
-            var aggregateTimer = fetchRequestAndResponseStats.GetFetchRequestAndResponseAllBrokersStats().RequestTimer;
-            aggregateTimer.Time(() => specificTimer.Time(() =>
-                { response = this.SendRequest(request); }));
+            var specificTimer = this.fetchRequestAndResponseStats.GetFetchRequestAndResponseStats(this.BrokerInfo).RequestTimer;
+            var aggregateTimer = this.fetchRequestAndResponseStats.GetFetchRequestAndResponseAllBrokersStats().RequestTimer;
+            aggregateTimer.Time(() => specificTimer.Time(() => { response = this.SendRequest(request); }));
 
             var fetchResponse = FetchResponse.ReadFrom(response.Buffer);
             var fetchedSize = fetchResponse.SizeInBytes;
 
-            fetchRequestAndResponseStats.GetFetchRequestAndResponseStats(BrokerInfo).RequestSizeHist.Update(fetchedSize);
-            fetchRequestAndResponseStats.GetFetchRequestAndResponseAllBrokersStats().RequestSizeHist.Update(fetchedSize);
+            this.fetchRequestAndResponseStats.GetFetchRequestAndResponseStats(this.BrokerInfo).RequestSizeHist.Update(fetchedSize);
+            this.fetchRequestAndResponseStats.GetFetchRequestAndResponseAllBrokersStats().RequestSizeHist.Update(fetchedSize);
 
             return fetchResponse;
         }
 
+        /// <summary>
+        /// Get a list of valid offsets (up to maxSize) before the given time.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
         internal OffsetResponse GetOffsetsBefore(OffsetRequest request)
         {
             return OffsetResponse.ReadFrom(this.SendRequest(request).Buffer);
@@ -158,11 +167,17 @@
             }
         }
 
+        /// <summary>
+        /// Get the earliest or latest offset of a given topic, partition.
+        /// </summary>
+        /// <param name="topicAndPartition">Topic and partition of which the offset is needed.</param>
+        /// <param name="earliestOrLatest">A value to indicate earliest or latest offset.</param>
+        /// <param name="consumerId">Id of the consumer which could be a consumer client, SimpleConsumerShell or a follower broker.</param>
+        /// <returns>Requested offset.</returns>
         public long EarliestOrLatestOffset(TopicAndPartition topicAndPartition, long earliestOrLatest, int consumerId)
         {
             var request =
                 new OffsetRequest(
-                    requestInfo:
                         new Dictionary<TopicAndPartition, PartitionOffsetRequestInfo>
                             {
                                 {
@@ -172,7 +187,7 @@
                             },
                     clientId: this.ClientId,
                     replicaId: consumerId);
-            var partitionErrorAndOffset = GetOffsetsBefore(request).PartitionErrorAndOffsets[topicAndPartition];
+            var partitionErrorAndOffset = this.GetOffsetsBefore(request).PartitionErrorAndOffsets[topicAndPartition];
             long offset;
             if (partitionErrorAndOffset.Error == ErrorMapping.NoError)
             {
@@ -182,8 +197,8 @@
             {
                 throw ErrorMapping.ExceptionFor(partitionErrorAndOffset.Error);
             }
+
             return offset;
         }
-
     }
 }

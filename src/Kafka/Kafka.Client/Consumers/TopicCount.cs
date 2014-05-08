@@ -3,22 +3,19 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.Contracts;
+    using System.Linq;
     using System.Reflection;
 
     using Kafka.Client.Common;
+    using Kafka.Client.Extensions;
     using Kafka.Client.Utils;
     using Kafka.Client.ZKClient;
 
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
-
     using log4net;
 
-    using Kafka.Client.Extensions;
+    using Newtonsoft.Json.Linq;
 
-    using System.Linq;
-
-    public static class TopicCounts
+    public abstract class TopicCount
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -32,8 +29,8 @@
         {
             var dirs = new ZKGroupDirs(group);
             var topicCountString = ZkUtils.ReadData(zkClient, dirs.ConsumerRegistryDir + "/" + consumerId).Item1;
-            string subscriptionPattern = null;
-            IDictionary<string, int> topMap = null;
+            string subscriptionPattern;
+            IDictionary<string, int> topMap;
             try
             {
                 var parsedJson = JObject.Parse(topicCountString);
@@ -103,11 +100,6 @@
             return new WildcardTopicCount(zkClient, consumerIdString, filter, numStream);
         }
 
-    }
-
-
-    public abstract class TopicCount
-    {
         public abstract IDictionary<string, ISet<string>> GetConsumerThreadIdsPerTopic();
 
         public virtual IDictionary<string, int> TopicCountMap { get; protected set; }
@@ -136,7 +128,6 @@
         } 
     }
 
-
     public class StaticTopicCount : TopicCount
     {
         public string ConsumerIdString { get; private set; }
@@ -163,14 +154,17 @@
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
+
             if (obj.GetType() != this.GetType())
             {
                 return false;
             }
+
             return Equals((StaticTopicCount)obj);
         }
 
@@ -186,7 +180,7 @@
         {
             get
             {
-                return TopicCounts.StaticPattern;
+                return StaticPattern;
             }
         }
     }
@@ -220,7 +214,7 @@
             {
                 return new Dictionary<string, int>
                            {
-                             { TopicFilter.Regex, NumStreams}
+                             { TopicFilter.Regex, this.NumStreams}
                            };
             }
 
@@ -236,11 +230,11 @@
             {
                 if (TopicFilter is Whitelist)
                 {
-                    return TopicCounts.WhiteListPattern;
+                    return WhiteListPattern;
                 } 
                 if (TopicFilter is Blacklist)
                 {
-                    return TopicCounts.BlackListPattern;
+                    return BlackListPattern;
                 }
                 throw new InvalidOperationException();
             }

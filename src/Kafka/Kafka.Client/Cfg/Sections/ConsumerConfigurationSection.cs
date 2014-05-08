@@ -21,6 +21,7 @@ namespace Kafka.Client.Cfg.Sections
 
     using Kafka.Client.Api;
     using Kafka.Client.Cfg.Elements;
+    using Kafka.Client.Consumers;
     using Kafka.Client.Utils;
 
     public class ConsumerConfigurationSection : ConfigurationSection

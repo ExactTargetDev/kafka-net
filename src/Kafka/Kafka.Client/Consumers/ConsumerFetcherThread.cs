@@ -4,19 +4,17 @@
     using System.Collections.Generic;
 
     using Kafka.Client.Api;
-    using Kafka.Client.Cfg;
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
+    using Kafka.Client.Extensions;
     using Kafka.Client.Messages;
     using Kafka.Client.Server;
 
-    using Kafka.Client.Extensions;
-
     internal class ConsumerFetcherThread : AbstractFetcherThread
     {
-        private ConsumerConfig config;
+        private readonly ConsumerConfig config;
 
-        private ConsumerFetcherManager consumerFetcherManager;
+        private readonly ConsumerFetcherManager consumerFetcherManager;
 
         private IDictionary<TopicAndPartition, PartitionTopicInfo> partitionMap;
 
@@ -46,18 +44,19 @@
         public override void ProcessPartitionData(
             TopicAndPartition topicAndPartition, long fetchOffset, FetchResponsePartitionData partitionData)
         {
-            var pti = partitionMap.Get(topicAndPartition);
+            var pti = this.partitionMap.Get(topicAndPartition);
             if (pti.GetFetchOffset() != fetchOffset)
             {
                 throw new Exception(string.Format("Offset doesn't match for partition [{0},{1}] pti offset: {2} fetch offset: {3}", topicAndPartition.Topic, topicAndPartition.Partiton, pti.GetFetchOffset(), fetchOffset));
             }
+
             pti.Enqueue((ByteBufferMessageSet)partitionData.Messages);
         }
 
         public override long HandleOffsetOutOfRange(TopicAndPartition topicAndPartition)
         {
-            long startTimestamp = 0;
-            switch (config.AutoOffsetReset)
+            long startTimestamp;
+            switch (this.config.AutoOffsetReset)
             {
                 case OffsetRequest.SmallestTimeString:
                     startTimestamp = OffsetRequest.EarliestTime;
@@ -69,9 +68,10 @@
                     startTimestamp = OffsetRequest.LatestTime;
                     break;
             }
+
             var newOffset = simpleConsumer.EarliestOrLatestOffset(
                 topicAndPartition, startTimestamp, Request.OrdinaryConsumerId);
-            var pti = partitionMap.Get(topicAndPartition);
+            var pti = this.partitionMap.Get(topicAndPartition);
             pti.ResetFetchOffset(newOffset);
             pti.ResetConsumeOffset(newOffset);
             return newOffset;
