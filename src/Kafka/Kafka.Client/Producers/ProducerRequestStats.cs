@@ -33,7 +33,7 @@
 
         private readonly string clientId;
 
-        public ProducerRequestStats(string clientId)
+        public ProducerRequestStats(string clientId) : this()
         {
             this.clientId = clientId;
         }

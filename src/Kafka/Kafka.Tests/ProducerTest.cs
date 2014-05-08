@@ -31,7 +31,7 @@
                 for (int i = 0; i < 50; i++)
                 {
                     var msg = new KeyedMessage<byte[], byte[]>(
-                        "t8", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("value" + i));
+                        "tx", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("value" + i));
 
                     producer.Send(msg);
                 }
@@ -47,7 +47,7 @@
                 for (int i = 0; i < 50; i++)
                 {
                     var msg = new KeyedMessage<byte[], byte[]>(
-                        "t8", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("async msg" + i));
+                        "tx", Encoding.UTF8.GetBytes("key1"), Encoding.UTF8.GetBytes("async msg" + i));
 
                     producer.Send(msg);
                 }
@@ -63,7 +63,7 @@
             var config = ProducerConfig.Configure("kafkaProducerSyncString");
             using (var producer = new Producer<string, string>(config))
             {
-                var stringIntMessage = new KeyedMessage<string, string>("topic7", "test", "testing");
+                var stringIntMessage = new KeyedMessage<string, string>("tx", "test", "testing");
                 producer.Send(stringIntMessage);
             }
         }

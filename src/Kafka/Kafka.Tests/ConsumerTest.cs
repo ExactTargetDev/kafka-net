@@ -62,14 +62,6 @@
 
         }
 
-        [Fact]
-        public void TestSimpleConsmer()
-        {
-            var consumer = new SimpleConsumer("192.168.1.14", 2181, 5000, 4096, "client-1");
-            var request = new TopicMetadataRequest(new List<string> {"topic5"}, 5);
-            var response = consumer.Send(request);
-
-            consumer.Close();
-        }
+       
     }
 }
