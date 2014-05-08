@@ -22,9 +22,13 @@
                 {
                     uint r = i;
                     for (int j = 0; j < 8; j++)
+                    {
                         r = (r >> 1) ^ (kCrcPoly & ~((r & 1) - 1));
+                    }
+                        
                     Table[i] = r;
                 }
+
                 for (; i < 256 * CRC_NUM_TABLES; i++)
                 {
                     uint r = Table[i - 256];
@@ -37,7 +41,7 @@
 
         public Crc32()
         {
-            Init();
+            this.Init();
         }
 
         /// <summary>
@@ -45,30 +49,37 @@
         /// </summary>
         public void Init()
         {
-            value = kInitial;
+            this.value = kInitial;
         }
 
         public int Value
         {
-            get { return (int)~value; }
+            get { return (int)~this.value; }
         }
 
         public void UpdateByte(byte b)
         {
-            value = (value >> 8) ^ Table[(byte)value ^ b];
+            this.value = (this.value >> 8) ^ Table[(byte)this.value ^ b];
         }
 
         public void Update(byte[] data, int offset, int count)
         {
+// ReSharper disable ObjectCreationAsStatement
             new ArraySegment<byte>(data, offset, count);     // check arguments
-            if (count == 0) return;
+// ReSharper restore ObjectCreationAsStatement
+            if (count == 0)
+            {
+                return;
+            }
 
-            var table = Crc32.Table;        // important for performance!
+            var table = Table;        // important for performance!
 
-            uint crc = value;
+            uint crc = this.value;
 
             for (; (offset & 7) != 0 && count != 0; count--)
+            {
                 crc = (crc >> 8) ^ table[(byte)crc ^ data[offset++]];
+            }
 
             if (count >= 8)
             {
@@ -89,8 +100,7 @@
                     crc = table[(byte)crc + 0x700]
                         ^ table[(byte)(crc >>= 8) + 0x600]
                         ^ table[(byte)(crc >>= 8) + 0x500]
-                        ^ table[/*(byte)*/(crc >> 8) + 0x400]
-                        ^ table[(byte)(high) + 0x300]
+                        ^ table[/*(byte)*/(crc >> 8) + 0x400] ^ table[(byte)(high) + 0x300]
                         ^ table[(byte)(high >>= 8) + 0x200]
                         ^ table[(byte)(high >>= 8) + 0x100]
                         ^ table[/*(byte)*/(high >> 8) + 0x000];
@@ -98,24 +108,26 @@
             }
 
             while (count-- != 0)
+            {
                 crc = (crc >> 8) ^ table[(byte)crc ^ data[offset++]];
+            }
 
-            value = crc;
+            this.value = crc;
         }
 
-        static public int Compute(byte[] data, int offset, int size)
+        public static int Compute(byte[] data, int offset, int size)
         {
             var crc = new Crc32();
             crc.Update(data, offset, size);
             return crc.Value;
         }
 
-        static public int Compute(byte[] data)
+        public static int Compute(byte[] data)
         {
             return Compute(data, 0, data.Length);
         }
 
-        static public int Compute(ArraySegment<byte> block)
+        public static int Compute(ArraySegment<byte> block)
         {
             return Compute(block.Array, block.Offset, block.Count);
         }

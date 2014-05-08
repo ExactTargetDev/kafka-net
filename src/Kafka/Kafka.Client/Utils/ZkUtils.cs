@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
+    using System.Text;
     using System.Threading;
 
     using Kafka.Client.Clusters;
@@ -11,6 +12,7 @@
     using Kafka.Client.Extensions;
     using Kafka.Client.ZKClient;
     using Kafka.Client.ZKClient.Exceptions;
+    using Kafka.Client.ZKClient.Serialize;
 
     using log4net;
 
@@ -21,7 +23,6 @@
 
     public static class ZkUtils
     {
-
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public const string ConsumersPath = "/consumers";
@@ -105,7 +106,7 @@
             {
                 client.CreateEphemeral(path, data);
             }
-            catch (ZkNoNodeException e)
+            catch (ZkNoNodeException)
             {
                 CreateParentPath(client, path);
                 client.CreateEphemeral(path, data);
@@ -118,7 +119,7 @@
             {
                 CreateEphemeralPath(client, path, data);
             }
-            catch (ZkNodeExistsException e)
+            catch (ZkNodeExistsException)
             {
                 // this can happen when there is connection loss; make sure the Data is what we intend to write
                 string storedData = null;
@@ -126,7 +127,7 @@
                 {
                     storedData = ReadData(client, path).Item1;
                 }
-                catch (ZkNoNodeException e2)
+                catch (ZkNoNodeException)
                 {
                     // the node disappeared; treat as if node existed and let caller handles this
                 }
@@ -141,7 +142,6 @@
                     // otherwise, the creation succeeded, return normally
                     Logger.InfoFormat("{0} exists with value {1} during connection loss", path, data);
                 }
-                    
             }
         }
 
@@ -160,26 +160,27 @@
                     CreateEphemeralPathExpectConflict(zkClient, path, data);
                     return;
                 }
-                catch (ZkNodeExistsException e)
+                catch (ZkNodeExistsException)
                 {
                     // An ephemeral node may still exist even after its corresponding session has expired
-                    // due to a Zookeeper bug, in this case we need to retry writing until the previous node is deleted
+                    // due to a Zookeeper ug, in this case we need to retry writing until the previous node is deleted
                     // and hence the write succeeds without ZkNodeExistsException
-
-                    var writtenData = ZkUtils.ReadDataMaybeNull(zkClient, path).Item1;
+                    var writtenData = ReadDataMaybeNull(zkClient, path).Item1;
                     if (writtenData != null)
                     {
                         if (checker(writtenData, expectedCallerData))
                         {
-                            Logger.InfoFormat("I wrote this conflicted ephemeral node [{0}] at {1} a while back in a different session, "
-                                              + "hence I will backoff for this node to be deleted by Zookeeper and retry", 
-                                              data, path);
+                            Logger.InfoFormat(
+                                "I wrote this conflicted ephemeral node [{0}] at {1} a while back in a different session, "
+                                + "hence I will backoff for this node to be deleted by Zookeeper and retry",
+                                data,
+                                path);
 
                             Thread.Sleep(backoffTime);
                         }
                         else
                         {
-                            throw e;
+                            throw;
                         }
                     }
                     else
@@ -196,14 +197,14 @@
             {
                 client.WriteData(path, data);
             }
-            catch (ZkNoNodeException e)
+            catch (ZkNoNodeException)
             {
                 CreateParentPath(client, path);
                 try
                 {
                     client.CreatePersistent(path, data);
                 }
-                catch (ZkNodeExistsException e2)
+                catch (ZkNodeExistsException)
                 {
                     client.WriteData(path, data);
                 }
@@ -216,15 +217,11 @@
             {
                 return client.Delete(path);
             }
-            catch (ZkNoNodeException e)
+            catch (ZkNoNodeException)
             {
                 // this can happen during a connection loss event, return normally
                 Logger.InfoFormat("{0} deleted during connection loss; This is ok. ", path);
                 return false;
-            }
-            catch (Exception e)
-            {
-                throw e;
             }
         }
 
@@ -255,7 +252,7 @@
             {
                 return client.GetChildren(path);
             }
-            catch (ZkNoNodeException e)
+            catch (ZkNoNodeException)
             {
                 return null;
             }
@@ -270,6 +267,7 @@
                 var brokerZkString = ReadData(zkClient, BrokerIdsPath + "/" + node).Item1;
                 cluster.Add(Broker.CreateBroker(int.Parse(node), brokerZkString));
             }
+
             return cluster;
         }
 
@@ -284,7 +282,7 @@
                 if (jsonPartitionMap != null)
                 {
                     var m = JObject.Parse(jsonPartitionMap);
-                    var replicaMap = (IDictionary<string, JToken>) m.Get("partitions");
+                    var replicaMap = (IDictionary<string, JToken>)m.Get("partitions");
                     if (replicaMap != null)
                     {
                         partitionMap = replicaMap.ToDictionary(
@@ -343,8 +341,87 @@
                 return null;
             }
         }
-       
     }
+
+    public class ZkStringSerializer : IZkSerializer
+    {
+        public byte[] Serialize(object data)
+        {
+            return Encoding.UTF8.GetBytes(data.ToString());
+        }
+
+        public object Deserialize(byte[] bytes)
+        {
+            if (bytes == null)
+            {
+                return null;
+            }
+
+            return Encoding.UTF8.GetString(bytes);
+        }
+    }
+
+    public class ZKGroupDirs
+    {
+        public string Group { get; set; }
+
+        public ZKGroupDirs(string @group)
+        {
+            this.Group = @group;
+        }
+
+        public string ConsumerDir
+        {
+            get
+            {
+                return ZkUtils.ConsumersPath;
+            }
+        }
+
+        public string ConsumerGroupDir
+        {
+            get
+            {
+                return this.ConsumerDir + "/" + this.Group;
+            }
+        }
+
+        public string ConsumerRegistryDir
+        {
+            get
+            {
+                return this.ConsumerDir + "/ids";
+            }
+        }
+    }
+
+    public class ZKGroupTopicDirs : ZKGroupDirs
+    {
+        public string Topic { get; private set; }
+
+        public ZKGroupTopicDirs(string @group, string topic)
+            : base(@group)
+        {
+            this.Topic = topic;
+        }
+
+        public string ConsumerOffsetDir
+        {
+            get
+            {
+                return this.ConsumerGroupDir + "/offsets/" + this.Topic;
+            }
+        }
+
+        public string ConsumerOwnerDir
+        {
+            get
+            {
+                return this.ConsumerGroupDir + "/owners/" + this.Topic;
+            }
+        }
+    }
+
     public class ZkConfig
     {
         public const int DefaultSessionTimeout = 6000;
@@ -374,5 +451,4 @@
 
         public int ZkSyncTimeMs { get; set; }
     }
-
 }

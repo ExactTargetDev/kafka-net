@@ -1,15 +1,11 @@
-﻿using System.Collections.Generic;
-
-namespace Kafka.Client.Utils
+﻿namespace Kafka.Client.Utils
 {
     using System;
-    using System.Collections;
 
     using Kafka.Client.Common.Imported;
 
-    public abstract class IteratorTemplate<T> : IIterator<T>
+    public abstract class IteratorTemplate<T> : IIterator<T> where T : class
     {
-
         private State state = State.NotReady;
 
         private T nextItem;
@@ -20,30 +16,34 @@ namespace Kafka.Client.Utils
             {
                 throw new InvalidOperationException();
             }
+
             this.state = State.NotReady;
-            if (nextItem == null)
+            if (this.nextItem == null)
             {
                 throw new InvalidOperationException("Expected item but none found.");
             }
-            return nextItem;
+
+            return this.nextItem;
         }
 
         public T Peek()
         {
-            if (!HasNext())
+            if (!this.HasNext())
             {
                 throw new InvalidOperationException();
             }
+
             return this.nextItem;
         }
 
         public bool HasNext()
         {
-            if (state == State.Failed)
+            if (this.state == State.Failed)
             {
                 throw new InvalidOperationException("Iterator is in failed state");
             }
-            switch (state)
+
+            switch (this.state)
             {
                 case State.Done:
                     return false;
@@ -58,30 +58,29 @@ namespace Kafka.Client.Utils
 
         internal bool MaybeComputeNext()
         {
-            state = State.Failed;
-            nextItem = this.MakeNext();
-            if (state == State.Done)
+            this.state = State.Failed;
+            this.nextItem = this.MakeNext();
+            if (this.state == State.Done)
             {
                 return false;
             }
             else
             {
-                state = State.Ready;
+                this.state = State.Ready;
                 return true;
             }
         }
 
         protected T AllDone()
         {
-            state = State.Done;
+            this.state = State.Done;
             return default(T);
         }
 
         protected void ResetState()
         {
-            state = State.NotReady;
+            this.state = State.NotReady;
         }
-
     }
 
     internal enum State
@@ -91,8 +90,4 @@ namespace Kafka.Client.Utils
         NotReady,
         Failed
     }
-
-    
-
-
 }

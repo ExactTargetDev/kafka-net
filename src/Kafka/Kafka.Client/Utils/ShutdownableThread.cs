@@ -16,29 +16,28 @@
 
         protected bool isInterruptible;
 
-        private Thread innerThread;
+        private readonly Thread innerThread;
 
         protected AtomicBoolean isRunning = new AtomicBoolean(true);
 
-        private ManualResetEventSlim shutdownLatch = new ManualResetEventSlim(false);
+        private readonly ManualResetEventSlim shutdownLatch = new ManualResetEventSlim(false);
 
-        public ShutdownableThread(string name, bool isInterruptible = true)
+        internal ShutdownableThread(string name, bool isInterruptible = true)
         {
             this.name = name;
             this.isInterruptible = isInterruptible;
-            this.innerThread = new Thread(this.Run);
-            this.innerThread.IsBackground = false;
-
+            this.innerThread = new Thread(this.Run) { IsBackground = false };
         }
 
         public virtual void Shutdown()
         {
             Logger.InfoFormat("Shutting down");
-            isRunning.Set(false);
-            if (isInterruptible)
+            this.isRunning.Set(false);
+            if (this.isInterruptible)
             {
                 this.innerThread.Interrupt();
             }
+
             this.shutdownLatch.Wait();
             Logger.InfoFormat("Shutdown completed");
         }
@@ -72,6 +71,7 @@
                     Logger.Error("Error due to", e);
                 }
             }
+
             this.shutdownLatch.Set();
             Logger.Info("Stopped");
         }

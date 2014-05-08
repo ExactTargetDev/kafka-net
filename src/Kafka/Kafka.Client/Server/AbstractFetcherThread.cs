@@ -2,18 +2,16 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     using Kafka.Client.Api;
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Consumers;
+    using Kafka.Client.Extensions;
     using Kafka.Client.Messages;
     using Kafka.Client.Utils;
-
-    using System.Linq;
-
-    using Kafka.Client.Extensions;
 
     using Spring.Threading.Locks;
 
@@ -35,7 +33,25 @@
 
         private int minBytes;
 
-        public AbstractFetcherThread(
+        private readonly IDictionary<TopicAndPartition, long> partitionMap = new Dictionary<TopicAndPartition, long>();
+
+        private readonly ReentrantLock partitionMapLock;
+
+        private readonly ICondition partitionMapCond;
+
+        protected readonly SimpleConsumer simpleConsumer;
+
+        private readonly string brokerInfo;
+
+        private readonly ClientIdAndBroker metricId;
+
+        private readonly FetcherStats fetcherStats;
+
+        private readonly FetcherLagStats fetcherLagStats;
+
+        private readonly FetchRequestBuilder fetchRequestBuilder;
+
+        internal AbstractFetcherThread(
             string name,
             string clientId,
             Broker sourceBroker,
@@ -63,34 +79,16 @@
                 sourceBroker.Host, sourceBroker.Port, socketTimeout, socketBufferSize, clientId);
             this.brokerInfo = string.Format("host_{0}-port_{1}", sourceBroker.Host, sourceBroker.Port);
 
-            this.metricId = new ClientIdAndBroker(clientId, brokerInfo);
+            this.metricId = new ClientIdAndBroker(clientId, this.brokerInfo);
 
-            this.fetcherStats = new FetcherStats(metricId);
-            this.fetcherLagStats = new FetcherLagStats(metricId);
+            this.fetcherStats = new FetcherStats(this.metricId);
+            this.fetcherLagStats = new FetcherLagStats(this.metricId);
             this.fetchRequestBuilder =
                 new FetchRequestBuilder().ClientId(clientId)
                                          .ReplicaId(fetcherBrokerId)
                                          .MaxWait(maxWait)
                                          .MinBytes(minBytes);
         }
-
-        private readonly IDictionary<TopicAndPartition, long> partitionMap = new Dictionary<TopicAndPartition, long>();
-
-        private ReentrantLock partitionMapLock;
-
-        private ICondition partitionMapCond;
-
-        protected SimpleConsumer simpleConsumer;
-
-        private string brokerInfo;
-
-        private ClientIdAndBroker metricId;
-
-        private FetcherStats fetcherStats;
-
-        private FetcherLagStats fetcherLagStats;
-
-        private FetchRequestBuilder fetchRequestBuilder;
 
         /// <summary>
         ///  process fetched Data
@@ -114,35 +112,35 @@
         /// <param name="partitions"></param>
         public abstract void HandlePartitionsWithErrors(IEnumerable<TopicAndPartition> partitions);
 
-
         public override void Shutdown()
         {
             base.Shutdown();
-            simpleConsumer.Close();
+            this.simpleConsumer.Close();
         }
 
         public override void DoWork()
         {
-            partitionMapLock.Lock();
+            this.partitionMapLock.Lock();
             try
             {
-                if (partitionMap.Count == 0)
+                if (this.partitionMap.Count == 0)
                 {
-                    partitionMapCond.Await(TimeSpan.FromMilliseconds(200));
+                    this.partitionMapCond.Await(TimeSpan.FromMilliseconds(200));
                 }
-                foreach (var topicAndOffset in partitionMap)
+
+                foreach (var topicAndOffset in this.partitionMap)
                 {
                     var topicAndPartition = topicAndOffset.Key;
                     var offset = topicAndOffset.Value;
-                    fetchRequestBuilder.AddFetch(topicAndPartition.Topic, topicAndPartition.Partiton, offset, fetchSize);
+                    this.fetchRequestBuilder.AddFetch(topicAndPartition.Topic, topicAndPartition.Partiton, offset, this.fetchSize);
                 }
             }
             finally
             {
-                partitionMapLock.Unlock();
+                this.partitionMapLock.Unlock();
             }
 
-            var fetchRequest = fetchRequestBuilder.Build();
+            var fetchRequest = this.fetchRequestBuilder.Build();
             if (fetchRequest.RequestInfo.Count > 0)
             {
                 this.ProcessFetchRequest(fetchRequest);
@@ -155,30 +153,30 @@
             FetchResponse response = null;
             try
             {
-                Logger.DebugFormat("issuing to broker {0} of fetch request {1}", sourceBroker.Id, fetchRequest);
-                response = simpleConsumer.Fetch(fetchRequest);
+                Logger.DebugFormat("issuing to broker {0} of fetch request {1}", this.sourceBroker.Id, fetchRequest);
+                response = this.simpleConsumer.Fetch(fetchRequest);
             }
             catch (Exception e)
             {
                 if (isRunning.Get())
                 {
                     Logger.Error("Error in fetch " + fetchRequest, e);
-                    partitionMapLock.Lock();
+                    this.partitionMapLock.Lock();
                     try
                     {
-                        foreach (var key in partitionMap.Keys)
+                        foreach (var key in this.partitionMap.Keys)
                         {
                             partitionsWithError.Add(key);
                         }
                     }
                     finally
                     {
-                        partitionMapLock.Unlock();
+                        this.partitionMapLock.Unlock();
                     }
                 }
             }
 
-            fetcherStats.RequestRate.Mark();
+            this.fetcherStats.RequestRate.Mark();
 
             if (response != null)
             {
@@ -193,7 +191,7 @@
                         var topic = topicAndPartition.Topic;
                         var partitionId = topicAndPartition.Partiton;
                         long currentOffset;
-                        if (partitionMap.TryGetValue(topicAndPartition, out currentOffset)
+                        if (this.partitionMap.TryGetValue(topicAndPartition, out currentOffset)
                             && fetchRequest.RequestInfo[topicAndPartition].Offset == currentOffset)
                         {
                             // we append to the log if the current offset is defined and it is the same as the offset requested during fetch                     
@@ -210,14 +208,13 @@
                                                             ? messageAndOffset.NextOffset
                                                             : currentOffset;
 
-                                        partitionMap[topicAndPartition] = newOffset;
-                                        fetcherLagStats.GetFetcherLagStats(topic, partitionId).Lag = partitionData.Hw
+                                        this.partitionMap[topicAndPartition] = newOffset;
+                                        this.fetcherLagStats.GetFetcherLagStats(topic, partitionId).Lag = partitionData.Hw
                                                                                                      - newOffset;
-                                        fetcherStats.ByteRate.Mark(validBytes);
+                                        this.fetcherStats.ByteRate.Mark(validBytes);
 
                                         // Once we hand off the partition Data to the subclass, we can't mess with it any more in this thread
                                         this.ProcessPartitionData(topicAndPartition, currentOffset, partitionData);
-
                                     }
                                     catch (InvalidMessageException ime)
                                     {
@@ -231,7 +228,6 @@
                                             partitionId,
                                             currentOffset,
                                             ime.Message);
-                                        ;
                                     }
                                     catch (Exception e)
                                     {
@@ -243,12 +239,13 @@
                                                 currentOffset),
                                             e);
                                     }
+
                                     break;
                                 case ErrorMapping.OffsetOutOfRangeCode:
                                     try
                                     {
                                         var newOffset = this.HandleOffsetOutOfRange(topicAndPartition);
-                                        partitionMap[topicAndPartition] = newOffset;
+                                        this.partitionMap[topicAndPartition] = newOffset;
                                         Logger.ErrorFormat(
                                             "Current offset {0} for partiton [{1},{2}] out of range; reste offset to {3}",
                                             currentOffset,
@@ -267,6 +264,7 @@
                                             e);
                                         partitionsWithError.Add(topicAndPartition);
                                     }
+
                                     break;
                                 default:
                                     if (isRunning.Get())
@@ -275,10 +273,11 @@
                                             "Error for partition [{0},{1}] to broker {2}:{3}",
                                             topic,
                                             partitionId,
-                                            sourceBroker.Id,
+                                            this.sourceBroker.Id,
                                             ErrorMapping.ExceptionFor(partitionData.Error).GetType().Name);
                                         partitionsWithError.Add(topicAndPartition);
                                     }
+
                                     break;
                             }
                         }
@@ -297,46 +296,46 @@
             }
         }
 
-
         public void AddPartitions(IDictionary<TopicAndPartition, long> partitionAndOffsets)
         {
-            partitionMapLock.LockInterruptibly();
+            this.partitionMapLock.LockInterruptibly();
             try
             {
                 foreach (var topicAndOffset in partitionAndOffsets)
                 {
                     var topicAndPartition = topicAndOffset.Key;
                     var offset = topicAndOffset.Value;
+
                     // If the partitionMap already has the topic/partition, then do not update the map with the old offset
-                    if (!partitionMap.ContainsKey(topicAndPartition))
+                    if (!this.partitionMap.ContainsKey(topicAndPartition))
                     {
-                        partitionMap[topicAndPartition] = (PartitionTopicInfo.IsOffsetInvalid(offset))
+                        this.partitionMap[topicAndPartition] = PartitionTopicInfo.IsOffsetInvalid(offset)
                                                               ? this.HandleOffsetOutOfRange(topicAndPartition)
                                                               : offset;
                     }
-                    partitionMapCond.SignalAll();
+
+                    this.partitionMapCond.SignalAll();
                 }
             }
             finally
             {
-                partitionMapLock.Unlock();
+                this.partitionMapLock.Unlock();
             }
         }
 
         public void RemovePartitions(ISet<TopicAndPartition> topicAndPartitions)
         {
-            partitionMapLock.LockInterruptibly();
+            this.partitionMapLock.LockInterruptibly();
             try
             {
                 foreach (var tp in topicAndPartitions)
                 {
-                    partitionMap.Remove(tp);
+                    this.partitionMap.Remove(tp);
                 }
-
             }
             finally
             {
-                partitionMapLock.Unlock();
+                this.partitionMapLock.Unlock();
             }
         }
 
@@ -352,17 +351,14 @@
                 this.partitionMapLock.Unlock();
             }
         }
-
     }
 
     internal class FetcherLagMetrics
     {
-        private ClientIdBrokerTopicPartition metricId;
-        private AtomicLong lagVal = new AtomicLong(-1);
+        private readonly AtomicLong lagVal = new AtomicLong(-1);
 
         public FetcherLagMetrics(ClientIdBrokerTopicPartition metricId)
         {
-            this.metricId = metricId;
             MetersFactory.NewGauge(metricId + "-ConsumerLag", () => this.lagVal.Get());
         }
 
@@ -372,6 +368,7 @@
             {
                 return this.lagVal.Get();
             }
+
             set
             {
                 this.lagVal.Set(value);
@@ -381,33 +378,30 @@
 
     internal class FetcherLagStats
     {
-        private ClientIdAndBroker metricId;
+        private readonly ClientIdAndBroker metricId;
 
-        private Func<ClientIdBrokerTopicPartition, FetcherLagMetrics> valueFactory;
+        private readonly Func<ClientIdBrokerTopicPartition, FetcherLagMetrics> valueFactory;
 
-        private Pool<ClientIdBrokerTopicPartition, FetcherLagMetrics> stats;
+        private readonly Pool<ClientIdBrokerTopicPartition, FetcherLagMetrics> stats;
 
         public FetcherLagStats(ClientIdAndBroker metricId)
         {
             this.metricId = metricId;
-            this.valueFactory = (k) => new FetcherLagMetrics(k);
-            this.stats = new Pool<ClientIdBrokerTopicPartition, FetcherLagMetrics>(valueFactory);
+            this.valueFactory = k => new FetcherLagMetrics(k);
+            this.stats = new Pool<ClientIdBrokerTopicPartition, FetcherLagMetrics>(this.valueFactory);
         }
 
         internal FetcherLagMetrics GetFetcherLagStats(string topic, int partitionId)
         {
-            return stats.GetAndMaybePut(
-                new ClientIdBrokerTopicPartition(metricId.ClientId, metricId.BrokerInfo, topic, partitionId));
+            return this.stats.GetAndMaybePut(
+                new ClientIdBrokerTopicPartition(this.metricId.ClientId, this.metricId.BrokerInfo, topic, partitionId));
         }
     }
 
     internal class FetcherStats
     {
-        private ClientIdAndBroker metricId;
-
         public FetcherStats(ClientIdAndBroker metricId)
         {
-            this.metricId = metricId;
             this.RequestRate = MetersFactory.NewMeter(metricId + "-RequestsPerSec", "requests", TimeSpan.FromSeconds(1));
             this.ByteRate = MetersFactory.NewMeter(metricId + "-BytesPerSec", "bytes", TimeSpan.FromSeconds(1));
         }
@@ -415,14 +409,16 @@
         internal IMeter RequestRate { get; private set; }
 
         internal IMeter ByteRate { get; private set; }
-
     }
 
     internal class ClientIdBrokerTopicPartition
     {
         public string ClientId { get; private set; }
+
         public string BrokerInfo { get; private set; }
+
         public string Topic { get; private set; }
+
         public int PartitonId { get; private set; }
 
         public ClientIdBrokerTopicPartition(string clientId, string brokerInfo, string topic, int partitonId)

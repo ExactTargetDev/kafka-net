@@ -27,7 +27,7 @@
         /// <param name="name">The name of this task</param>
         /// <param name="action">The action to be performed</param>
         /// <param name="delay">The amount of time to wait before the first execution</param>
-        /// <param name="period">The period with which to execute the task. If < 0 the task will execute only once.</param>
+        /// <param name="period">The period with which to execute the task. If &lt; 0 the task will execute only once.</param>
         void Schedule(string name, Action action, TimeSpan? delay, TimeSpan? period);
     }
 }

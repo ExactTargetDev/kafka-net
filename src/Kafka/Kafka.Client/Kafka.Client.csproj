@@ -144,7 +144,7 @@
     <Compile Include="Producers\ProducerConfig.cs" />
     <Compile Include="Cfg\Sections\ProducerConfigurationSection.cs" />
     <Compile Include="Cfg\ProducerTypes.cs" />
-    <Compile Include="Producers\SyncProducerConfiguration.cs" />
+    <Compile Include="Producers\SyncProducerConfig.cs" />
     <Compile Include="Cfg\Elements\ZooKeeperConfigurationElement.cs" />
     <Compile Include="Cfg\Elements\ZooKeeperServerConfigurationElement.cs" />
     <Compile Include="Cfg\Elements\ZooKeeperServerConfigurationElementCollection.cs" />
@@ -228,7 +228,6 @@
     <Compile Include="Producers\DefaultPartitioner.cs" />
     <Compile Include="Producers\KeyedMessage.cs" />
     <Compile Include="Producers\IPartitioner.cs" />
-    <Compile Include="Producers\PartitionAndLeader.cs" />
     <Compile Include="Producers\Producer.cs" />
     <Compile Include="Producers\ProducerPool.cs" />
     <Compile Include="Producers\ProducerRequestStats.cs" />
@@ -240,14 +239,11 @@
     <Compile Include="Serializers\DefaultEncoder.cs" />
     <Compile Include="Serializers\IDecoder.cs" />
     <Compile Include="Serializers\IEncoder.cs" />
-    <Compile Include="Serializers\KafkaBinaryReader.cs" />
     <Compile Include="Serializers\KafkaBinaryWriter.cs" />
     <Compile Include="Serializers\StringDecoder.cs" />
     <Compile Include="Serializers\StringEncoder.cs" />
     <Compile Include="Server\AbstractFetcherManager.cs" />
     <Compile Include="Server\AbstractFetcherThread.cs" />
-    <Compile Include="Server\BrokerAndFetcherId.cs" />
-    <Compile Include="Server\BrokerAndInitialOffset.cs" />
     <Compile Include="Utils\ConcurrentHashSet.cs" />
     <Compile Include="Utils\Crc32.cs" />
     <Compile Include="Utils\IScheduler.cs" />
@@ -257,9 +253,6 @@
     <Compile Include="Utils\ShutdownableThread.cs" />
     <Compile Include="Utils\Util.cs" />
     <Compile Include="Utils\VerifiableProperties.cs" />
-    <Compile Include="Utils\ZKGroupDirs.cs" />
-    <Compile Include="Utils\ZKGroupTopicDirs.cs" />
-    <Compile Include="Utils\ZkStringSerializer.cs" />
     <Compile Include="Utils\ZkUtils.cs" />
     <Compile Include="ZKClient\DataUpdater.cs" />
     <Compile Include="ZKClient\Exceptions\ZkBadVersionException.cs" />

@@ -1,18 +1,11 @@
-﻿using System;
-using System.IO;
-using Kafka.Client.Extensions;
-
-namespace Kafka.Client.Utils
+﻿namespace Kafka.Client.Utils
 {
-    using System.Reflection;
-    using System.Runtime.CompilerServices;
+    using System;
     using System.Text;
 
     using Kafka.Client.Common.Imported;
-    using Kafka.Client.Producers;
 
     using log4net;
-    using log4net.Repository.Hierarchy;
 
     /// <summary>
     /// Original name: Utils
@@ -24,7 +17,7 @@ namespace Kafka.Client.Utils
          /// <summary>
          ///  Read the given byte buffer into a byte array
          /// </summary>
-         /// <param name="stream"></param>
+         /// <param name="buffer"></param>
          /// <returns></returns>
         public static byte[] ReadBytes(ByteBuffer buffer)
         {
@@ -68,7 +61,7 @@ namespace Kafka.Client.Utils
         /// <param name="value">The value to write</param>
         public static void WriteUnsignedInt(ByteBuffer buffer, long value)
         {
-            buffer.PutInt((int) (value & 0xffffffffL));
+            buffer.PutInt((int)(value & 0xffffffffL));
         }
 
         /// <summary>
@@ -98,7 +91,7 @@ namespace Kafka.Client.Utils
             return Utils.Crc32.Compute(bytes, offset, size) & 0xffffffffL;
         }
 
-        public static T CreateObject<T>(string type, params object[] args)
+        public static T CreateObject<T>(string type, params object[] args) where T : class
         {
             return (T)Activator.CreateInstance(Type.GetType(type), args);
         }
@@ -121,6 +114,5 @@ namespace Kafka.Client.Utils
                 logger.Error(e.Message, e);
             }
         }
-
     }
 }
