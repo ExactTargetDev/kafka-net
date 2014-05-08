@@ -9,7 +9,10 @@
 
     using log4net;
 
-    public class BlockingChannel
+    /// <summary>
+    /// A simple blocking channel with timeouts correctly enabled.
+    /// </summary>
+    internal class BlockingChannel
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -25,15 +28,15 @@
 
         public int ReadTimeoutMs { get; private set; }
 
-        private bool conneted = false;
+        private bool conneted;
 
-        private TcpClient channel = null;
+        private TcpClient channel;
 
-        private Stream readChannel = null;
+        private Stream readChannel;
 
-        private Stream writeChannel = null;
+        private Stream writeChannel;
 
-        private object @lock = new object();
+        private readonly object @lock = new object();
 
         public BlockingChannel(string host, int port, int readBufferSize, int writeBufferSize, int readTimeoutMs)
         {
@@ -49,31 +52,33 @@
             lock (@lock)
             {
                 this.channel = new TcpClient(this.Host, this.Port);
-                if (ReadBufferSize > 0)
+                if (this.ReadBufferSize > 0)
                 {
-                    this.channel.ReceiveBufferSize = ReadBufferSize;
+                    this.channel.ReceiveBufferSize = this.ReadBufferSize;
                 }
-                if (WriteBufferSize > 0)
-                {
-                    this.channel.SendBufferSize = WriteBufferSize;
-                }
-                channel.ReceiveTimeout = ReadTimeoutMs;
-                channel.NoDelay = true;
-                channel.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, 1); //TODO: verify this option!
 
-                this.writeChannel = channel.GetStream();
-                this.readChannel = channel.GetStream();
+                if (this.WriteBufferSize > 0)
+                {
+                    this.channel.SendBufferSize = this.WriteBufferSize;
+                }
+
+                this.channel.ReceiveTimeout = this.ReadTimeoutMs;
+                this.channel.NoDelay = true;
+                this.channel.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, 1); // TODO: verify this option!
+
+                this.writeChannel = this.channel.GetStream();
+                this.readChannel = this.channel.GetStream();
                 this.conneted = true;
 
                 // settings may not match what we requested above
-                Logger.DebugFormat("Created socket with SO_TIMEOUT = {0} (requested {1}), SO_RCBBUG = {2} (requested {3}), SO_SNDBUF = {4} (requested {5}).",
-                        channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout),
-                        ReadTimeoutMs,
-                        channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout),
-                        ReadBufferSize,
-                        channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer),
-                        WriteBufferSize); //TODO: verify
-
+                Logger.DebugFormat(
+                    "Created socket with SO_TIMEOUT = {0} (requested {1}), SO_RCBBUG = {2} (requested {3}), SO_SNDBUF = {4} (requested {5}).",
+                    this.channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout),
+                    this.ReadTimeoutMs,
+                        this.channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout),
+                        this.ReadBufferSize,
+                        this.channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer),
+                        this.WriteBufferSize); // TODO: verify
             }
         }
 
@@ -81,23 +86,23 @@
         {
             lock (@lock)
             {
-                if (conneted || channel != null)
+                if (this.conneted || this.channel != null)
                 {
                     // closing the main socket channel *should* close the read channel
                     // but let's do it to be sure.
                     try
                     {
-                        channel.Close();
+                        this.channel.Close();
                     }
                     catch (Exception e)
                     {
                         Logger.Warn(e.Message, e);
                     }
 
-                    channel = null;
-                    readChannel = null;
-                    writeChannel = null;
-                    conneted = false;
+                    this.channel = null;
+                    this.readChannel = null;
+                    this.writeChannel = null;
+                    this.conneted = false;
                 }
             }
         }
@@ -106,33 +111,32 @@
         {
             get
             {
-                return conneted;
+                return this.conneted;
             }
         }
 
         public int Send(RequestOrResponse request)
         {
-            if (!conneted)
+            if (!this.conneted)
             {
                 throw new IOException("Channel is closed!");
             }
 
             var send = new BoundedByteBufferSend(request);
-            return send.WriteCompletely(writeChannel);
+            return send.WriteCompletely(this.writeChannel);
         }
 
         public Receive Receive()
         {
-            if (!conneted)
+            if (!this.conneted)
             {
                 throw new IOException("Channel is closed!");
             }
 
             var response = new BoundedByteBufferReceive();
-            response.ReadCompletely(readChannel);
+            response.ReadCompletely(this.readChannel);
 
             return response;
         }
-
     }
 }

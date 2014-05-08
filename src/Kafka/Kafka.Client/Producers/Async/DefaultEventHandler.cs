@@ -2,6 +2,8 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
+    using System.Linq;
     using System.Reflection;
     using System.Threading;
 
@@ -15,51 +17,48 @@
 
     using log4net;
 
-    using System.Linq;
-
     internal class DefaultEventHandler<TKey, TValue> : IEventHandler<TKey, TValue>
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private Random random = new Random();
+        private readonly Random random = new Random();
 
-        public ProducerConfig config { get; set; }
+        public ProducerConfig Config { get; set; }
 
-        private IPartitioner partitioner;
+        private readonly IPartitioner partitioner;
 
-        private IEncoder<TValue> encoder;
+        private readonly IEncoder<TValue> encoder;
 
-        private IEncoder<TKey> keyEncoder;
+        private readonly IEncoder<TKey> keyEncoder;
 
-        private ProducerPool producerPool;
+        private readonly ProducerPool producerPool;
 
-        private Dictionary<string, TopicMetadata> topicPartitionInfos = new Dictionary<string, TopicMetadata>();
+        private readonly Dictionary<string, TopicMetadata> topicPartitionInfos = new Dictionary<string, TopicMetadata>();
 
         public DefaultEventHandler(ProducerConfig config, IPartitioner partitioner, IEncoder<TValue> encoder, IEncoder<TKey> keyEncoder, ProducerPool producerPool)
         {
-            this.config = config;
+            this.Config = config;
             this.partitioner = partitioner;
             this.encoder = encoder;
             this.keyEncoder = keyEncoder;
             this.producerPool = producerPool;
 
-            this.brokerPartitionInfo = new BrokerPartitionInfo(this.config, this.producerPool, this.topicPartitionInfos);
+            this.brokerPartitionInfo = new BrokerPartitionInfo(this.Config, this.producerPool, this.topicPartitionInfos);
             this.topicMetadataRefreshInterval = TimeSpan.FromMilliseconds(config.TopicMetadataRefreshIntervalMs);
 
             this.producerStats = ProducerStatsRegistry.GetProducerStats(config.ClientId);
             this.producerTopicStats = ProducerTopicStatsRegistry.GetProducerTopicStats(config.ClientId);
-
         }
 
         public bool IsSync 
         {
             get
             {
-                return this.config.ProducerType == ProducerTypes.Sync;
+                return this.Config.ProducerType == ProducerTypes.Sync;
             }
         }
 
-        private AtomicInteger correlationId = new AtomicInteger(0);
+        private readonly AtomicInteger correlationId = new AtomicInteger(0);
 
         private readonly BrokerPartitionInfo brokerPartitionInfo;
 
@@ -67,9 +66,9 @@
 
         private DateTime lastTopicMetadataRefeshTime = DateTime.MinValue;
 
-        private HashSet<string> topicMetadataToRefresh = new HashSet<string>();  
+        private readonly HashSet<string> topicMetadataToRefresh = new HashSet<string>();  
 
-        private Dictionary<string, int> sendPartitionPerTopicCache = new Dictionary<string, int>();
+        private readonly Dictionary<string, int> sendPartitionPerTopicCache = new Dictionary<string, int>();
 
         private readonly ProducerStats producerStats;
 
@@ -87,64 +86,63 @@
             }
 
             var outstandingProduceRequests = serializedData;
-            var remainingRetries = this.config.MessageSendMaxRetries + 1;
+            var remainingRetries = this.Config.MessageSendMaxRetries + 1;
             var correlationIdStart = this.correlationId.Get();
 
             Logger.DebugFormat("Handling {0} events", events.Count());
 
-            while (remainingRetries > 0 && outstandingProduceRequests.Count() > 0)
+            while (remainingRetries > 0 && outstandingProduceRequests.Any())
             {
                 foreach (var el in outstandingProduceRequests)
                 {
-                    topicMetadataToRefresh.Add(el.Topic);
+                    this.topicMetadataToRefresh.Add(el.Topic);
                 }
-                if (topicMetadataRefreshInterval >= TimeSpan.MinValue
-                    && (DateTime.Now - lastTopicMetadataRefeshTime) > topicMetadataRefreshInterval)
+
+                if (this.topicMetadataRefreshInterval >= TimeSpan.MinValue
+                    && (DateTime.Now - this.lastTopicMetadataRefeshTime) > this.topicMetadataRefreshInterval)
                 {
-                    try
-                    {
-                        brokerPartitionInfo.UpdateInfo(
-                            new HashSet<string>(topicMetadataToRefresh), correlationId.GetAndIncrement());
-                    }
-                    catch
-                    {
-                    }
-                    sendPartitionPerTopicCache.Clear();
-                    topicMetadataToRefresh.Clear();
-                    lastTopicMetadataRefeshTime = DateTime.Now;
+                    Util.SwallowError(
+                        Logger,
+                        () =>
+                        this.brokerPartitionInfo.UpdateInfo(
+                            new HashSet<string>(this.topicMetadataToRefresh), this.correlationId.GetAndIncrement()));
+
+                    this.sendPartitionPerTopicCache.Clear();
+                    this.topicMetadataToRefresh.Clear();
+                    this.lastTopicMetadataRefeshTime = DateTime.Now;
                 }
 
                 outstandingProduceRequests = this.DispatchSerializedData(outstandingProduceRequests);
-                if (outstandingProduceRequests.Count() > 0)
+                if (outstandingProduceRequests.Any())
                 {
-                    Logger.InfoFormat("Back off for {0} ms before retrying send. Remaining retries = {1}", config.RetryBackoffMs, remainingRetries - 1);
+                    Logger.InfoFormat("Back off for {0} ms before retrying send. Remaining retries = {1}", this.Config.RetryBackoffMs, remainingRetries - 1);
+
                     // back off and update the topic metadata cache before attempting another send operation
-                     Thread.Sleep(this.config.RetryBackoffMs);
-                    try
-                    {
-                        brokerPartitionInfo.UpdateInfo(
-                            new HashSet<string>(outstandingProduceRequests.Select(r => r.Topic)), correlationId.GetAndIncrement());
-                        sendPartitionPerTopicCache.Clear();
-                        remainingRetries -= 1;
-                        producerStats.ResendRate.Mark();
-                    }
-                    catch
-                    {
-                    }
+                    Thread.Sleep(this.Config.RetryBackoffMs);
+                    Util.SwallowError(
+                        Logger,
+                        () =>
+                            {
+                                brokerPartitionInfo.UpdateInfo(
+                           new HashSet<string>(outstandingProduceRequests.Select(r => r.Topic)), correlationId.GetAndIncrement());
+                            sendPartitionPerTopicCache.Clear();
+                            remainingRetries -= 1;
+                            producerStats.ResendRate.Mark();
+                        });
                 }
 
                 this.sendPartitionPerTopicCache.Clear();
                 remainingRetries -= 1;
             }
 
-            if (outstandingProduceRequests.Count() > 0)
+            if (outstandingProduceRequests.Any())
             {
-                producerStats.FailedSendRate.Mark();
-                var correlationIdEnd = correlationId.Get();
+                this.producerStats.FailedSendRate.Mark();
+                var correlationIdEnd = this.correlationId.Get();
                 Logger.ErrorFormat("Failed to send requests for topics {0} with correlation ids in [{1}, {2}]", string.Join(",", outstandingProduceRequests.Select(r => r.Topic)), correlationIdStart, correlationIdEnd);
 
                 throw new FailedToSendMessageException(
-                    "Failed to send messages after " + this.config.MessageSendMaxRetries + " tries");
+                    "Failed to send messages after " + this.Config.MessageSendMaxRetries + " tries");
             }
         }
 
@@ -155,6 +153,7 @@
             {
                 return messages;
             }
+
             var failedProduceRequests = new List<KeyedMessage<TKey, Message>>();
             try
             {
@@ -175,7 +174,7 @@
                     var failedTopicPartitions = this.Send(brokerId, messageSetPerBroker);
                     foreach (var topicPartiton in failedTopicPartitions)
                     {
-                        List<KeyedMessage<TKey, Message>> data = null;
+                        List<KeyedMessage<TKey, Message>> data;
                         if (messagesPerBrokerMap.TryGetValue(topicPartiton, out data))
                         {
                             failedProduceRequests.AddRange(data);
@@ -187,12 +186,12 @@
             {
                 Logger.Error("Failed to send messages");
             }
+
             return failedProduceRequests;
         }
 
         private List<KeyedMessage<TKey, Message>> Serialize(IEnumerable<KeyedMessage<TKey, TValue>> events)
         {
-
             return events.Select(
                 e =>
                     {
@@ -217,15 +216,14 @@
                             producerStats.SerializationErrorRate.Mark();
                             if (IsSync)
                             {
-                                throw ex;
+                                throw;
                             }
                             else
                             {
-                                Logger.ErrorFormat("Error serializing message for topic {0}", e.Topic, ex);
+                                Logger.Error("Error serializing message for topic" + e.Topic, ex);
                                 return null;
                             }
                         }
-
                     }).ToList();
         }
 
@@ -234,8 +232,6 @@
             var ret = new Dictionary<int, Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>>();
             try
             {
-
-
                 foreach (var message in messages)
                 {
                     var topicPartitionsList = this.GetPartitionListForTopic(message);
@@ -245,7 +241,7 @@
                     // postpone the failure until the send operation, so that requests for other brokers are handled correctly
                     var leaderBrokerId = brokerPartition.LeaderBrokerIdOpt ?? -1;
 
-                    Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>> dataPerBroker = null;
+                    Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>> dataPerBroker;
                     if (ret.ContainsKey(leaderBrokerId))
                     {
                         dataPerBroker = ret[leaderBrokerId];
@@ -257,7 +253,7 @@
                     }
 
                     var topicAndPartition = new TopicAndPartition(message.Topic, brokerPartition.PartitionId);
-                    List<KeyedMessage<TKey, Message>> dataPerTopicPartition = null;
+                    List<KeyedMessage<TKey, Message>> dataPerTopicPartition;
                     if (dataPerBroker.ContainsKey(topicAndPartition))
                     {
                         dataPerTopicPartition = dataPerBroker[topicAndPartition];
@@ -267,8 +263,10 @@
                         dataPerTopicPartition = new List<KeyedMessage<TKey, Message>>();
                         dataPerBroker[topicAndPartition] = dataPerTopicPartition;
                     }
+
                     dataPerTopicPartition.Add(message);
                 }
+
                 return ret;
             }
             catch (UnknownTopicOrPartitionException e)
@@ -288,15 +286,16 @@
             }
         }
 
-        private IList<PartitionAndLeader> GetPartitionListForTopic(KeyedMessage<TKey, Message> m)
+        private List<PartitionAndLeader> GetPartitionListForTopic(KeyedMessage<TKey, Message> m)
         {
-            var topicPartitionsList = this.brokerPartitionInfo.GetBrokerPartitionInfo(m.Topic, correlationId.GetAndIncrement());
-            Logger.DebugFormat("Broker partitions registered for topic: {0} are {1}", m.Topic, string.Join(",", topicPartitionsList.Select(p => p.PartitionId.ToString())));
+            var topicPartitionsList = this.brokerPartitionInfo.GetBrokerPartitionInfo(m.Topic, this.correlationId.GetAndIncrement());
+            Logger.DebugFormat("Broker partitions registered for topic: {0} are {1}", m.Topic, string.Join(",", topicPartitionsList.Select(p => p.PartitionId.ToString(CultureInfo.InvariantCulture))));
             var totalNumPartitions = topicPartitionsList.Count();
             if (totalNumPartitions == 0)
             {
                 throw new NoBrokersForPartitionException("Partition key = " + m.Key);
             }
+
             return topicPartitionsList;
         }
 
@@ -304,10 +303,11 @@
         /// Retrieves the partition id and throws an UnknownTopicOrPartitionException if
         /// the value of partition is not between 0 and numPartitions-1
         /// </summary>
-        /// <param name="key"></param>
-        /// <param name="numPartitions"></param>
-        /// <returns></returns>
-        private int GetPartition(string topic, object key, IEnumerable<PartitionAndLeader> topicPartitionList)
+        /// <param name="topic">The topic</param>
+        /// <param name="key">the partition key</param>
+        /// <param name="topicPartitionList">the list of available partitions</param>
+        /// <returns>the partition id</returns>
+        private int GetPartition(string topic, object key, List<PartitionAndLeader> topicPartitionList)
         {
             var numPartitions = topicPartitionList.Count();
             if (numPartitions <= 0)
@@ -315,24 +315,26 @@
                 throw new UnknownTopicOrPartitionException(
                     string.Format("Topic {0} doesn't exists", topic));
             }
-            int partition = 0;
+
+            int partition;
             if (key == null)
             {
                 // If the key is null, we don't really need a partitioner
                 // So we look up in the send partition cache for the topic to decide the target partition
-                if (sendPartitionPerTopicCache.ContainsKey(topic))
+                if (this.sendPartitionPerTopicCache.ContainsKey(topic))
                 {
-                    partition = sendPartitionPerTopicCache[topic];
+                    partition = this.sendPartitionPerTopicCache[topic];
                 }
                 else
                 {
                     var availablePartitons = topicPartitionList.Where(p => p.LeaderBrokerIdOpt.HasValue).ToList();
-                    if (availablePartitons.Count() == 0)
+                    if (!availablePartitons.Any())
                     {
                         throw new LeaderNotAvailableException(
                             string.Format("No leader for any partition in topic {0}", topic));
                     }
-                    var index = random.Next(availablePartitons.Count());
+
+                    var index = this.random.Next(availablePartitons.Count());
                     var partitionId = availablePartitons[index].PartitionId;
                     this.sendPartitionPerTopicCache[topic] = partitionId;
                     partition = partitionId;
@@ -346,9 +348,12 @@
             if (partition < 0 || partition >= numPartitions)
             {
                 throw new UnknownTopicOrPartitionException(
-                    string.Format("Invalid partition id : {0}. Valid values are in the range inclusive [0, {1}]",
-                                  partition, (numPartitions - 1)));
+                    string.Format(
+                        "Invalid partition id : {0}. Valid values are in the range inclusive [0, {1}]",
+                        partition,
+                        numPartitions - 1));
             }
+
             Logger.DebugFormat("Assigning message of topic {0} and key {1} to a selected partition {2}", topic, (key == null) ? "[none]" : key.ToString(), partition);
             return partition;
         }
@@ -366,17 +371,23 @@
                 Logger.WarnFormat("Failed to send Data since partitions {0} don't have a leader", string.Join(",", messagesPerTopic.Select(m => m.Key.Partiton)));
                 return new List<TopicAndPartition>(messagesPerTopic.Keys);
             }
+
             if (messagesPerTopic.Count > 0)
             {
-                var currentCorrelationId = correlationId.GetAndIncrement();
-                var producerRequest = new ProducerRequest(currentCorrelationId, config.ClientId, config.RequestRequiredAcks, config.RequestTimeoutMs, messagesPerTopic);
+                var currentCorrelationId = this.correlationId.GetAndIncrement();
+                var producerRequest = new ProducerRequest(currentCorrelationId, this.Config.ClientId, this.Config.RequestRequiredAcks, this.Config.RequestTimeoutMs, messagesPerTopic);
                 var failedTopicPartitions = new List<TopicAndPartition>();
 
-                try {
-
+                try 
+                {
                     var syncProducer = this.producerPool.GetProducer(brokerId);
-                    Logger.DebugFormat("Producer sending messages with correlation id {0} for topics {1} to broker {2} on {3}:{4}",
-                        currentCorrelationId, string.Join(",", messagesPerTopic.Keys), brokerId, syncProducer.Config.Host, syncProducer.Config.Port);
+                    Logger.DebugFormat(
+                        "Producer sending messages with correlation id {0} for topics {1} to broker {2} on {3}:{4}",
+                        currentCorrelationId,
+                        string.Join(",", messagesPerTopic.Keys),
+                        brokerId,
+                        syncProducer.Config.Host,
+                        syncProducer.Config.Port);
 
                     var response = syncProducer.Send(producerRequest);
 
@@ -388,6 +399,7 @@
                                 string.Format(
                                     "Incomplete response ({0}) for producer request ({1})", response, producerRequest));
                         }
+
                         if (Logger.IsDebugEnabled)
                         {
                             var successfullySentData = response.Status.Where(s => s.Value.Error == ErrorMapping.NoError).ToList();
@@ -398,10 +410,8 @@
                                 {
                                     var message = iter.Next();
                                     Logger.DebugFormat(
-                                    "Successfully sent messsage: {0}",
-                                    message.Message.IsNull() ? 
-                                    null : 
-                                    Util.ReadString(message.Message.Payload));
+                                        "Successfully sent messsage: {0}",
+                                        message.Message.IsNull() ? null : Util.ReadString(message.Message.Payload));
                                 }
                             }
                         }
@@ -451,7 +461,6 @@
             {
                 return new List<TopicAndPartition>();
             }
-           
         }
 
         private IDictionary<TopicAndPartition, ByteBufferMessageSet> GroupMessagesToSet(IDictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>> eventsPerTopicAndPartition)
@@ -469,7 +478,7 @@
             {
                 var topicAndPartition = keyValuePair.Key;
                 var messages = keyValuePair.Value.Select(m => m.Message).ToList();
-                switch (this.config.CompressionCodec)
+                switch (this.Config.CompressionCodec)
                 {
                     case CompressionCodecs.NoCompressionCodec:
                         Logger.DebugFormat("Sending {0} messages with no compression to {1}", messages.Count(), topicAndPartition);
@@ -480,26 +489,26 @@
                                 messages)));
                         break;
                     default:
-                        if (this.config.CompressedTopics.Count() == 0)
+                        if (this.Config.CompressedTopics.Count() == 0)
                         {
-                            messagesPerTopicPartition.Add(new KeyValuePair<TopicAndPartition, ByteBufferMessageSet>(topicAndPartition, new ByteBufferMessageSet(this.config.CompressionCodec, messages)));
-
+                            messagesPerTopicPartition.Add(new KeyValuePair<TopicAndPartition, ByteBufferMessageSet>(topicAndPartition, new ByteBufferMessageSet(this.Config.CompressionCodec, messages)));
                         }
                         else
                         {
-                            if (this.config.CompressedTopics.Contains(topicAndPartition.Topic))
+                            if (this.Config.CompressedTopics.Contains(topicAndPartition.Topic))
                             {
-                                messagesPerTopicPartition.Add(new KeyValuePair<TopicAndPartition, ByteBufferMessageSet>(topicAndPartition, new ByteBufferMessageSet(this.config.CompressionCodec, messages)));
+                                messagesPerTopicPartition.Add(new KeyValuePair<TopicAndPartition, ByteBufferMessageSet>(topicAndPartition, new ByteBufferMessageSet(this.Config.CompressionCodec, messages)));
                             }
                             else
                             {
                                 messagesPerTopicPartition.Add(new KeyValuePair<TopicAndPartition, ByteBufferMessageSet>(topicAndPartition, new ByteBufferMessageSet(CompressionCodecs.NoCompressionCodec, messages)));
                             }
                         }
+
                         break;
                 }
-
             }
+
             return messagesPerTopicPartition;
         }
 
@@ -507,9 +516,8 @@
         {
             if (this.producerPool != null)
             {
-                producerPool.Dispose();
+                this.producerPool.Dispose();
             }
         }
-
     }
 }

@@ -5,7 +5,6 @@
     using System.Reflection;
 
     using Kafka.Client.Api;
-    using Kafka.Client.Cfg;
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
 
@@ -13,25 +12,23 @@
 
     internal class ProducerPool : IDisposable
     {
+        public static SyncProducer CreateSyncProducer(ProducerConfig config, Broker broker)
+        {
+            return new SyncProducer(new SyncProducerConfig(config, broker.Host, broker.Port));
+        }
 
-        private ProducerConfig config;
+        private readonly ProducerConfig config;
 
-        private Dictionary<int, SyncProducer> syncProducers;
+        private readonly Dictionary<int, SyncProducer> syncProducers;
 
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private object @lock = new object();
-
+        private readonly object @lock = new object();
 
         public ProducerPool(ProducerConfig config)
         {
             this.config = config;
             this.syncProducers = new Dictionary<int, SyncProducer>();
-        }
-
-        public static SyncProducer CreateSyncProducer(ProducerConfig config, Broker broker)
-        {
-            return new SyncProducer(new SyncProducerConfiguration(config, broker.Host, broker.Port));
         }
 
         public void UpdateProducer(List<TopicMetadata> topicMetadata)
@@ -55,11 +52,11 @@
                     if (this.syncProducers.ContainsKey(b.Id))
                     {
                         this.syncProducers[b.Id].Dispose();
-                        this.syncProducers[b.Id] = CreateSyncProducer(config, b);
+                        this.syncProducers[b.Id] = CreateSyncProducer(this.config, b);
                     }
                     else
                     {
-                        this.syncProducers[b.Id] = CreateSyncProducer(config, b);
+                        this.syncProducers[b.Id] = CreateSyncProducer(this.config, b);
                     }
                 }
             }
@@ -69,7 +66,7 @@
         {
             lock (@lock)
             {
-                SyncProducer producer = null;
+                SyncProducer producer;
                 if (this.syncProducers.TryGetValue(brokerId, out producer))
                 {
                     return producer;
@@ -92,6 +89,5 @@
                 }
             }
         }
-
     }
 }

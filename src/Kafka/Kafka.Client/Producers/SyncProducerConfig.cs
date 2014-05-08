@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-namespace Kafka.Client.Cfg
+namespace Kafka.Client.Producers
 {
     using Kafka.Client.Cfg.Sections;
-    using Kafka.Client.Utils;
 
-    public class SyncProducerConfiguration
+    public class SyncProducerConfig
     {
         public const string DefaultClientId = "";
 
@@ -30,7 +29,7 @@ namespace Kafka.Client.Cfg
 
         public const int DefaultSendBufferBytes = 100 * 1024;
 
-        public SyncProducerConfiguration()
+        public SyncProducerConfig()
         {
             this.SendBufferBytes = DefaultSendBufferBytes;
             this.ClientId = DefaultClientId;
@@ -38,7 +37,7 @@ namespace Kafka.Client.Cfg
             this.RequestTimeoutMs = DefaultAckTimeout;
         }
 
-        public SyncProducerConfiguration(ProducerConfig config, string host, int port) 
+        public SyncProducerConfig(ProducerConfig config, string host, int port) 
         {
             this.Host = host;
             this.Port = port;
@@ -48,7 +47,7 @@ namespace Kafka.Client.Cfg
             this.RequestTimeoutMs = config.RequestTimeoutMs;
         }
 
-        public SyncProducerConfiguration(ProducerConfigurationSection config, string host, int port)
+        public SyncProducerConfig(ProducerConfigurationSection config, string host, int port)
         {
             this.Host = host;
             this.Port = port;
@@ -64,11 +63,21 @@ namespace Kafka.Client.Cfg
 
         public int SendBufferBytes { get; set; }
 
+        /// <summary>
+        /// the client application sending the producer requests
+        /// </summary>
         public string ClientId { get; set; }
 
+        /// <summary>
+        /// The required acks of the producer requests - negative value means ack
+        /// after the replicas in ISR have caught up to the leader's offset
+        /// corresponding to this produce request.
+        /// </summary>
         public short RequestRequiredAcks { get; set; }
 
+        /// <summary>
+        /// The ack timeout of the producer requests. Value must be non-negative and non-zero
+        /// </summary>
         public int RequestTimeoutMs { get; set; }
-       
     }
 }

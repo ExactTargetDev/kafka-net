@@ -8,17 +8,16 @@
 
     using Kafka.Client.Clusters;
     using Kafka.Client.Consumers;
+    using Kafka.Client.Extensions;
     using Kafka.Client.ZKClient;
     using Kafka.Client.ZKClient.Exceptions;
+
+    using log4net;
 
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     using Org.Apache.Zookeeper.Data;
-
-    using log4net;
-
-    using Kafka.Client.Extensions;
 
     public static class ZkUtils
     {
@@ -135,7 +134,7 @@
                 if (storedData == null || storedData != data)
                 {
                     Logger.InfoFormat("Conflict in {0} Data: {1}, stored Data: {2}", path, data, storedData);
-                    throw e;
+                    throw;
                 }
                 else
                 {
@@ -244,7 +243,7 @@
                 var obj = client.ReadData<string>(path, stat);
                 return Tuple.Create(obj, stat);
             }
-            catch (ZkNoNodeException e)
+            catch (ZkNoNodeException)
             {
                 return Tuple.Create((string)null, stat);
             }

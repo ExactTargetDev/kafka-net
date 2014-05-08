@@ -1,6 +1,7 @@
 ﻿namespace Kafka.Client.Serializers
 {
     using Kafka.Client.Cfg;
+    using Kafka.Client.Producers;
 
     /// <summary>
     /// The default implementation is a no-op, it just returns the same array it takes in

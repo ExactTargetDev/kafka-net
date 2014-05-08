@@ -15,22 +15,20 @@
  * limitations under the License.
  */
 
-using Kafka.Client.Messages;
-
-namespace Kafka.Client.Cfg
+namespace Kafka.Client.Producers
 {
     using System.Collections.Generic;
     using System.Configuration;
     using System.Globalization;
     using System.Net;
-    using System.Text;
-
-    using Kafka.Client.Cfg.Elements;
-    using Kafka.Client.Cfg.Sections;
-    using Kafka.Client.Producers;
-    using Kafka.Client.Utils;
     using System.Xml.Linq;
 
+    using Kafka.Client.Cfg;
+    using Kafka.Client.Cfg.Elements;
+    using Kafka.Client.Cfg.Sections;
+    using Kafka.Client.Messages;
+    using Kafka.Client.Producers.Async;
+    using Kafka.Client.Utils;
 
     /// <summary>
     /// High-level API configuration for the producer
@@ -92,50 +90,11 @@ namespace Kafka.Client.Cfg
             this.SetKafkaBrokers(config.Brokers);
         }
 
-        private IList<BrokerConfiguration> broker;
+        public IList<BrokerConfiguration> Brokers { get; set; }
 
-        public IList<BrokerConfiguration> Brokers
-        {
-            get
-            {
-                return this.broker;
-            }
+        public ZkConfig ZooKeeper { get; set; }
 
-            set
-            {
-                this.broker = value;
-            }
-        }
-
-        private ZkConfig zooKeeper;
-
-        public ZkConfig ZooKeeper
-        {
-            get
-            {
-                return this.zooKeeper;
-            }
-
-            set
-            {
-                this.zooKeeper = value;
-            }
-        }
-
-        private string partitionerClass;
-
-        public string PartitionerClass
-        {
-            get
-            {
-                return this.partitionerClass;
-            }
-
-            set
-            {
-                this.partitionerClass = value;
-            }
-        }
+        public string PartitionerClass { get; set; }
 
         public ProducerTypes ProducerType { get; set; }
 

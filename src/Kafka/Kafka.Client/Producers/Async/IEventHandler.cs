@@ -15,6 +15,5 @@
         /// </summary>
         /// <param name="events"></param>
         void Handle(IEnumerable<KeyedMessage<TKey, TValue>> events);
-
     }
 }

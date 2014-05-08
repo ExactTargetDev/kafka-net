@@ -207,7 +207,6 @@
     <Compile Include="Extensions\DateTimeHelper.cs" />
     <Compile Include="Extensions\ListExtensions.cs" />
     <Compile Include="Messages\ByteBufferMessageSet.cs" />
-    <Compile Include="Messages\ByteBufferMessageSetIterator.cs" />
     <Compile Include="Messages\CompressionCodec.cs" />
     <Compile Include="Messages\CompressionCodecs.cs" />
     <Compile Include="Messages\CompressionFactory.cs" />
@@ -220,8 +219,6 @@
     <Compile Include="Network\BoundedByteBufferReceive.cs" />
     <Compile Include="Network\BoundedByteBufferSend.cs" />
     <Compile Include="Network\InvalidRequestException.cs" />
-    <Compile Include="Network\Receive.cs" />
-    <Compile Include="Network\Send.cs" />
     <Compile Include="Network\Transmission.cs" />
     <Compile Include="Producers\Async\DefaultEventHandler.cs" />
     <Compile Include="Producers\Async\IEventHandler.cs" />

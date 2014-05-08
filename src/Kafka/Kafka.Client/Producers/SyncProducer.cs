@@ -1,12 +1,10 @@
 ﻿namespace Kafka.Client.Producers
 {
     using System;
-    using System.Diagnostics;
     using System.IO;
     using System.Reflection;
 
     using Kafka.Client.Api;
-    using Kafka.Client.Cfg;
     using Kafka.Client.Network;
 
     using log4net;
@@ -19,19 +17,19 @@
 
         public readonly Random RandomGenerator = new Random();
 
-        private object @lock = new object();
+        private readonly object @lock = new object();
 
-        private bool shutdown = false;
+        private bool shutdown;
 
-        private BlockingChannel blockingChannel;
+        private readonly BlockingChannel blockingChannel;
 
         public string BrokerInfo { get; private set; }
 
-        public SyncProducerConfiguration Config { get; private set; }
+        public SyncProducerConfig Config { get; private set; }
 
-        private ProducerRequestStats producerRequestStats;
+        private readonly ProducerRequestStats producerRequestStats;
 
-        public SyncProducer(SyncProducerConfiguration config)
+        public SyncProducer(SyncProducerConfig config)
         {
             Logger.Debug("Instantiating Scala Sync Producer");
 
@@ -59,7 +57,6 @@
                     Logger.Debug(innerRequest.ToString());
                 }
             }
-
         }
 
         public Receive DoSend(RequestOrResponse request, bool readResponse = true)
@@ -72,7 +69,7 @@
                 Receive response = null;
                 try
                 {
-                    blockingChannel.Send(request);
+                    this.blockingChannel.Send(request);
                     if (readResponse)
                     {
                         response = this.blockingChannel.Receive();
@@ -82,12 +79,13 @@
                         Logger.Debug("Skipping reading response");
                     }
                 }
-                catch (IOException e)
+                catch (IOException)
                 {
                     // no way to tell if write succeeded. Disconnect and re-throw exception to let client handle retry
                     this.Disconnect();
-                    throw e;
+                    throw;
                 }
+
                 return response;
             }
         }
@@ -95,12 +93,12 @@
         public ProducerResponse Send(ProducerRequest producerRequest)
         {
             var requestSize = producerRequest.SizeInBytes;
-            producerRequestStats.GetProducerRequestStats(BrokerInfo).RequestSizeHist.Update(requestSize);
-            producerRequestStats.GetProducerRequestAllBrokersStats().RequestSizeHist.Update(requestSize);
+            this.producerRequestStats.GetProducerRequestStats(this.BrokerInfo).RequestSizeHist.Update(requestSize);
+            this.producerRequestStats.GetProducerRequestAllBrokersStats().RequestSizeHist.Update(requestSize);
 
             Receive response = null;
-            var specificTimer = producerRequestStats.GetProducerRequestStats(BrokerInfo).RequestTimer;
-            var aggregateTimer = producerRequestStats.GetProducerRequestAllBrokersStats().RequestTimer;
+            var specificTimer = this.producerRequestStats.GetProducerRequestStats(this.BrokerInfo).RequestTimer;
+            var aggregateTimer = this.producerRequestStats.GetProducerRequestAllBrokersStats().RequestTimer;
 
             aggregateTimer.Time(() => specificTimer.Time(() =>
                 {
@@ -128,7 +126,7 @@
             lock (@lock)
             {
                 this.Disconnect();
-                shutdown = true;
+                this.shutdown = true;
             }
         }
 
@@ -142,32 +140,33 @@
             {
                 if (this.blockingChannel.IsConnected)
                 {
-                    Logger.InfoFormat("Disconnecting from {0}:{1}", Config.Host, Config.Port);
+                    Logger.InfoFormat("Disconnecting from {0}:{1}", this.Config.Host, this.Config.Port);
                     this.blockingChannel.Disconnect();
                 }
             } 
             catch (Exception e) 
             {
-                Logger.ErrorFormat("Error on disconnect", e);
+                Logger.Error("Error on disconnect", e);
             }
         }
 
         private BlockingChannel Connect()
         {
-            if (!this.blockingChannel.IsConnected && !shutdown)
+            if (!this.blockingChannel.IsConnected && !this.shutdown)
             {
                 try
                 {
                     this.blockingChannel.Connect();
-                    Logger.InfoFormat("Connected to {0}:{1} for producing", Config.Host, Config.Port);
+                    Logger.InfoFormat("Connected to {0}:{1} for producing", this.Config.Host, this.Config.Port);
                 }
                 catch (Exception e)
                 {
                     this.Disconnect();
-                    Logger.ErrorFormat("Producer connection to {0}:{1} unsuccessful", Config.Host, Config.Port, e);
-                    throw e;
+                    Logger.Error(string.Format("Producer connection to {0}:{1} unsuccessful", this.Config.Host, this.Config.Port), e);
+                    throw;
                 }
             }
+
             return this.blockingChannel;
         }
 
@@ -178,7 +177,5 @@
                 this.Connect();
             }
         }
-
-
     }
 }

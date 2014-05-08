@@ -15,19 +15,16 @@
  * limitations under the License.
  */
 
-namespace Kafka.Client.Cfg
+namespace Kafka.Client.Producers.Async
 {
-    using System.Collections.Generic;
-
+    using Kafka.Client.Cfg;
     using Kafka.Client.Cfg.Sections;
-    using Kafka.Client.Utils;
 
     /// <summary>
     /// Configuration used by the asynchronous producer
     /// </summary>
-    public class AsyncProducerConfig : SyncProducerConfiguration
+    public class AsyncProducerConfig : SyncProducerConfig
     {
-
         public const int DefaultQueueBufferingMaxMs = 5000;
 
         public const int DefaultQueueBufferingMaxMessages = 10000;
@@ -39,7 +36,6 @@ namespace Kafka.Client.Cfg
         public const string DefaultSerializerClass = "Kafka.Client.Serializers.DefaultEncoder";
 
         public const string DefaultKeySerializerClass = DefaultSerializerClass;
-
 
         public AsyncProducerConfig()
         {
@@ -54,7 +50,6 @@ namespace Kafka.Client.Cfg
         public AsyncProducerConfig(ProducerConfig config, string host, int port)
             : base(config, host, port)
         {
-
             this.QueueBufferingMaxMs = config.QueueBufferingMaxMs;
             this.QueueBufferingMaxMessages = config.QueueBufferingMaxMessages;
             this.QueueEnqueueTimeoutMs = config.QueueEnqueueTimeoutMs;
@@ -66,7 +61,6 @@ namespace Kafka.Client.Cfg
         public AsyncProducerConfig(ProducerConfigurationSection config, string host, int port)
             : base(config, host, port)
         {
-
             this.QueueBufferingMaxMs = config.QueueBufferingMaxMs;
             this.QueueBufferingMaxMessages = config.QueueBufferingMaxMessages;
             this.QueueEnqueueTimeoutMs = config.QueueEnqueueTimeoutMs;

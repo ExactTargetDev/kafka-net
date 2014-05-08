@@ -5,7 +5,6 @@
     public class IllegalQueueStateException : Exception
     {
         public IllegalQueueStateException()
-            : base()
         {
         }
 
@@ -13,6 +12,5 @@
             : base(message)
         {
         }
-         
     }
 }

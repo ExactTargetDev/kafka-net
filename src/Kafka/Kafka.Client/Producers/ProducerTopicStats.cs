@@ -23,37 +23,41 @@
         }
     }
 
+    /// <summary>
+    /// Tracks metrics for each topic the given producer client has produced data to.
+    /// </summary>
     public class ProducerTopicStats
     {
-        private Func<ClientIdAndTopic, ProducerTopicMetrics> valueFactory;
+        private readonly Func<ClientIdAndTopic, ProducerTopicMetrics> valueFactory;
 
-        private Pool<ClientIdAndTopic, ProducerTopicMetrics> stats;
+        private readonly Pool<ClientIdAndTopic, ProducerTopicMetrics> stats;
 
-        private ProducerTopicMetrics allTopicsStats;
+        private readonly ProducerTopicMetrics allTopicsStats;
 
         public ProducerTopicStats(string clientId)
         {
             this.ClientId = clientId;
-            valueFactory = (k) => new ProducerTopicMetrics(k);
-            stats = new Pool<ClientIdAndTopic, ProducerTopicMetrics>(this.valueFactory);
-            allTopicsStats = new ProducerTopicMetrics(new ClientIdAndTopic(ClientId, "AllTopics"));
-            
+            this.valueFactory = k => new ProducerTopicMetrics(k);
+            this.stats = new Pool<ClientIdAndTopic, ProducerTopicMetrics>(this.valueFactory);
+            this.allTopicsStats = new ProducerTopicMetrics(new ClientIdAndTopic(this.ClientId, "AllTopics"));
         }
 
         public ProducerTopicMetrics GetProducerAllTopicsStats()
         {
-            return allTopicsStats;
+            return this.allTopicsStats;
         }
 
         public ProducerTopicMetrics GetProducerTopicStats(string topic)
         {
-            return stats.GetAndMaybePut(new ClientIdAndTopic(ClientId, topic + "-"));
+            return this.stats.GetAndMaybePut(new ClientIdAndTopic(this.ClientId, topic + "-"));
         }
 
         public string ClientId { get; private set; } 
-
     }
 
+    /// <summary>
+    /// Stores the topic stats information of each producer client in a (clientId -> ProducerTopicStats) map.
+    /// </summary>
     public static class ProducerTopicStatsRegistry
     {
         private static Func<string, ProducerTopicStats> valueFactory;
@@ -62,7 +66,7 @@
 
         static ProducerTopicStatsRegistry()
         {
-            valueFactory = (k) => new ProducerTopicStats(k);
+            valueFactory = k => new ProducerTopicStats(k);
             globalStats = new Pool<string, ProducerTopicStats>(valueFactory);
         }
 
@@ -71,5 +75,4 @@
             return globalStats.GetAndMaybePut(clientId);
         }
     }
-
 }

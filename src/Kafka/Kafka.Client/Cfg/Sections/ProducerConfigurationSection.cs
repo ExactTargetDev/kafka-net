@@ -24,6 +24,8 @@ namespace Kafka.Client.Cfg.Sections
 
     using Kafka.Client.Cfg.Elements;
     using Kafka.Client.Messages;
+    using Kafka.Client.Producers;
+    using Kafka.Client.Producers.Async;
 
     public class ProducerConfigurationSection : ConfigurationSection
     {
@@ -207,7 +209,7 @@ namespace Kafka.Client.Cfg.Sections
 
         [ConfigurationProperty(
            "sendBufferBytes",
-           DefaultValue = SyncProducerConfiguration.DefaultSendBufferBytes,
+           DefaultValue = SyncProducerConfig.DefaultSendBufferBytes,
            IsRequired = false)]
         public int SendBufferBytes
         {
@@ -219,7 +221,7 @@ namespace Kafka.Client.Cfg.Sections
 
         [ConfigurationProperty(
            "clientId",
-           DefaultValue = SyncProducerConfiguration.DefaultClientId,
+           DefaultValue = SyncProducerConfig.DefaultClientId,
            IsRequired = false)]
         public string ClientId
         {
@@ -231,7 +233,7 @@ namespace Kafka.Client.Cfg.Sections
 
         [ConfigurationProperty(
            "requestRequiredAcks",
-           DefaultValue = SyncProducerConfiguration.DefaultRequiredAcks,
+           DefaultValue = SyncProducerConfig.DefaultRequiredAcks,
            IsRequired = false)]
         public short RequestRequiredAcks
         {
@@ -243,7 +245,7 @@ namespace Kafka.Client.Cfg.Sections
 
         [ConfigurationProperty(
            "requestTimeoutMs",
-           DefaultValue = SyncProducerConfiguration.DefaultAckTimeout,
+           DefaultValue = SyncProducerConfig.DefaultAckTimeout,
            IsRequired = false)]
         public int RequestTimeoutMs
         {

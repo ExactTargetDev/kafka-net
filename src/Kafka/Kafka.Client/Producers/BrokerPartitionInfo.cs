@@ -9,14 +9,12 @@
     using Kafka.Client.Client;
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
+    using Kafka.Client.Extensions;
 
     using log4net;
 
-    using Kafka.Client.Extensions;
-
     internal class BrokerPartitionInfo
     {
-
         private ProducerConfig producerConfig;
 
         private ProducerPool producerPool;
@@ -25,9 +23,9 @@
 
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private IList<BrokerConfiguration> brokerList;
+        private readonly IList<BrokerConfiguration> brokerList;
 
-        private IList<Broker> brokers;
+        private readonly IList<Broker> brokers;
 
         public BrokerPartitionInfo(ProducerConfig producerConfig, ProducerPool producerPool, Dictionary<string, TopicMetadata> topicPartitionInfo)
         {
@@ -39,13 +37,13 @@
             this.brokers = ClientUtils.ParseBrokerList(this.brokerList);
         }
 
-
         /// <summary>
         /// Return a sequence of (brokerId, numPartitions).
         /// </summary>
-        /// <param name="topic"></param>
+        /// <param name="topic">the topic for which this information is to be returned</param>
+        /// <param name="correlationId"></param>
         /// <returns></returns>
-        public IList<PartitionAndLeader> GetBrokerPartitionInfo(string topic, int correlationId)
+        public List<PartitionAndLeader> GetBrokerPartitionInfo(string topic, int correlationId)
         {
             Logger.DebugFormat("Getting broker partition info for topic {0}", topic);
 
@@ -53,16 +51,17 @@
             if (!this.topicPartitionInfo.ContainsKey(topic))
             {
                 // refresh the topic metadata cache
-                this.UpdateInfo(new HashSet<string> {topic}, correlationId);
+                this.UpdateInfo(new HashSet<string> { topic }, correlationId);
                 if (!this.topicPartitionInfo.ContainsKey(topic))
                 {
                     throw new KafkaException(string.Format("Failed to fetch topic metadata for topic: {0}", topic));
                 }
             }
+
             var metadata = this.topicPartitionInfo.Get(topic);
             var partitionMetadata = metadata.PartitionsMetadata;
 
-            if (partitionMetadata.Count() == 0)
+            if (!partitionMetadata.Any())
             {
                 if (metadata.ErrorCode != ErrorMapping.NoError)
                 {
@@ -89,8 +88,7 @@
                         m.PartitionId);
                     return new PartitionAndLeader(topic, m.PartitionId, null);
                 }
-            }
-                ).OrderBy(x => x.PartitionId).ToList();
+            }).OrderBy(x => x.PartitionId).ToList();
         }
 
         /// <summary>
@@ -100,7 +98,7 @@
         /// <param name="correlationId"></param>
         public void UpdateInfo(ISet<string> topics, int correlationId)
         {
-            List<TopicMetadata> topicsMetadata = null;
+            List<TopicMetadata> topicsMetadata;
             var topicMetadataResponse = ClientUtils.FetchTopicMetadata(topics, this.brokers, this.producerConfig, correlationId);
             topicsMetadata = topicMetadataResponse.TopicsMetadata;
 
@@ -127,6 +125,22 @@
             }
 
             this.producerPool.UpdateProducer(topicsMetadata);
+        }
+    }
+
+    internal class PartitionAndLeader
+    {
+        public string Topic { get; private set; }
+
+        public int PartitionId { get; private set; }
+
+        public int? LeaderBrokerIdOpt { get; private set; }
+
+        public PartitionAndLeader(string topic, int partitionId, int? leaderBrokerIdOpt)
+        {
+            this.Topic = topic;
+            this.PartitionId = partitionId;
+            this.LeaderBrokerIdOpt = leaderBrokerIdOpt;
         }
     }
 }

@@ -5,13 +5,19 @@ using Kafka.Client.Extensions;
 namespace Kafka.Client.Utils
 {
     using System.Reflection;
+    using System.Runtime.CompilerServices;
     using System.Text;
 
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Producers;
 
+    using log4net;
+    using log4net.Repository.Hierarchy;
+
     /// <summary>
     /// Original name: Utils
+    /// 
+    /// General helper functions!
     /// </summary>
     public static class Util
     {
@@ -20,11 +26,10 @@ namespace Kafka.Client.Utils
          /// </summary>
          /// <param name="stream"></param>
          /// <returns></returns>
-
         public static byte[] ReadBytes(ByteBuffer buffer)
-         {
+        {
              return ReadBytes(buffer, 0, buffer.Limit());
-         }
+        }
 
         public static byte[] ReadBytes(ByteBuffer buffer, int offset, int size)
         {
@@ -103,6 +108,18 @@ namespace Kafka.Client.Utils
             var bytes = new byte[buffer.Remaining()];
             buffer.Get(bytes);
             return Encoding.UTF8.GetString(bytes);
+        }
+
+        public static void SwallowError(ILog logger, Action action)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e.Message, e);
+            }
         }
 
     }

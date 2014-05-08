@@ -15,15 +15,19 @@
 
     public class Producer<TKey, TValue> : IDisposable
     {
-        private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private readonly ProducerConfig config;
 
         private readonly IEventHandler<TKey, TValue> eventHandler;
 
-        public Producer(ProducerConfig config) : this(config, new DefaultEventHandler<TKey, TValue>(config, 
-                Util.CreateObject<IPartitioner>(config.PartitionerClass, config), 
-                Util.CreateObject<IEncoder<TValue>>(config.Serializer, config),
+        public Producer(ProducerConfig config)
+            : this(
+                config,
+                new DefaultEventHandler<TKey, TValue>(
+                    config,
+                    Util.CreateObject<IPartitioner>(config.PartitionerClass, config),
+                    Util.CreateObject<IEncoder<TValue>>(config.Serializer, config),
                 Util.CreateObject<IEncoder<TKey>>(config.KeySerializer, config),
                 new ProducerPool(config))) 
         {
@@ -39,7 +43,7 @@
              if (config.ProducerType == ProducerTypes.Async)
              {
                  this.sync = false;
-                 this.producerSendThread = new ProducerSendThread<TKey, TValue>("ProducerSendThread-" + config.ClientId, queue, eventHandler, config.QueueBufferingMaxMs, config.BatchNumMessages, config.ClientId);
+                 this.producerSendThread = new ProducerSendThread<TKey, TValue>("ProducerSendThread-" + config.ClientId, this.queue, eventHandler, config.QueueBufferingMaxMs, config.BatchNumMessages, config.ClientId);
                  this.producerSendThread.Start();
              }
 
@@ -48,11 +52,13 @@
 
         private readonly AtomicBoolean hasShutdown = new AtomicBoolean(false);
 
-        private readonly BlockingCollection<KeyedMessage<TKey, TValue>> queue = null;
+        private readonly BlockingCollection<KeyedMessage<TKey, TValue>> queue;
 
         private bool sync = true;
-        private ProducerSendThread<TKey, TValue> producerSendThread = null;
-        private object lockObject = new object();
+
+        private ProducerSendThread<TKey, TValue> producerSendThread;
+
+        private readonly object lockObject = new object();
 
         private readonly ProducerTopicStats producerTopicStats;
 
@@ -60,18 +66,18 @@
 
         public void Send(params KeyedMessage<TKey, TValue>[] messages)
         {
-            lock (lockObject)
+            lock (this.lockObject)
             {
-                if (hasShutdown.Get())
+                if (this.hasShutdown.Get())
                 {
                     throw new ProducerClosedException();
                 }
 
                 this.RecordStats(messages);
 
-                if (sync)
+                if (this.sync)
                 {
-                    eventHandler.Handle(messages);
+                    this.eventHandler.Handle(messages);
                 }
                 else
                 {
@@ -84,8 +90,8 @@
         {
             foreach (var message in messages)
             {
-                producerTopicStats.GetProducerTopicStats(message.Topic).MessageRate.Mark();
-                producerTopicStats.GetProducerAllTopicsStats().MessageRate.Mark();
+                this.producerTopicStats.GetProducerTopicStats(message.Topic).MessageRate.Mark();
+                this.producerTopicStats.GetProducerAllTopicsStats().MessageRate.Mark();
             }
         }
 
@@ -109,7 +115,7 @@
                             }
                             else
                             {
-                                added = this.queue.TryAdd(message, config.QueueEnqueueTimeoutMs);
+                                added = this.queue.TryAdd(message, this.config.QueueEnqueueTimeoutMs);
                             }
                         }
                         catch (Exception ex)
@@ -117,24 +123,25 @@
                             Logger.Error("Error in AsyncSend", ex);
                             added = false;
                         }
+
                         break;
                 }
+
                 if (!added)
                 {
-                    producerTopicStats.GetProducerTopicStats(message.Topic).DroppedMessageRate.Mark();
-                    producerTopicStats.GetProducerAllTopicsStats().DroppedMessageRate.Mark();
+                    this.producerTopicStats.GetProducerTopicStats(message.Topic).DroppedMessageRate.Mark();
+                    this.producerTopicStats.GetProducerAllTopicsStats().DroppedMessageRate.Mark();
                     throw new QueueFullException(
                         "Event queue is full of unsent messages, could not send event: " + message);
                 }
                 else
                 {
-                    if (Logger.IsDebugEnabled)
+                    if (this.Logger.IsDebugEnabled)
                     {
-                        Logger.Debug("Added to send queue an event: " + message);
-                        Logger.Debug("Remaining queue size: " + (this.queue.BoundedCapacity - this.queue.Count));
+                        this.Logger.Debug("Added to send queue an event: " + message);
+                        this.Logger.Debug("Remaining queue size: " + (this.queue.BoundedCapacity - this.queue.Count));
                     }
                 }
-               
             }
         }
 
@@ -149,11 +156,12 @@
                 var canShutdown = this.hasShutdown.CompareAndSet(false, true);
                 if (canShutdown)
                 {
-                    Logger.Info("Shutting down producer");
+                    this.Logger.Info("Shutting down producer");
                     if (this.producerSendThread != null)
                     {
                         this.producerSendThread.Shutdown();
                     }
+
                     this.eventHandler.Dispose();
                 }
             }

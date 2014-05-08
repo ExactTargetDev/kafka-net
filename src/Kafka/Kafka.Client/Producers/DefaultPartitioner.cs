@@ -8,7 +8,6 @@
     {
         public DefaultPartitioner(ProducerConfig config)
         {
-            
         }
 
         public int Partition(object key, int numPartitions)

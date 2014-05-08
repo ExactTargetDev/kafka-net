@@ -1,13 +1,7 @@
 ﻿using System;
-using System.IO;
-using Kafka.Client.Common;
-using Kafka.Client.Extensions;
-using Kafka.Client.Serializers;
 
 namespace Kafka.Client.Messages
 {
-    using System.Collections;
-
     using Kafka.Client.Common.Imported;
 
     /// <summary>
@@ -22,6 +16,9 @@ namespace Kafka.Client.Messages
     /// </summary>
     public class Message
     {
+        /// <summary>
+        /// The current offset and size for all the fixed-length fields
+        /// </summary>
         private const int CrcOffset = 0;
         private const int CrcLength = 4;
         private const int MagicOffset = CrcOffset + CrcLength;
@@ -33,10 +30,30 @@ namespace Kafka.Client.Messages
         private const int KeyOffset = KeySizeOffset + KeySizeLength;
         private const int ValueSizeLength = 4;
 
+        /// <summary>
+        /// The amount of overhead bytes in a message
+        /// </summary>
         private const int MessageOverhead = KeyOffset + ValueSizeLength;
+
+        /// <summary>
+        /// The minimum valid size for the message header
+        /// </summary>
         public const int MinHeaderSize = CrcLength + MagicLength + AttributesLength + KeySizeLength + ValueSizeLength;
+
+        /// <summary>
+        /// The current "magic" value
+        /// </summary>
         private const byte CurrentMagicValue = 0;
+
+        /// <summary>
+        /// Specifies the mask for the compression code. 2 bits to hold the compression codec.
+        /// 0 is reserved to indicate no compression
+        /// </summary>
         private const byte CompressionCodeMask = 0x03;
+
+        /// <summary>
+        /// Compression code for uncompressed messages
+        /// </summary>
         private const int NoCompression = 0;
 
         private readonly ByteBuffer buffer;
@@ -54,7 +71,14 @@ namespace Kafka.Client.Messages
             } 
         }
 
-
+        /// <summary>
+        ///  A constructor to create a Message
+        /// </summary>
+        /// <param name="bytes">The payload of the message</param>
+        /// <param name="key">The key of the message (null, if none)</param>
+        /// <param name="codec">The compression codec used on the contents of the message (if any)</param>
+        /// <param name="payloadOffset">The offset into the payload array used to extract payload</param>
+        /// <param name="payloadSize">The size of the payload to use</param>
         public Message(byte[] bytes, byte[] key, CompressionCodecs codec, int payloadOffset, int payloadSize)
         {
             this.buffer = ByteBuffer.Allocate(CrcLength +
@@ -95,10 +119,10 @@ namespace Kafka.Client.Messages
             {
                 this.buffer.Write(bytes, payloadOffset, size);
             }
+
             this.buffer.Rewind();
 
             Utils.Util.WriteUnsignedInt(this.buffer, CrcOffset, this.ComputeChecksum());
-
         }
 
         public Message(byte[] bytes, byte[] key, CompressionCodecs codec) : this(bytes, key, codec, 0, -1)
@@ -123,7 +147,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public long ComputeChecksum()
         {
-            return Utils.Util.Crc32(this.buffer.Array, buffer.ArrayOffset() + MagicOffset, (int)this.buffer.Length - MagicOffset);
+            return Utils.Util.Crc32(this.buffer.Array, this.buffer.ArrayOffset() + MagicOffset, (int)this.buffer.Length - MagicOffset);
         }
 
         /// <summary>
@@ -147,7 +171,6 @@ namespace Kafka.Client.Messages
             get { return this.Checksum == this.ComputeChecksum(); }
         }
 
-
         /// <summary>
         /// Throw an InvalidMessageException if isValid is false for this message
         /// </summary>
@@ -155,7 +178,7 @@ namespace Kafka.Client.Messages
         {
             if (!this.IsValid)
             {
-                throw new InvalidMessageException(string.Format("Message is corrupt (stored crc = {0}, computed crc = {1})", Checksum, ComputeChecksum()));
+                throw new InvalidMessageException(string.Format("Message is corrupt (stored crc = {0}, computed crc = {1})", this.Checksum, this.ComputeChecksum()));
             }
         }
 
@@ -174,7 +197,7 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         public int KeySize
         {
-            get { return this.buffer.GetInt(Message.KeySizeOffset); }
+            get { return this.buffer.GetInt(KeySizeOffset); }
         }
 
         /// <summary>
@@ -264,14 +287,14 @@ namespace Kafka.Client.Messages
         /// <returns></returns>
         private ByteBuffer SliceDelimited(int start)
         {
-            var size = buffer.GetInt(start);
+            var size = this.buffer.GetInt(start);
             if (size < 0)
             {
                 return null;
             }
             else
             {
-                var b = buffer.Duplicate();
+                var b = this.buffer.Duplicate();
                 b.Position = start + 4;
                 b = b.Slice();
                 b.Limit(size);

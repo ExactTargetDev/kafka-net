@@ -32,35 +32,34 @@
         public KeyedMessage(string topic, TValue message)
             : this(topic, default(TKey), null, message)
         {
-            
         }
 
         public KeyedMessage(string topic, TKey key, TValue message)
             : this(topic, key, key, message)
         {
-
         }
 
         public object PartitionKey
         {
             get
             {
-                if (PartKey != null)
+                if (this.PartKey != null)
                 {
-                    return PartKey;
+                    return this.PartKey;
                 }
+
                 if (this.HasKey)
                 {
                     return this.Key;
                 }
+
                 return null;
             }
         }
 
-
-
         public bool HasKey 
-        { get
+        { 
+            get
             {
                 return this.Key != null;
             }
@@ -77,14 +76,17 @@
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
+
             if (obj.GetType() != this.GetType())
             {
                 return false;
             }
+
             return Equals((KeyedMessage<TKey, TValue>)obj);
         }
 
@@ -92,7 +94,7 @@
         {
             unchecked
             {
-                int hashCode = (this.Topic != null ? this.Topic.GetHashCode() : 0);
+                int hashCode = this.Topic != null ? this.Topic.GetHashCode() : 0;
                 hashCode = (hashCode * 397) ^ EqualityComparer<TKey>.Default.GetHashCode(this.Key);
                 hashCode = (hashCode * 397) ^ (this.PartKey != null ? this.PartKey.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ EqualityComparer<TValue>.Default.GetHashCode(this.Message);

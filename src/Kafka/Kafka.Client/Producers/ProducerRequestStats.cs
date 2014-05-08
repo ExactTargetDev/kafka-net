@@ -9,15 +9,12 @@
 
     internal class ProducerRequestMetrics
     {
-        private ClientIdAndBroker metricId;
-
         public KafkaTimer RequestTimer { get; private set; }
 
         public IHistogram RequestSizeHist { get; private set; }
 
         public ProducerRequestMetrics(ClientIdAndBroker metricId)
         {
-            this.metricId = metricId;
             this.RequestTimer = new KafkaTimer(MetersFactory.NewTimer(metricId + "ProducerRequestRateAndTimeMs", TimeSpan.FromMilliseconds(1), TimeSpan.FromSeconds(1)));
             this.RequestSizeHist = MetersFactory.NewHistogram(metricId + "ProducerRequestSize");
         }
@@ -28,36 +25,35 @@
     /// </summary>
     internal class ProducerRequestStats
     {
-        private string clientId;
+        private readonly Func<ClientIdAndBroker, ProducerRequestMetrics> valueFactory;
+
+        private readonly Pool<ClientIdAndBroker, ProducerRequestMetrics> stats;
+
+        private readonly ProducerRequestMetrics allBrokersStats;
+
+        private readonly string clientId;
 
         public ProducerRequestStats(string clientId)
         {
             this.clientId = clientId;
         }
 
-        private Func<ClientIdAndBroker, ProducerRequestMetrics> valueFactory;
-
-        private Pool<ClientIdAndBroker, ProducerRequestMetrics> stats;
-
-        private ProducerRequestMetrics allBrokersStats;
-
         public ProducerRequestStats()
         {
             this.valueFactory = k => new ProducerRequestMetrics(k);
-            this.stats = new Pool<ClientIdAndBroker, ProducerRequestMetrics>(valueFactory);
-            this.allBrokersStats = new ProducerRequestMetrics(new ClientIdAndBroker(clientId, "AllBrokers"));
+            this.stats = new Pool<ClientIdAndBroker, ProducerRequestMetrics>(this.valueFactory);
+            this.allBrokersStats = new ProducerRequestMetrics(new ClientIdAndBroker(this.clientId, "AllBrokers"));
         }
 
         public ProducerRequestMetrics GetProducerRequestAllBrokersStats()
         {
-            return allBrokersStats;
+            return this.allBrokersStats;
         }
 
         public ProducerRequestMetrics GetProducerRequestStats(string brokerInfo)
         {
-            return stats.GetAndMaybePut(new ClientIdAndBroker(clientId, brokerInfo + "-"));
+            return this.stats.GetAndMaybePut(new ClientIdAndBroker(this.clientId, brokerInfo + "-"));
         }
-
     }
 
     /// <summary>
@@ -79,8 +75,5 @@
         {
             return globalStats.GetAndMaybePut(clientId);
         }
-
     }
-
-
 }

@@ -1,19 +1,17 @@
 ﻿namespace Kafka.Client.Network
 {
-    using System;
     using System.IO;
 
     using Kafka.Client.Common.Imported;
-    using Kafka.Client.Extensions;
 
     /// <summary>
     /// Represents a communication between the client and server
     /// </summary>
-    public class BoundedByteBufferReceive : Receive
+    internal class BoundedByteBufferReceive : Receive
     {
-        private ByteBuffer sizeBuffer = ByteBuffer.Allocate(4);
+        private readonly ByteBuffer sizeBuffer = ByteBuffer.Allocate(4);
 
-        private ByteBuffer contentBuffer = null;
+        private ByteBuffer contentBuffer;
 
         public int MaxSize { get; private set; }
 
@@ -61,6 +59,7 @@
                 {
                     throw new InvalidRequestException(string.Format("{0} is not a valid request size", size));
                 }
+
                 if (size > this.MaxSize)
                 {
                     throw new InvalidRequestException(
@@ -69,6 +68,7 @@
                             size,
                             this.MaxSize));
                 }
+
                 this.contentBuffer = this.ByteBufferAllocate(size);
             }
 
@@ -85,8 +85,8 @@
                     this.complete = true;
                 }
             }
-            return read;
 
+            return read;
         }
 
         private ByteBuffer ByteBufferAllocate(int size)

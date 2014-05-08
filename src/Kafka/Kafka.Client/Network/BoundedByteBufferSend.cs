@@ -5,9 +5,8 @@
 
     using Kafka.Client.Api;
     using Kafka.Client.Common.Imported;
-    using Kafka.Client.Extensions;
 
-    public class BoundedByteBufferSend : Send
+    internal class BoundedByteBufferSend : Send
     {
         public ByteBuffer Buffer { get; private set; }
 
@@ -17,10 +16,11 @@
         {
             this.Buffer = buffer;
 
-            if (buffer.Remaining() > int.MaxValue - sizeBuffer.Limit())
+            if (buffer.Remaining() > int.MaxValue - this.sizeBuffer.Limit())
             {
-                throw new ArgumentException("Attempt to create a bounded buffer of " + buffer.Length + "bytes, but the maximum allowable size for a bounded buffer is " + (int.MaxValue - sizeBuffer.Length) );
+                throw new ArgumentException("Attempt to create a bounded buffer of " + buffer.Length + "bytes, but the maximum allowable size for a bounded buffer is " + (int.MaxValue - this.sizeBuffer.Length));
             }
+
             this.sizeBuffer.PutInt(buffer.Limit());
             this.sizeBuffer.Rewind();
         }
@@ -30,15 +30,15 @@
         {
         }
 
-        public BoundedByteBufferSend(RequestOrResponse request) : this(request.SizeInBytes + ((request.RequestId.HasValue) ? 2 : 0))
+        public BoundedByteBufferSend(RequestOrResponse request) : this(request.SizeInBytes + (request.RequestId.HasValue ? 2 : 0))
         {
             if (request.RequestId.HasValue)
             {
-                Buffer.PutShort(request.RequestId.Value);
+                this.Buffer.PutShort(request.RequestId.Value);
             } 
 
-            request.WriteTo(Buffer);
-            Buffer.Rewind();
+            request.WriteTo(this.Buffer);
+            this.Buffer.Rewind();
         }
 
         public override int WriteTo(Stream channel)
@@ -46,9 +46,9 @@
             this.ExpectIncomplete();
             var written = 0;
             channel.Write(this.sizeBuffer.Array, this.sizeBuffer.ArrayOffset(), this.sizeBuffer.Limit());
-            written += (int)sizeBuffer.Length;
-            channel.Write(Buffer.Array, this.Buffer.ArrayOffset(), this.Buffer.Limit());
-            written += (int)Buffer.Length;
+            written += (int)this.sizeBuffer.Length;
+            channel.Write(this.Buffer.Array, this.Buffer.ArrayOffset(), this.Buffer.Limit());
+            written += (int)this.Buffer.Length;
 
             // custom: since .net Write doesn't return written bytes we assume that all was written.
             

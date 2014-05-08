@@ -1,10 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using Kafka.Client.Common;
-
-namespace Kafka.Client.Messages
+﻿namespace Kafka.Client.Messages
 {
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Text;
 
@@ -29,12 +27,22 @@ namespace Kafka.Client.Messages
 
         public static ByteBufferMessageSet Empty = new ByteBufferMessageSet(ByteBuffer.Allocate(0));
 
+        /// <summary>
+        /// The size of a message set containing the given messages
+        /// </summary>
+        /// <param name="messages"></param>
+        /// <returns></returns>
         public static int MessageSetSize(IEnumerable<Message> messages)
         {
             return messages.Aggregate(
                 0, (i, message) => i + EntrySize(message));
         }
 
+        /// <summary>
+        /// The size of a size-delimited entry in a message set
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
         public static int EntrySize(Message message)
         {
             return LogOverhead + message.Size;
@@ -102,12 +110,15 @@ namespace Kafka.Client.Messages
                 {
                     builder.Append(", ");
                 }
+
                 i++;
             }
+
             if (iter.HasNext())
             {
                 builder.Append("...");
             }
+
             builder.Append(")");
             return builder.ToString();
         }

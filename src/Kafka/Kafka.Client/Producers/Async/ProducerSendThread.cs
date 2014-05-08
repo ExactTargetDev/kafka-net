@@ -6,10 +6,14 @@
     using System.ComponentModel;
     using System.Linq;
     using System.Reflection;
-    using System.Threading;
+
+    using Kafka.Client.Common;
 
     using log4net;
-    
+
+    using Spring.Threading;
+
+    // TODO: rewrite this class!
     public class ProducerSendThread<TKey, TValue>
     {
         public string ThreadName { get; private set; }
@@ -26,10 +30,11 @@
 
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private static ManualResetEvent mre = new ManualResetEvent(false);
-        private KeyedMessage<TKey, TValue> shutdownCommand = new KeyedMessage<TKey, TValue>("shutdown", default(TKey), default(TValue));
+        private readonly CountDownLatch shutdownLatch = new CountDownLatch(1);
 
-        private BackgroundWorker backgroundWorker;
+        private readonly KeyedMessage<TKey, TValue> shutdownCommand = new KeyedMessage<TKey, TValue>("shutdown", default(TKey), default(TValue));
+
+        private readonly BackgroundWorker backgroundWorker;
 
         public ProducerSendThread(string threadName, BlockingCollection<KeyedMessage<TKey, TValue>> queue, IEventHandler<TKey, TValue> handler, int queueTime, int batchSize, string clientId)
         {
@@ -40,11 +45,12 @@
             this.BatchSize = batchSize;
             this.ClientId = clientId;
             this.backgroundWorker = new BackgroundWorker();
-            this.backgroundWorker.DoWork += new DoWorkEventHandler(Run);
+            this.backgroundWorker.DoWork += this.Run;
+
+            MetersFactory.NewGauge(clientId + "-ProducerQueueSize", () => this.Queue.Count);
         }
 
-
-        void Run(object sender, DoWorkEventArgs e)
+        internal void Run(object sender, DoWorkEventArgs e)
         {
             try
             {
@@ -139,7 +145,7 @@
         {
             Logger.Info("Beginning shutting down ProducerSendAsyncWorker");
             this.Queue.Add(this.shutdownCommand);
-            mre.WaitOne();
+            this.shutdownLatch.Await();
             Logger.Info("Shutdown ProducerSendAsyncWorker complete");
         }
 
