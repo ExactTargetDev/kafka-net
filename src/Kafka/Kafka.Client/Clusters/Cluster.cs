@@ -2,8 +2,6 @@
 {
     using System.Collections.Generic;
 
-    using Kafka.Client.Extensions;
-
     /// <summary>
     ///  The set of active brokers in the cluster
     /// </summary>
@@ -21,17 +19,16 @@
 
         public Cluster()
         {
-            
         }
-
 
         public Broker GetBroker(int id)
         {
             Broker result;
-            if (brokers.TryGetValue(id, out result))
+            if (this.brokers.TryGetValue(id, out result))
             {
                 return result;
             }
+
             return null;
         }
 
@@ -40,7 +37,7 @@
             this.brokers[broker.Id] = broker;
         }
 
-        public void Remote(int id)
+        public void Remove(int id)
         {
             this.brokers.Remove(id);
         }

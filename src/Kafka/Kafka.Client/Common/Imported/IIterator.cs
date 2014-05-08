@@ -1,6 +1,6 @@
 ﻿namespace Kafka.Client.Common.Imported
 {
-    public interface IIterator<TValue>
+    public interface IIterator<out TValue>
     {
         bool HasNext();
 

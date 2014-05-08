@@ -1,5 +1,9 @@
 ﻿namespace Kafka.Client.Common
 {
+    /// <summary>
+    /// Convenience case class since (clientId, topic) pairs are used in the creation
+    /// of many Stats objects.
+    /// </summary>
     public class ClientIdAndTopic
     {
         public string ClientId { get; private set; }
@@ -23,15 +27,18 @@
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
+
             if (obj.GetType() != this.GetType())
             {
                 return false;
             }
-            return Equals((ClientIdAndTopic)obj);
+
+            return this.Equals((ClientIdAndTopic)obj);
         }
 
         public override int GetHashCode()

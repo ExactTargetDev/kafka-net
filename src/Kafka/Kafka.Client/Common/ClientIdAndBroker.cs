@@ -1,5 +1,9 @@
 ﻿namespace Kafka.Client.Common
 {
+    /// <summary>
+    /// Convenience case class since (clientId, brokerInfo) pairs are used to create
+    /// SyncProducer Request Stats and SimpleConsumer Request and Response Stats.
+    /// </summary>
     public class ClientIdAndBroker
     {
         public string ClientId { get; private set; }

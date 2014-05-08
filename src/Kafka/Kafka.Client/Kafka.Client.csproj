@@ -129,7 +129,6 @@
     <Compile Include="Api\OffsetResponse.cs" />
     <Compile Include="Api\ProducerRequest.cs" />
     <Compile Include="Api\ProducerResponse.cs" />
-    <Compile Include="Api\Request.cs" />
     <Compile Include="Api\RequestKeys.cs" />
     <Compile Include="Api\RequestOrResponse.cs" />
     <Compile Include="Api\TopicMetadata.cs" />
@@ -174,7 +173,7 @@
     <Compile Include="Common\KafkaException.cs" />
     <Compile Include="Common\Imported\AtomicInteger.cs" />
     <Compile Include="Common\Imported\AtomicLong.cs" />
-    <Compile Include="Common\InvalidMessageException.cs" />
+    <Compile Include="Messages\InvalidMessageException.cs" />
     <Compile Include="Common\LeaderNotAvailableException.cs" />
     <Compile Include="Common\MessageSizeTooLargeException.cs" />
     <Compile Include="Common\MetersFactory.cs" />

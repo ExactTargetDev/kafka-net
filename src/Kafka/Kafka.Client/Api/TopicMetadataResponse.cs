@@ -2,12 +2,10 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
 
     using Kafka.Client.Clusters;
     using Kafka.Client.Common.Imported;
-    using Kafka.Client.Extensions;
 
     public class TopicMetadataResponse : RequestOrResponse
     {
@@ -51,7 +49,7 @@
 
         public override string ToString()
         {
-            return string.Format("TopicMetadataResponse(TopicsMetadata: {0}, SizeInBytes: {1})", string.Join("," , this.TopicsMetadata), this.SizeInBytes);
+            return string.Format("TopicMetadataResponse(TopicsMetadata: {0}, SizeInBytes: {1})", string.Join(",", this.TopicsMetadata), this.SizeInBytes);
         }
     }
 }

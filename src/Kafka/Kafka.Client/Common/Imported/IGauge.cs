@@ -1,7 +1,7 @@
 ﻿namespace Kafka.Client.Common.Imported
 {
-    public interface IGauge
+    public interface IGauge<T>
     {
-         
+        T Value { get; }
     }
 }

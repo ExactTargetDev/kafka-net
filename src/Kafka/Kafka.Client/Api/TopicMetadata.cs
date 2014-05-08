@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Text;
 
@@ -118,16 +119,6 @@
 
     public class PartitionMetadata
     {
-        public int PartitionId { get; private set; }
-
-        internal Broker Leader { get; private set; }
-
-        internal IEnumerable<Broker> Replicas { get; private set; }
-
-        internal IEnumerable<Broker> Isr { get; private set; }
-
-        public short ErrorCode { get; private set; }
-
         public static PartitionMetadata ReadFrom(ByteBuffer buffer, Dictionary<int, Broker> brokers)
         {
             var errorCode = ApiUtils.ReadShortInRange(
@@ -149,6 +140,16 @@
             return new PartitionMetadata(partitionId, leader, replicas, isr, errorCode);
         }
 
+        public int PartitionId { get; private set; }
+
+        internal Broker Leader { get; private set; }
+
+        internal IEnumerable<Broker> Replicas { get; private set; }
+
+        internal IEnumerable<Broker> Isr { get; private set; }
+
+        public short ErrorCode { get; private set; }
+
         public PartitionMetadata(int partitionId, Broker leader, IEnumerable<Broker> replicas, IEnumerable<Broker> isr = null, short errorCode = ErrorMapping.NoError)
         {
             if (isr == null)
@@ -165,6 +166,7 @@
 
         public int SizeInBytes
         {
+            [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1407:ArithmeticExpressionsMustDeclarePrecedence", Justification = "Reviewed. Suppression is OK here.")]
             get
             {
                 return 2 + /* error code */
@@ -173,7 +175,7 @@
                     4 +
                     4 * this.Replicas.Count() /* replica array */ +
                     4 +
-                    4 * Isr.Count(); /* isr array */;
+                    4 * this.Isr.Count(); /* isr array */
             }
         }
 
@@ -204,12 +206,12 @@
         public override string ToString()
         {
             var partitionMetadataString = new StringBuilder();
-            partitionMetadataString.Append("partition: " + PartitionId);
-            partitionMetadataString.Append(" leader: " + ((Leader != null) ? this.FormatBroker(Leader) : "None"));
+            partitionMetadataString.Append("partition: " + this.PartitionId);
+            partitionMetadataString.Append(" leader: " + ((this.Leader != null) ? this.FormatBroker(this.Leader) : "None"));
             partitionMetadataString.Append(
                 " replicas: " + string.Join(", ", this.Replicas.Select(this.FormatBroker)));
             partitionMetadataString.Append(" isr: " + string.Join(", ", this.Isr.Select(this.FormatBroker)));
-            partitionMetadataString.Append(" isUnderReplicated " + (Isr.Count() < Replicas.Count() ? "true" : "false"));
+            partitionMetadataString.Append(" isUnderReplicated " + (this.Isr.Count() < this.Replicas.Count() ? "true" : "false"));
             return partitionMetadataString.ToString();
         }
 
@@ -217,6 +219,5 @@
         {
             return string.Format("{0} ({1}:{2})", broker.Id, broker.Host, broker.Port);
         }
-
     }
 }

@@ -2,6 +2,9 @@
 {
     using System;
 
+    /// <summary>
+    /// Convenience case class since (topic, partition) pairs are ubiquitous.
+    /// </summary>
     public class TopicAndPartition
     {
         public string Topic { get; private set; }
@@ -17,6 +20,11 @@
         public TopicAndPartition(Tuple<string, int> tuple)
             : this(tuple.Item1, tuple.Item2)
         {
+        }
+
+        public Tuple<string, int> AsTuple()
+        {
+            return Tuple.Create(this.Topic, this.Partiton);
         }
 
         public override string ToString()
@@ -35,14 +43,17 @@
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
+
             if (obj.GetType() != this.GetType())
             {
                 return false;
             }
+
             return Equals((TopicAndPartition)obj);
         }
 

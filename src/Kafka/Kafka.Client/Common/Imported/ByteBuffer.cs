@@ -10,8 +10,10 @@
 
         private int mark = -1;
 
-        private int position = 0;
+        private int position;
+
         private int limit;
+
         private int capacity;
 
         private ByteBuffer(int mark, int pos, int lim, int cap)
@@ -20,6 +22,7 @@
             {
                 throw new ArgumentException("Negative capacity: " + cap, "cap");
             }
+
             this.capacity = cap;
             this.Limit(lim);
             this.Position = pos;
@@ -29,6 +32,7 @@
                 {
                     throw new ArgumentException("mark > position: (" + mark + " > " + pos + ")");
                 }
+
                 this.mark = mark;
             }
         }
@@ -40,145 +44,169 @@
 
         public int Limit()
         {
-            return limit;
+            return this.limit;
         }
 
         public ByteBuffer Limit(int newLimit)
         {
-            if ((newLimit > capacity) || (newLimit < 0))
+            if ((newLimit > this.capacity) || (newLimit < 0))
+            {
                 throw new ArgumentException();
-            limit = newLimit;
-            if (position > limit) position = limit;
-            if (mark > limit) mark = -1;
+            }
+                
+            this.limit = newLimit;
+            if (this.position > this.limit)
+            {
+                this.position = this.limit;
+            }
+
+            if (this.mark > this.limit)
+            {
+                this.mark = -1;
+            }
+
             return this;
         }
 
         public ByteBuffer Mark()
         {
-            mark = position;
+            this.mark = this.position;
             return this;
         }
 
         public ByteBuffer Reset()
         {
-            int m = mark;
+            int m = this.mark;
             if (m < 0)
+            {
                 throw new Exception();
-            position = m;
+            }
+                
+            this.position = m;
             return this;
         }
 
         public ByteBuffer Clear()
         {
-            position = 0;
-            limit = capacity;
-            mark = -1;
+            this.position = 0;
+            this.limit = this.capacity;
+            this.mark = -1;
             return this;
         }
 
         public ByteBuffer Flip()
         {
-            limit = position;
-            position = 0;
-            mark = -1;
+            this.limit = this.position;
+            this.position = 0;
+            this.mark = -1;
             return this;
         }
 
         public ByteBuffer Rewind()
         {
-            position = 0;
-            mark = -1;
+            this.position = 0;
+            this.mark = -1;
             return this;
         }
 
         public int Remaining()
         {
-            return limit - position;
+            return this.limit - this.position;
         }
 
         public bool HasRemaining()
         {
-            return position < limit;
+            return this.position < this.limit;
         }
 
         internal int NextGetIndex()
         {
-            if (position >= limit)
+            if (this.position >= this.limit)
             {
                 throw new ArgumentOutOfRangeException();
             }
-            return position++;
+
+            return this.position++;
         }
 
         internal int NextGetIndex(int nb)
         {
-            if (limit - position < nb)
+            if (this.limit - this.position < nb)
             {
                 throw new ArgumentOutOfRangeException();
             }
-            int p = position;
-            position += nb;
+
+            int p = this.position;
+            this.position += nb;
             return p;
         }
 
         internal int NextPutIndex()
         {
-            if (position >= limit)
+            if (this.position >= this.limit)
             {
                 throw new ArgumentOutOfRangeException();
             }
-            return position++;
+
+            return this.position++;
         }
 
         internal int NextPutIndex(int nb)
         {
-            if (limit - position < nb)
+            if (this.limit - this.position < nb)
             {
                 throw new ArgumentOutOfRangeException();
             }
-            int p = position;
-            position += nb;
+
+            int p = this.position;
+            this.position += nb;
             return p;
         }
 
         internal int CheckIndex(int i)
         {
-            if ((i < 0) || (i >= limit))
+            if ((i < 0) || (i >= this.limit))
             {
                 throw new ArgumentOutOfRangeException();
             }
+
             return i;
         }
 
         internal int CheckIndex(int i, int nb)
         {
-            if ((i < 0) || (nb > limit - i))
+            if ((i < 0) || (nb > this.limit - i))
+            {
                 throw new ArgumentOutOfRangeException();
+            }
+                
             return i;
         }
 
         internal int MarkValue()
         {
-            return mark;
+            return this.mark;
         }
 
         internal void Truncate()
         {
-            mark = -1;
-            position = 0;
-            limit = 0;
-            capacity = 0;
+            this.mark = -1;
+            this.position = 0;
+            this.limit = 0;
+            this.capacity = 0;
         }
 
         internal void DiscardMark()
         {
-            mark = -1;
+            this.mark = -1;
         }
 
         internal static void CheckBounds(int off, int len, int size)
         {
             if ((off | len | (off + len) | (size - (off + len))) < 0)
+            {
                 throw new IndexOutOfRangeException();
+            }
         }
 
         #endregion
@@ -204,6 +232,7 @@
             {
                 throw new ArgumentException();
             }
+
             return new HeapByteBuffer(capacity, capacity);
         }
 
@@ -213,7 +242,7 @@
             {
                 return new HeapByteBuffer(array, offset, length);
             }
-            catch (ArgumentException x)
+            catch (ArgumentException)
             {
                 throw new IndexOutOfRangeException();
             }
@@ -239,92 +268,117 @@
         public virtual ByteBuffer Get(byte[] dst, int offset, int length)
         {
             CheckBounds(offset, length, dst.Length);
-            if (length > Remaining())
+            if (length > this.Remaining())
+            {
                 throw new ArgumentOutOfRangeException();
+            }
+                
             int end = offset + length;
             for (int i = offset; i < end; i++)
-                dst[i] = Get();
+            {
+                dst[i] = this.Get();
+            }
+
             return this;
         }
 
         public ByteBuffer Get(byte[] dst)
         {
-            return Get(dst, 0, dst.Length);
+            return this.Get(dst, 0, dst.Length);
         }
 
         public virtual ByteBuffer Put(ByteBuffer src)
         {
             if (src == this)
+            {
                 throw new ArgumentException();
+            }
+                
             int n = src.Remaining();
-            if (n > Remaining())
+            if (n > this.Remaining())
+            {
                 throw new ArgumentOutOfRangeException();
+            }
+
             for (int i = 0; i < n; i++)
-                Put(src.Get());
+            {
+                this.Put(src.Get());
+            }
+
             return this;
         }
 
         public virtual ByteBuffer Put(byte[] src, int offset, int length)
         {
             CheckBounds(offset, length, src.Length);
-            if (length > Remaining())
+            if (length > this.Remaining())
+            {
                 throw new IndexOutOfRangeException();
+            }
+
             int end = offset + length;
             for (int i = offset; i < end; i++)
+            {
                 this.Put(src[i]);
+            }
+                
             return this;
         }
 
         public ByteBuffer Put(byte[] src)
         {
-            return Put(src, 0, src.Length);
+            return this.Put(src, 0, src.Length);
         }
 
         public bool HasArray()
         {
-            return (hb != null) && !isReadOnly;
+            return (this.hb != null) && !this.isReadOnly;
         }
 
         public byte[] Array
         {
             get
             {
-                return hb;
+                return this.hb;
             }
         }
 
         public int ArrayOffset()
         {
-            if (hb == null)
+            if (this.hb == null)
+            {
                 throw new InvalidOperationException();
-            if (isReadOnly)
-                throw new UnauthorizedAccessException();
-            return offset;
-        }
+            }
 
+            if (this.isReadOnly)
+            {
+                throw new UnauthorizedAccessException();
+            }
+                
+            return this.offset;
+        }
 
         public abstract ByteBuffer Compact();
 
-
         public abstract bool IsDirect();
 
-        public override String ToString()
+        public override string ToString()
         {
             var sb = new StringBuilder();
             sb.Append(this.GetType().Name);
             sb.Append("[pos=");
-            sb.Append(Position);
+            sb.Append(this.Position);
             sb.Append(" lim=");
-            sb.Append(Limit());
+            sb.Append(this.Limit());
             sb.Append(" cap=");
-            sb.Append(Capacity());
+            sb.Append(this.Capacity());
             sb.Append("]");
             return sb.ToString();
         }
 
         public override int GetHashCode()
         {
-            return (this.hb != null ? this.hb.GetHashCode() : 0);
+            return this.hb != null ? this.hb.GetHashCode() : 0;
         }
 
         protected bool Equals(ByteBuffer other)
@@ -333,13 +387,19 @@
             {
                 return false;
             }
+
             int p = (int)this.Position;
+
             for (int i = this.Limit() - 1, j = other.Limit() - 1; i >= p; i--, j--)
+            {
                 if (!Equals(this.Get(i), other.Get(j)))
+                {
                     return false;
+                }
+            }
+
             return true;
         }
-
 
         public override bool Equals(object obj)
         {
@@ -347,15 +407,18 @@
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
+
             if (obj.GetType() != this.GetType())
             {
                 return false;
             }
-            return Equals((ByteBuffer)obj);
+
+            return this.Equals((ByteBuffer)obj);
         }
 
         internal abstract byte _Get(int i);
@@ -420,7 +483,7 @@
         {
             get
             {
-                return isReadOnly == false;
+                return this.isReadOnly == false;
             }
         }
 
@@ -454,17 +517,21 @@
             {
                 return this.position;
             }
+
             set
             {
-                if ((value > limit) || (value < 0))
+                if ((value > this.limit) || (value < 0))
                 {
                     throw new ArgumentException();
                 }
-                position = (int)value;
-                if (mark > position) mark = -1;
+
+                this.position = (int)value;
+                if (this.mark > this.position)
+                {
+                    this.mark = -1;
+                }
             }
         }
-
         #endregion
     }
 }

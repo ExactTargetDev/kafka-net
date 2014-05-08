@@ -2,6 +2,9 @@
 {
     using System;
 
+    /// <summary>
+    /// Indicates the queue for sending messages is full of unsent messages
+    /// </summary>
     public class QueueFullException : Exception
     {
         public QueueFullException()

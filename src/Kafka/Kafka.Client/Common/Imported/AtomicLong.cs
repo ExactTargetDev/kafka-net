@@ -1,14 +1,14 @@
-﻿using System.Threading;
-
-namespace Kafka.Client.Common.Imported
+﻿namespace Kafka.Client.Common.Imported
 {
+    using System.Threading;
+
     public class AtomicLong
     {
         private long value;
 
         public AtomicLong(long initialValue)
         {
-            value = initialValue;
+            this.value = initialValue;
         }
 
         public AtomicLong() : this(0)
@@ -17,12 +17,12 @@ namespace Kafka.Client.Common.Imported
 
         public long Get()
         {
-            return Interlocked.Read(ref value);
+            return Interlocked.Read(ref this.value);
         }
 
         public void Set(long newValue)
         {
-            Interlocked.Exchange(ref value, newValue);
+            Interlocked.Exchange(ref this.value, newValue);
         }
 
         public long GetAndIncrement()

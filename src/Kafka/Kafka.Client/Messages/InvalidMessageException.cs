@@ -1,4 +1,4 @@
-﻿namespace Kafka.Client.Common
+﻿namespace Kafka.Client.Messages
 {
     using System;
 

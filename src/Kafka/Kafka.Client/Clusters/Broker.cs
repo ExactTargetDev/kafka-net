@@ -1,17 +1,43 @@
 ﻿namespace Kafka.Client.Clusters
 {
     using System;
-    using System.IO;
 
     using Kafka.Client.Api;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
-    using Kafka.Client.Extensions;
 
     using Newtonsoft.Json.Linq;
 
     public class Broker
     {
+        public static Broker CreateBroker(int id, string brokerInfoString)
+        {
+            if (brokerInfoString == null)
+            {
+                throw new BrokerNotAvailableException(string.Format("Broker id {0} does not exist", id));
+            }
+
+            try
+            {
+                var brokerInfo = JObject.Parse(brokerInfoString);
+                var host = brokerInfo["host"].Value<string>();
+                var port = brokerInfo["port"].Value<int>();
+                return new Broker(id, host, port);
+            }
+            catch (Exception e)
+            {
+                throw new KafkaException("Failed to parse the broker info from zookeeper: " + brokerInfoString, e);
+            }
+        }
+
+        internal static Broker ReadFrom(ByteBuffer buffer)
+        {
+            var id = buffer.GetInt();
+            var host = ApiUtils.ReadShortString(buffer);
+            var port = buffer.GetInt();
+            return new Broker(id, host, port);
+        }
+
         public int Id { get; private set; }
 
         public string Host { get; private set; }
@@ -50,25 +76,6 @@
             }
         }
 
-        public static Broker CreateBroker(int id, string brokerInfoString)
-        {
-            if (brokerInfoString == null)
-            {
-                throw new BrokerNotAvailableException(string.Format("Broker id {0} does not exist", id));
-            }
-            try
-            {
-                var brokerInfo = JObject.Parse(brokerInfoString);
-                var host = brokerInfo["host"].Value<string>();
-                var port = brokerInfo["port"].Value<int>();
-                return new Broker(id, host, port);
-            } 
-            catch (Exception e)
-            {
-                throw new KafkaException("Failed to parse the broker info from zookeeper: " + brokerInfoString, e);
-            }
-        }
-
         protected bool Equals(Broker other)
         {
             return this.Id == other.Id && string.Equals(this.Host, other.Host) && this.Port == other.Port;
@@ -98,14 +105,6 @@
                 hashCode = (hashCode * 397) ^ this.Port;
                 return hashCode;
             }
-        }
-
-        internal static Broker ReadFrom(ByteBuffer buffer)
-        {
-            var id = buffer.GetInt();
-            var host = ApiUtils.ReadShortString(buffer);
-            var port = buffer.GetInt();
-            return new Broker(id, host, port);
         }
     }
 }

@@ -5,6 +5,11 @@
 
     using System.Linq;
 
+    using Kafka.Client.Messages;
+
+    /// <summary>
+    /// A bi-directional mapping between error codes and exceptions x
+    /// </summary>
     public static class ErrorMapping
     {
         static ErrorMapping()

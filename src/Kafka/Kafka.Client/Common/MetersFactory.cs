@@ -21,9 +21,9 @@
             return new NoOpHistogram();
         }
 
-        public static IGauge NewGauge<T>(string name, Func<T> func)
+        public static IGauge<T> NewGauge<T>(string name, Func<T> func)
         {
-            return new NoOpGauge();
+            return new NoOpGauge<T>();
         }
     }
 
@@ -51,9 +51,15 @@
         }
     }
 
-    internal class NoOpGauge : IGauge
+    internal class NoOpGauge<T> : IGauge<T>
     {
-        // no op
+        public T Value 
+        { 
+            get
+            {
+                return default(T);
+            } 
+        }
     }
 
     internal class NoOpMeter : IMeter
