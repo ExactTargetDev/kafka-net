@@ -102,13 +102,16 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Crc32C.NET">
-      <HintPath>..\packages\Crc32C.NET.1.0.5.0\lib\net20\Crc32C.NET.dll</HintPath>
+      <HintPath>..\..\..\lib\Crc32C\Crc32C.NET.dll</HintPath>
     </Reference>
     <Reference Include="log4net">
       <HintPath>..\..\..\lib\log4Net\log4net.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.6.0.2\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Snappy.NET">
+      <HintPath>..\..\..\lib\Snappy.NET\Snappy.NET.dll</HintPath>
     </Reference>
     <Reference Include="Spring.Threading">
       <HintPath>..\..\..\lib\Spring.Threading\Spring.Threading.dll</HintPath>
@@ -140,11 +143,6 @@
     <Compile Include="Common\Config.cs" />
     <Compile Include="Consumers\TopicEventHandler.cs" />
     <Compile Include="Extensions\DictionaryExtensions.cs" />
-    <Compile Include="Messages\Compression\BitArrayManipulation.cs" />
-    <Compile Include="Messages\Compression\ByteBuffer.cs" />
-    <Compile Include="Messages\Compression\SnappyCompress.cs" />
-    <Compile Include="Messages\Compression\SnappyDecompress.cs" />
-    <Compile Include="Messages\Compression\SnappyHelper.cs" />
     <Compile Include="Metrics\KafkaMetricsReporter.cs" />
     <Compile Include="Producers\Async\AsyncProducerConfig.cs" />
     <Compile Include="Cfg\BrokerConfiguration.cs" />
