@@ -30,6 +30,30 @@ namespace Kafka.Client.Server
             this.Name = name;
             this.MetricPrefix = metricPrefix;
             this.NumFetchers = numFetchers;
+
+            MetersFactory.NewGauge(
+                metricPrefix + "-MaxLag",
+                () => this.fetcherThreadMap.Aggregate(
+                    0,
+                    (curMaxAll, fetcherThreadMapEntry) =>
+                        fetcherThreadMapEntry.Value.FetcherLagStats.Stats.Aggregate(
+                            0,
+                            (curMaxThread, fetcherLagStatsEntry) =>
+                            (int)Math.Max(curMaxThread, fetcherLagStatsEntry.Value.Lag))));
+
+            MetersFactory.NewGauge(
+                metricPrefix + "-MinFetchRate",
+                () =>
+                    {
+                        var headRate = fetcherThreadMap.Any()
+                                           ? fetcherThreadMap.First().Value.FetcherStats.RequestRate.OneMinuteRate()
+                                           : 0;
+
+                        return fetcherThreadMap.Aggregate(
+                            headRate,
+                            (curMinAll, fetcherThreadMapEntry) =>
+                            Math.Min(curMinAll, fetcherThreadMapEntry.Value.FetcherStats.RequestRate.OneMinuteRate()));
+                    });
         }
 
         private readonly Dictionary<BrokerAndFetcherId, AbstractFetcherThread> fetcherThreadMap = new Dictionary<BrokerAndFetcherId, AbstractFetcherThread>();

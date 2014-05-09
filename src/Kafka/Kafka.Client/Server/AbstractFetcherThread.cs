@@ -45,9 +45,9 @@
 
         private readonly ClientIdAndBroker metricId;
 
-        private readonly FetcherStats fetcherStats;
+        public FetcherStats FetcherStats { get; private set; }
 
-        private readonly FetcherLagStats fetcherLagStats;
+        public FetcherLagStats FetcherLagStats { get; private set; }
 
         private readonly FetchRequestBuilder fetchRequestBuilder;
 
@@ -81,8 +81,8 @@
 
             this.metricId = new ClientIdAndBroker(clientId, this.brokerInfo);
 
-            this.fetcherStats = new FetcherStats(this.metricId);
-            this.fetcherLagStats = new FetcherLagStats(this.metricId);
+            this.FetcherStats = new FetcherStats(this.metricId);
+            this.FetcherLagStats = new FetcherLagStats(this.metricId);
             this.fetchRequestBuilder =
                 new FetchRequestBuilder().ClientId(clientId)
                                          .ReplicaId(fetcherBrokerId)
@@ -176,7 +176,7 @@
                 }
             }
 
-            this.fetcherStats.RequestRate.Mark();
+            this.FetcherStats.RequestRate.Mark();
 
             if (response != null)
             {
@@ -209,9 +209,9 @@
                                                             : currentOffset;
 
                                         this.partitionMap[topicAndPartition] = newOffset;
-                                        this.fetcherLagStats.GetFetcherLagStats(topic, partitionId).Lag = partitionData.Hw
+                                        this.FetcherLagStats.GetFetcherLagStats(topic, partitionId).Lag = partitionData.Hw
                                                                                                      - newOffset;
-                                        this.fetcherStats.ByteRate.Mark(validBytes);
+                                        this.FetcherStats.ByteRate.Mark(validBytes);
 
                                         // Once we hand off the partition Data to the subclass, we can't mess with it any more in this thread
                                         this.ProcessPartitionData(topicAndPartition, currentOffset, partitionData);
@@ -382,18 +382,18 @@
 
         private readonly Func<ClientIdBrokerTopicPartition, FetcherLagMetrics> valueFactory;
 
-        private readonly Pool<ClientIdBrokerTopicPartition, FetcherLagMetrics> stats;
+        public Pool<ClientIdBrokerTopicPartition, FetcherLagMetrics> Stats { get; private set; }
 
         public FetcherLagStats(ClientIdAndBroker metricId)
         {
             this.metricId = metricId;
             this.valueFactory = k => new FetcherLagMetrics(k);
-            this.stats = new Pool<ClientIdBrokerTopicPartition, FetcherLagMetrics>(this.valueFactory);
+            this.Stats = new Pool<ClientIdBrokerTopicPartition, FetcherLagMetrics>(this.valueFactory);
         }
 
         internal FetcherLagMetrics GetFetcherLagStats(string topic, int partitionId)
         {
-            return this.stats.GetAndMaybePut(
+            return this.Stats.GetAndMaybePut(
                 new ClientIdBrokerTopicPartition(this.metricId.ClientId, this.metricId.BrokerInfo, topic, partitionId));
         }
     }

@@ -76,16 +76,10 @@
             }
             else
             {
-                throw new NotImplementedException();
-                /* TODO 
-                 *  val regex = topMap.head._1
-      val numStreams = topMap.head._2
-      val filter =
-        if (hasWhiteList)
-          new Whitelist(regex)
-        else
-          new Blacklist(regex)
-      new WildcardTopicCount(zkClient, consumerId, filter, numStreams)*/
+                var regex = topMap.First().Key;
+                var numStreams = topMap.First().Value;
+                TopicFilter filter = hasWhiteList ? (TopicFilter)new Whitelist(regex) : new Blacklist(regex);
+                return new WildcardTopicCount(zkClient, consumerId, filter, numStreams);
             }
         }
 
@@ -121,6 +115,7 @@
                 {
                     consumerSet.Add(consumerIdString + "-" + i);
                 }
+
                 consumerThreadIdsPerTopicMap[topic] = consumerSet;
             }
 
@@ -205,7 +200,10 @@
 
         public override IDictionary<string, ISet<string>> GetConsumerThreadIdsPerTopic()
         {
-            throw new NotImplementedException();
+            var wildcardTopics = ZkUtils.GetChildrenParentMayNotExist(this.ZkClient, ZkUtils.BrokerTopicsPath)
+                   .Where(x => TopicFilter.IsTopicAllowed(x))
+                   .ToList();
+            return this.MakeConsumerThreadIdsPerTopic(this.ConsumerIdString, wildcardTopics.ToDictionary(x => x, v => this.NumStreams));
         }
 
         public override IDictionary<string, int> TopicCountMap 

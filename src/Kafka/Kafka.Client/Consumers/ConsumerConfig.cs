@@ -25,12 +25,13 @@ namespace Kafka.Client.Consumers
     using Kafka.Client.Api;
     using Kafka.Client.Cfg.Elements;
     using Kafka.Client.Cfg.Sections;
+    using Kafka.Client.Common;
     using Kafka.Client.Utils;
 
     /// <summary>
     /// Configuration used by the consumer
     /// </summary>
-    public class ConsumerConfig
+    public class ConsumerConfig : Config
     {
         public const int RefreshMetadataBackoffMs = 200;
 
@@ -253,11 +254,6 @@ namespace Kafka.Client.Consumers
                 throw new ConfigurationErrorsException("Wrong value " + autoOffsetReset + "of auto.reset.offset in ConsumerConfig. "
                                                  + "Valid values are: " + OffsetRequest.SmallestTimeString + " and " + OffsetRequest.LargestTimeString);
             }
-        }
-
-        public static void ValidateChars(string prop, string value)
-        {
-            // TODO: extract to Config trait
         }
 
         private static string GetIpAddress(string host)

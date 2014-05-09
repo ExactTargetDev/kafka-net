@@ -7,6 +7,7 @@
     using Kafka.Client.Cfg;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
+    using Kafka.Client.Metrics;
     using Kafka.Client.Producers.Async;
     using Kafka.Client.Serializers;
     using Kafka.Client.Utils;
@@ -34,7 +35,7 @@
         }
 
         public Producer(ProducerConfig config, IEventHandler<TKey, TValue> eventHandler)
-         {
+        {
              this.config = config;
              this.eventHandler = eventHandler;
 
@@ -48,6 +49,8 @@
              }
 
             this.producerTopicStats = ProducerTopicStatsRegistry.GetProducerTopicStats(config.ClientId);
+
+            KafkaMetricsReporter.StartReporters(this.config);
          }
 
         private readonly AtomicBoolean hasShutdown = new AtomicBoolean(false);
@@ -61,8 +64,6 @@
         private readonly object lockObject = new object();
 
         private readonly ProducerTopicStats producerTopicStats;
-
-        //TODO: KafkaMetricsReporter.startReporters(config.props)
 
         public void Send(params KeyedMessage<TKey, TValue>[] messages)
         {

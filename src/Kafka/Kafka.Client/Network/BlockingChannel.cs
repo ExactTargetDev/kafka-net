@@ -64,7 +64,7 @@
 
                 this.channel.ReceiveTimeout = this.ReadTimeoutMs;
                 this.channel.NoDelay = true;
-                this.channel.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, 1); // TODO: verify this option!
+                this.channel.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, 1);
 
                 this.writeChannel = this.channel.GetStream();
                 this.readChannel = this.channel.GetStream();
@@ -72,13 +72,13 @@
 
                 // settings may not match what we requested above
                 Logger.DebugFormat(
-                    "Created socket with SO_TIMEOUT = {0} (requested {1}), SO_RCBBUG = {2} (requested {3}), SO_SNDBUF = {4} (requested {5}).",
-                    this.channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout),
+                    "Created socket with SO_TIMEOUT = {0} (requested {1}), SO_RCVBUF = {2} (requested {3}), SO_SNDBUF = {4} (requested {5}).",
+                    this.channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout),
                     this.ReadTimeoutMs,
-                        this.channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout),
-                        this.ReadBufferSize,
                         this.channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer),
-                        this.WriteBufferSize); // TODO: verify
+                        this.ReadBufferSize,
+                        this.channel.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer),
+                        this.WriteBufferSize);
             }
         }
 

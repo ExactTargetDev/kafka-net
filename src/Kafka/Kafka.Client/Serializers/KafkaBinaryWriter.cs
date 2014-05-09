@@ -27,7 +27,6 @@ namespace Kafka.Client.Serializers
     /// Writes Data into underlying stream using big endian bytes order for primitive types
     /// and UTF-8 encoding for strings.
     /// </summary>
-    [Obsolete]
     public class KafkaBinaryWriter : BinaryWriter
     {
         /// <summary>
@@ -87,32 +86,6 @@ namespace Kafka.Client.Serializers
         {
             short bigOrdered = IPAddress.HostToNetworkOrder(value);
             base.Write(bigOrdered);
-        }
-
-        /// <summary>
-        /// Writes topic and his size into underlying stream using given encoding.
-        /// </summary>
-        /// <param name="topic">
-        /// The topic to write.
-        /// </param>
-        /// <param name="encoding">
-        /// The encoding to use.
-        /// </param>
-        public void WriteShortString(string text, string encoding)
-        {
-            if (string.IsNullOrEmpty(text))
-            {
-                short defaultValue = -1;
-                this.Write(defaultValue);
-            }
-            else
-            {
-                var length = (short)text.Length;
-                this.Write(length);
-                Encoding encoder = Encoding.GetEncoding(encoding);
-                byte[] encodedTopic = encoder.GetBytes(text);
-                this.Write(encodedTopic);
-            }
         }
     }
 }

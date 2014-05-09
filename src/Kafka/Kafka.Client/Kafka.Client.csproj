@@ -101,6 +101,9 @@
     <AssemblyOriginatorKeyFile>KafkaClient.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Crc32C.NET">
+      <HintPath>..\packages\Crc32C.NET.1.0.5.0\lib\net20\Crc32C.NET.dll</HintPath>
+    </Reference>
     <Reference Include="log4net">
       <HintPath>..\..\..\lib\log4Net\log4net.dll</HintPath>
     </Reference>
@@ -134,7 +137,15 @@
     <Compile Include="Api\TopicMetadata.cs" />
     <Compile Include="Api\TopicMetadataRequest.cs" />
     <Compile Include="Api\TopicMetadataResponse.cs" />
+    <Compile Include="Common\Config.cs" />
+    <Compile Include="Consumers\TopicEventHandler.cs" />
     <Compile Include="Extensions\DictionaryExtensions.cs" />
+    <Compile Include="Messages\Compression\BitArrayManipulation.cs" />
+    <Compile Include="Messages\Compression\ByteBuffer.cs" />
+    <Compile Include="Messages\Compression\SnappyCompress.cs" />
+    <Compile Include="Messages\Compression\SnappyDecompress.cs" />
+    <Compile Include="Messages\Compression\SnappyHelper.cs" />
+    <Compile Include="Metrics\KafkaMetricsReporter.cs" />
     <Compile Include="Producers\Async\AsyncProducerConfig.cs" />
     <Compile Include="Cfg\BrokerConfiguration.cs" />
     <Compile Include="Cfg\Elements\BrokerConfigurationElement.cs" />
@@ -281,6 +292,7 @@
   <ItemGroup>
     <Content Include="TODO.txt" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

@@ -14,14 +14,23 @@
         {
             get
             {
-                throw new NotImplementedException();
+                return this.RawRegexp.Replace(",", "|").Replace(" ", string.Empty);
             }
         }
 
         protected TopicFilter(string rawRegexp)
         {
             this.RawRegexp = rawRegexp;
-            //TODO: pattern compile
+            try
+            {
+// ReSharper disable ObjectCreationAsStatement
+                new Regex(this.RawRegexp);
+// ReSharper restore ObjectCreationAsStatement
+            }
+            catch (Exception)
+            {
+                throw new Exception(rawRegexp + "is an invalid regex.");
+            }
         }
 
         public override string ToString()

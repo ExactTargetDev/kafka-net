@@ -18,8 +18,9 @@
 namespace Kafka.Client.Producers
 {
     using Kafka.Client.Cfg.Sections;
+    using Kafka.Client.Common;
 
-    public class SyncProducerConfig
+    public class SyncProducerConfig : Config
     {
         public const string DefaultClientId = "";
 

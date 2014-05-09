@@ -5,5 +5,7 @@
         void Mark();
 
         void Mark(int value);
+
+        double OneMinuteRate();
     }
 }

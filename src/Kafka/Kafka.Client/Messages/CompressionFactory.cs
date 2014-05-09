@@ -5,6 +5,8 @@
 
     using Kafka.Client.Common;
 
+    using Snappy;
+
     public class CompressionFactory
     {
          public static Stream BuildWriter(CompressionCodecs compressionCodec, Stream stream)
@@ -16,10 +18,9 @@
                  case CompressionCodecs.GZIPCompressionCodec:
                      return new GZipStream(stream, CompressionMode.Compress, true);
                  case CompressionCodecs.SnappyCompressionCodec:
-                     //return new SnappyStreeam(stream); //TODO:
+                     return new SnappyStream(stream, CompressionMode.Compress);
                  default:
                      throw new UnknownCodecException("Unknown codec " + compressionCodec);
-
              }
          }
 
@@ -27,12 +28,12 @@
         {
             switch (compressionCodec)
             {
-                case  CompressionCodecs.DefaultCompressionCodec:
+                case CompressionCodecs.DefaultCompressionCodec:
                     return new GZipStream(stream, CompressionMode.Decompress);
                 case CompressionCodecs.GZIPCompressionCodec:
                     return new GZipStream(stream, CompressionMode.Decompress);
                 case CompressionCodecs.SnappyCompressionCodec:
-                    //return new SnappyStream(stream); //TODO:
+                    return new SnappyStream(stream, CompressionMode.Decompress);
                 default:
                     throw new UnknownCodecException("Unknown codec " + compressionCodec);
             }

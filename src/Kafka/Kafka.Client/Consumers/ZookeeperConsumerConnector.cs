@@ -12,6 +12,7 @@
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
+    using Kafka.Client.Metrics;
     using Kafka.Client.Serializers;
     using Kafka.Client.Utils;
     using Kafka.Client.ZKClient;
@@ -132,7 +133,7 @@
                 this.scheduler.Schedule("kafka-consumer-autocommit", this.AutoCommit, TimeSpan.FromMilliseconds(config.AutoCommitIntervalMs), TimeSpan.FromMilliseconds(config.AutoCommitIntervalMs));
             }
 
-            // TODO: KafkaMetricsReporter.startReporters(config.props)
+            KafkaMetricsReporter.StartReporters(this.Config);
         }
 
         private readonly string consumerIdString;
@@ -157,7 +158,10 @@
         public IList<KafkaStream<TKey, TValue>> CreateMessageStreamsByFilter<TKey, TValue>(
             TopicFilter topicFilter, int numStreams = 1, IDecoder<TKey> keyDecoder = null, IDecoder<TValue> valueDecoder = null)
         {
-            throw new NotImplementedException();
+            var wildcardStreamsHandler = new WildcardStreamsHandler<TKey, TValue>(
+                this, topicFilter, numStreams, keyDecoder, valueDecoder);
+
+            return wildcardStreamsHandler.Streams();
         }
 
         private void CreateFetcher()
@@ -983,10 +987,110 @@
         }
         
 
-        internal class WildcardStreamsHandler<TKey, TValue>
+        internal class WildcardStreamsHandler<TKey, TValue> : ITopicEventHandler<string>
         {
-            // TODO: finish me
+            private TopicFilter topicFilter;
+
+            private int numStreams;
+
+            private IDecoder<TKey> keyDecoder;
+
+            private IDecoder<TValue> valueDecoder;
+
+            private readonly ZookeeperConsumerConnector parent;
+
+            internal WildcardStreamsHandler(
+                ZookeeperConsumerConnector parent,
+                TopicFilter topicFilter,
+                int numStreams,
+                IDecoder<TKey> keyDecoder,
+                IDecoder<TValue> valueDecoder)
+            {
+                this.parent = parent;
+                this.topicFilter = topicFilter;
+                this.numStreams = numStreams;
+                this.keyDecoder = keyDecoder;
+                this.valueDecoder = valueDecoder;
+
+                if (parent.messageStreamCreated.GetAndSet(true))
+                {
+                    throw new Exception("Each consumer connector can create message streams by filter at most once.");
+                }
+
+                this.wildcardQueuesAndStreams = Enumerable.Range(1, numStreams).Select(e =>
+                    {
+                        var queue = new BlockingCollection<FetchedDataChunk>(this.parent.Config.QueuedMaxMessages);
+                        var stream = new KafkaStream<TKey, TValue>(
+                            queue,
+                            this.parent.Config.ConsumerTimeoutMs,
+                            keyDecoder,
+                            valueDecoder,
+                            this.parent.Config.ClientId);
+                        return Tuple.Create(queue, stream);
+                    }).ToList();
+
+                this.wildcardTopics =
+                    ZkUtils.GetChildrenParentMayNotExist(this.parent.zkClient, ZkUtils.BrokerTopicsPath)
+                           .Where(topicFilter.IsTopicAllowed)
+                           .ToList();
+
+                this.wildcardTopicCount = TopicCount.ConstructTopicCount(
+                    this.parent.consumerIdString, topicFilter, numStreams, this.parent.zkClient);
+
+                this.dirs = new ZKGroupDirs(this.parent.Config.GroupId);
+
+                this.parent.RegisterConsumerInZK(dirs, this.parent.consumerIdString, this.wildcardTopicCount);
+                this.parent.ReinitializeConsumer(this.wildcardTopicCount, this.wildcardQueuesAndStreams);
+
+                // Topic events will trigger subsequent synced rebalances.
+                Logger.InfoFormat("Creating topic event watcher for topics {0}", topicFilter);
+                this.parent.wildcardTopicWatcher = new ZookeeperTopicEventWatcher(this.parent.zkClient, this);
+
+            }
+
+            private List<Tuple<BlockingCollection<FetchedDataChunk>, KafkaStream<TKey, TValue>>> wildcardQueuesAndStreams;
+
+            private List<string> wildcardTopics;
+
+            private readonly WildcardTopicCount wildcardTopicCount;
+
+            private readonly ZKGroupDirs dirs;
+
+            public void HandleTopicEvent(List<string> allTopics)
+            {
+                Logger.Debug("Handling topic event");
+                var updatedTopics = allTopics.Where(topicFilter.IsTopicAllowed).ToList();
+
+                var addedTopics = updatedTopics.Where(x => !wildcardTopics.Contains(x)).ToList();
+                if (addedTopics.Any())
+                {
+                    Logger.InfoFormat("Topic event: added topics = {0}", string.Join(",", addedTopics));
+                }
+
+                /*
+                   * Deleted topics are interesting (and will not be a concern until
+                   * 0.8 release). We may need to remove these topics from the rebalance
+                   * listener's map in reinitializeConsumer.
+                   */
+                var deletedTopics = wildcardTopics.Where(x => !updatedTopics.Contains(x)).ToList();
+                if (deletedTopics.Any())
+                {
+                    Logger.InfoFormat("Topic event: deleted topics = {0}", string.Join(",", deletedTopics));
+                }
+
+                wildcardTopics = updatedTopics;
+                Logger.InfoFormat("Topics to consume = {0}", string.Join(",", wildcardTopics));
+
+                if (addedTopics.Any() || deletedTopics.Any())
+                {
+                    this.parent.ReinitializeConsumer(wildcardTopicCount, wildcardQueuesAndStreams);
+                }
+            }
+
+            public List<KafkaStream<TKey, TValue>> Streams()
+            {
+                return wildcardQueuesAndStreams.Select(x => x.Item2).ToList();
+            }
         }
     }
-
 }

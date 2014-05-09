@@ -73,5 +73,10 @@
         {
             // no -op
         }
+
+        public double OneMinuteRate()
+        {
+            return 0;
+        }
     }
 }

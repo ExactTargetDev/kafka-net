@@ -43,7 +43,6 @@
                 var byteArrayStream = new MemoryStream(MessageSetSize(messages));
                 var offset = -1L;
 
-                //TODO: remove kafka binary writer
                 using (var output = new KafkaBinaryWriter(CompressionFactory.BuildWriter(compressionCodec, byteArrayStream)))
                 {
                     foreach (var message in messages)

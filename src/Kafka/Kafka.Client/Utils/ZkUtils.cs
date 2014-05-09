@@ -20,7 +20,7 @@
     using Newtonsoft.Json.Linq;
 
     using Org.Apache.Zookeeper.Data;
-
+    
     public static class ZkUtils
     {
         private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -91,6 +91,24 @@
             return topicDirs.ConsumerOwnerDir + "/" + partition;
         }
 
+        /// <summary>
+        /// make sure a persistent path exists in ZK. Create the path if not exist.
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="path"></param>
+        public static void MakeSurePersistentPathExists(ZkClient client, string path)
+        {
+            if (!client.Exists(path))
+            {
+                client.CreatePersistent(path, true); // won't throw NoNodeException or NodeExistsException
+            }
+        }
+
+        /// <summary>
+        ///  create the parent path
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="path"></param>
         private static void CreateParentPath(ZkClient client, string path)
         {
             var parentDir = path.Substring(0, path.LastIndexOf('/'));
@@ -100,6 +118,12 @@
             }
         }
 
+        /// <summary>
+        /// Create an ephemeral node with the given path and data. Create parents if necessary.
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="path"></param>
+        /// <param name="data"></param>
         private static void CreateEphemeralPath(ZkClient client, string path, string data)
         {
             try
@@ -113,6 +137,13 @@
             }
         }
 
+        /// <summary>
+        /// Create an ephemeral node with the given path and data.
+        /// Throw NodeExistException if node already exists.
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="path"></param>
+        /// <param name="data"></param>
         public static void CreateEphemeralPathExpectConflict(ZkClient client, string path, string data)
         {
             try
@@ -145,6 +176,24 @@
             }
         }
 
+        /// <summary>
+        /// Create an ephemeral node with the given path and data.
+        /// Throw NodeExistsException if node already exists.
+        /// Handles the following ZK session timeout b_u_g
+        ///
+        /// https://issues.apache.org/jira/browse/ZOOKEEPER-1740
+        ///
+        /// Upon receiving a NodeExistsException, read the data from the conflicted path and
+        /// trigger the checker function comparing the read data and the expected data,
+        /// If the checker function returns true then the above b_u_g might be encountered, back off and retry;
+        /// otherwise re-throw the exception
+        /// </summary>
+        /// <param name="zkClient"></param>
+        /// <param name="path"></param>
+        /// <param name="data"></param>
+        /// <param name="expectedCallerData"></param>
+        /// <param name="checker"></param>
+        /// <param name="backoffTime"></param>
         public static void CreateEphemeralPathExpectConflictHandleZKBug(
             ZkClient zkClient,
             string path,
@@ -191,6 +240,14 @@
             }
         }
 
+        /// <summary>
+        /// Update the value of a persistent node with the given path and data.
+        ///  create parrent directory if necessary. Never throw NodeExistException.
+        /// Return the updated path zkVersion
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="path"></param>
+        /// <param name="data"></param>
         public static void UpdatePersistentPath(ZkClient client, string path, string data)
         {
             try
@@ -329,6 +386,13 @@
             return consumerPerTopicMap;
         }
 
+        /// <summary>
+        /// This API takes in a broker id, queries zookeeper for the broker metadata and returns the metadata for that broker
+        /// or throws an exception if the broker dies before the query to zookeeper finishes
+        /// </summary>
+        /// <param name="zkClient">The zookeeper client connection</param>
+        /// <param name="brokerId">The broker id</param>
+        /// <returns>An optional Broker object encapsulating the broker metadata</returns>
         public static Broker GetBrokerInfo(ZkClient zkClient, int brokerId)
         {
             var brokerInfo = ReadDataMaybeNull(zkClient, BrokerIdsPath + "/" + brokerId);
