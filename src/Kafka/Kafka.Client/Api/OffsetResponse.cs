@@ -84,14 +84,60 @@
             }
         }
 
-        public override void WriteTo(ByteBuffer bufffer)
+        public override void WriteTo(ByteBuffer buffer)
         {
-            throw new NotSupportedException();
+            buffer.PutInt(CorrelationId);
+            buffer.PutInt(offsetsGroupedByTopic.Value.Count); // topic count
+            foreach (var kvp in offsetsGroupedByTopic.Value)
+            {
+                var topic = kvp.Key;
+                var errorAndOffsetsMap = kvp.Value;
+                ApiUtils.WriteShortString(buffer, topic);
+                buffer.PutInt(errorAndOffsetsMap.Count);
+                foreach (var topicPartitionAndErrorOffset in errorAndOffsetsMap)
+                {
+                    buffer.PutInt(topicPartitionAndErrorOffset.Key.Partiton);
+                    buffer.PutShort(topicPartitionAndErrorOffset.Value.Error);
+                    buffer.PutInt(topicPartitionAndErrorOffset.Value.Offsets.Count);
+                    foreach (var offset in topicPartitionAndErrorOffset.Value.Offsets)
+                    {
+                        buffer.PutLong(offset);
+                    }
+                }
+            }
         }
 
         public override string Describe(bool details)
         {
             return this.ToString();
+        }
+
+        protected bool Equals(OffsetResponse other)
+        {
+            return this.CorrelationId == other.CorrelationId
+                   && this.PartitionErrorAndOffsets.DictionaryEqual(other.PartitionErrorAndOffsets);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+            return Equals((OffsetResponse)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotSupportedException();
         }
     }
 
@@ -109,7 +155,7 @@
 
         protected bool Equals(PartitionOffsetsResponse other)
         {
-            return this.Error == other.Error && Equals(this.Offsets, other.Offsets);
+            return this.Error == other.Error && this.Offsets.SequenceEqual(other.Offsets);
         }
 
         public override bool Equals(object obj)

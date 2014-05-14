@@ -6,7 +6,6 @@
     using System.Linq;
     using System.Text;
 
-    using Kafka.Client.Cfg;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Consumers;
@@ -75,7 +74,27 @@
 
         public static FetchRequest ReadFrom(ByteBuffer buffer)
         {
-            throw new NotSupportedException();
+            var versionId = buffer.GetShort();
+            var correlationId = buffer.GetInt();
+            var clientId = ApiUtils.ReadShortString(buffer);
+            var replicaId = buffer.GetInt();
+            var maxWait = buffer.GetInt();
+            var minBytes = buffer.GetInt();
+            var topicCount = buffer.GetInt();
+            var pairs = Enumerable.Range(1, topicCount).SelectMany(_ =>
+                {
+                    var topic = ApiUtils.ReadShortString(buffer);
+                    var partitionCount = buffer.GetInt();
+                    return Enumerable.Range(1, partitionCount).Select(__ =>
+                        {
+                            var partitionId = buffer.GetInt();
+                            var offset = buffer.GetLong();
+                            var fetchSize = buffer.GetInt();
+                            return Tuple.Create(
+                                new TopicAndPartition(topic, partitionId), new PartitionFetchInfo(offset, fetchSize));
+                        });
+                });
+            return new FetchRequest(versionId, correlationId, clientId, replicaId, maxWait, minBytes, pairs.ToDictionary(x => x.Item1, x => x.Item2));
         }
 
         public short VersionId { get; private set; }
@@ -227,6 +246,39 @@
             }
 
             return fetchRequest.ToString();
+        }
+
+        protected bool Equals(FetchRequest other)
+        {
+            return this.VersionId == other.VersionId && string.Equals(this.ClientId, other.ClientId)
+                   && this.ReplicaId == other.ReplicaId && this.CorrelationId == other.CorrelationId
+                   && this.MaxWait == other.MaxWait && this.MinBytes == other.MinBytes
+                   && this.RequestInfo.DictionaryEqual(other.RequestInfo);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+
+            return Equals((FetchRequest)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotSupportedException();
         }
     }
 

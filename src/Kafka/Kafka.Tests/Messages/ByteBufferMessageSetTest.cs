@@ -1,7 +1,6 @@
 ﻿namespace Kafka.Tests
 {
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
     using System.Text;
 
@@ -10,8 +9,6 @@
     using Kafka.Tests.Utils;
 
     using Xunit;
-
-    using Kafka.Client.Extensions;
 
     public class ByteBufferMessageSetTest
     {
@@ -156,6 +153,7 @@
             Assert.True(messages.Equals(moreMessages));
         }
         /*
+        TODO: uncomment
         [Fact]
         public void TestIterator()
         {

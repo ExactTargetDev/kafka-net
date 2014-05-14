@@ -115,6 +115,36 @@
             topicMetadataInfo.Append("]");
             return topicMetadataInfo.ToString();
         }
+
+        protected bool Equals(TopicMetadata other)
+        {
+            return string.Equals(this.Topic, other.Topic) && this.PartitionsMetadata.SequenceEqual(other.PartitionsMetadata) && this.ErrorCode == other.ErrorCode;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+
+            return Equals((TopicMetadata)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotSupportedException();
+        }
     }
 
     public class PartitionMetadata
@@ -218,6 +248,33 @@
         private string FormatBroker(Broker broker)
         {
             return string.Format("{0} ({1}:{2})", broker.Id, broker.Host, broker.Port);
+        }
+
+        protected bool Equals(PartitionMetadata other)
+        {
+            return this.PartitionId == other.PartitionId && Equals(this.Leader, other.Leader) && this.Replicas.SequenceEqual(other.Replicas) && this.Isr.SequenceEqual(other.Isr) && this.ErrorCode == other.ErrorCode;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+            return Equals((PartitionMetadata)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotSupportedException();
         }
     }
 }

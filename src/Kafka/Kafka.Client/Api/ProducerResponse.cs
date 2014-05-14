@@ -73,14 +73,52 @@
             }
         }
 
-        public override void WriteTo(ByteBuffer bufffer)
+        public override void WriteTo(ByteBuffer buffer)
         {
-            throw new NotSupportedException();
+            var groupedStatus = this.statusGroupedByTopic.Value;
+            buffer.PutInt(this.CorrelationId);
+            buffer.PutInt(groupedStatus.Count); // topic count
+
+            foreach (var topicStatus in groupedStatus)
+            {
+                var topic = topicStatus.Key;
+                var errorsAndOffsets = topicStatus.Value;
+                ApiUtils.WriteShortString(buffer, topic);
+                buffer.PutInt(errorsAndOffsets.Count); // partition count
+                foreach (var kvp in errorsAndOffsets)
+                {
+                    buffer.PutInt(kvp.Key.Partiton);
+                    buffer.PutShort(kvp.Value.Error);
+                    buffer.PutLong(kvp.Value.Offset);
+                }
+            }
         }
 
         public override string Describe(bool details)
         {
             return this.ToString();
+        }
+
+        protected bool Equals(ProducerResponse other)
+        {
+            return this.CorrelationId == other.CorrelationId && this.Status.DictionaryEqual(other.Status);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+            return Equals((ProducerResponse)obj);
         }
     }
 
@@ -94,6 +132,33 @@
         {
             this.Error = error;
             this.Offset = offset;
+        }
+
+        protected bool Equals(ProducerResponseStatus other)
+        {
+            return this.Error == other.Error && this.Offset == other.Offset;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+            return Equals((ProducerResponseStatus)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotSupportedException();
         }
     }
 }

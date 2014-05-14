@@ -92,8 +92,6 @@ namespace Kafka.Client.Producers
 
         public IList<BrokerConfiguration> Brokers { get; set; }
 
-        public ZkConfig ZooKeeper { get; set; }
-
         public string PartitionerClass { get; set; }
 
         public ProducerTypes ProducerType { get; set; }
@@ -135,6 +133,22 @@ namespace Kafka.Client.Producers
                 && config.Partitioner != DefaultPartitioner)
             {
                 throw new ConfigurationErrorsException("IPartitioner cannot be used when broker list is set");
+            }
+
+            ValidateClientId(config.ClientId);
+            ValidateBatchSize(config.BatchNumMessages, config.QueueBufferingMaxMessages);
+        }
+
+        public static void ValidateClientId(string clientId)
+        {
+            ValidateChars("client.id", clientId);
+        }
+
+        public static void ValidateBatchSize(int batchSize, int queueSize)
+        {
+            if (batchSize > queueSize)
+            {
+                throw new ConfigurationErrorsException("Batch size = " + batchSize + " can't be larget than queue size = " + queueSize);
             }
         }
 

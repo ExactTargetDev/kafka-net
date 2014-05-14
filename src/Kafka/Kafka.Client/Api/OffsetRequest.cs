@@ -25,7 +25,27 @@
 
         public static OffsetRequest ReadFrom(ByteBuffer buffer)
         {
-            throw new NotSupportedException();
+            var versionId = buffer.GetShort();
+            var correlationId = buffer.GetInt();
+            var clientId = ApiUtils.ReadShortString(buffer);
+            var replicaId = buffer.GetInt();
+            var topicCount = buffer.GetInt();
+            var pairs = Enumerable.Range(1, topicCount).SelectMany(
+                _ =>
+                    {
+                        var topic = ApiUtils.ReadShortString(buffer);
+                        var partitionCount = buffer.GetInt();
+                        return Enumerable.Range(1, partitionCount).Select(__ =>
+                            {
+                                var partitionId = buffer.GetInt();
+                                var time = buffer.GetLong();
+                                var maxNumOffsets = buffer.GetInt();
+                                return Tuple.Create(
+                                    new TopicAndPartition(topic, partitionId),
+                                    new PartitionOffsetRequestInfo(time, maxNumOffsets));
+                            });
+                    });
+            return new OffsetRequest(pairs.ToDictionary(x => x.Item1, x => x.Item2), versionId: versionId, clientId: clientId, correlationId:correlationId, replicaId:replicaId);
         }
 
         public IDictionary<TopicAndPartition, PartitionOffsetRequestInfo> RequestInfo { get; private set; }
@@ -139,6 +159,37 @@
             }
 
             return offsetRequest.ToString();
+        }
+
+        protected bool Equals(OffsetRequest other)
+        {
+            return this.VersionId == other.VersionId 
+                && this.CorrelationId == other.CorrelationId
+                && string.Equals(this.ClientId, other.ClientId) 
+                && this.ReplicaId == other.ReplicaId 
+                && this.RequestInfo.DictionaryEqual(other.RequestInfo);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+            return Equals((OffsetRequest)obj);
+        }
+
+        public override int GetHashCode()
+        {
+           throw new NotSupportedException();
         }
     }
 

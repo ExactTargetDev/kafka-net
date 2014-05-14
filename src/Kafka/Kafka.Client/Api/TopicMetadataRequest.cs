@@ -15,7 +15,17 @@
 
         public static TopicMetadataRequest ReadFrom(ByteBuffer buffer)
         {
-            throw new NotSupportedException();
+            var versonId = buffer.GetShort();
+            var correlationID = buffer.GetInt();
+            var clientId = ApiUtils.ReadShortString(buffer);
+            var numTopic = ApiUtils.ReadIntInRange(buffer, "number of topics", Tuple.Create(0, int.MaxValue));
+            var topics = new List<string>(numTopic);
+            for (var i = 0; i < numTopic; i++)
+            {
+                topics.Add(ApiUtils.ReadShortString(buffer));
+            }
+
+            return new TopicMetadataRequest(versonId, correlationID, clientId, topics);
         }
 
         public short VersionId { get; private set; }
@@ -78,6 +88,40 @@
             }
 
             return topicMetadataRequest.ToString();
+        }
+
+        protected bool Equals(TopicMetadataRequest other)
+        {
+            return this.VersionId == other.VersionId && this.CorrelationId == other.CorrelationId
+                   && string.Equals(this.ClientId, other.ClientId) && this.Topics.SequenceEqual(other.Topics);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+            return Equals((TopicMetadataRequest)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = this.VersionId.GetHashCode();
+                hashCode = (hashCode * 397) ^ (this.ClientId != null ? this.ClientId.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Topics != null ? this.Topics.GetHashCode() : 0);
+                return hashCode;
+            }
         }
     }
 }

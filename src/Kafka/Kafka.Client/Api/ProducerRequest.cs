@@ -176,5 +176,37 @@
         {
             this.Data.Clear();
         }
+
+        protected bool Equals(ProducerRequest other)
+        {
+            return this.VersionId == other.VersionId 
+                && string.Equals(this.ClientId, other.ClientId)
+                && this.CorrelationId == other.CorrelationId 
+                && this.RequiredAcks == other.RequiredAcks 
+                && this.AckTimeoutMs == other.AckTimeoutMs 
+                && this.Data.DictionaryEqual(other.Data);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+            return Equals((ProducerRequest)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotSupportedException();
+        }
     }
 }
