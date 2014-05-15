@@ -1,10 +1,13 @@
 ﻿namespace Kafka.Tests.Integration
 {
+    using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
+    using System.Threading;
 
     using Kafka.Client.Common;
+    using Kafka.Client.Utils;
     using Kafka.Tests.Custom.Server;
     using Kafka.Tests.Utils;
     using Kafka.Tests.Zk;
@@ -26,11 +29,23 @@
             }
 
             this.Servers = this.Configs.Select(this.StartServer).ToList();
+            this.WaitForServersToSettle();
         }
 
         private Process StartServer(TempKafkaConfig config)
         {
-            return KafkaRunClassHelper.Run(KafkaRunClassHelper.KafkaServerMainClass, config.ConfigLocation); 
+            return KafkaRunClassHelper.Run(KafkaRunClassHelper.KafkaServerMainClass, config.ConfigLocation);
+        }
+
+        public void WaitForServersToSettle()
+        {
+            foreach (TempKafkaConfig config in Configs)
+            {
+                if (!ZkClient.WaitUntilExists(ZkUtils.BrokerIdsPath + "/" + config.BrokerId, TimeSpan.FromSeconds(5)))
+                {
+                    throw new Exception("Timeout on waiting for broker " + config.BrokerId + " to settle");
+                }
+            }
         }
 
         public override void Dispose()

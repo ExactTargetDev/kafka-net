@@ -18,6 +18,7 @@
     using Xunit;
 
     using log4net;
+    using log4net.Core;
 
     public class ZookeeperConsumerConnectorTest : KafkaServerTestHarness
     {
@@ -69,9 +70,9 @@
         {
             //TODO: move to separate class and config statically
             log4net.Config.BasicConfigurator.Configure(
-              new log4net.Appender.ConsoleAppender { Layout = new log4net.Layout.SimpleLayout() }
-          );
-
+              new log4net.Appender.ConsoleAppender { Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level %logger{2} %ndc - %message%newline"), Threshold = Level.Info }
+            );
+            
             // test consumer timeout logic
             var consumerConfig0 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer0, 200);
             var zkConsumerConnector0 = new ZookeeperConsumerConnector(consumerConfig0, true);
@@ -88,20 +89,19 @@
             }
 
             zkConsumerConnector0.Shutdown();
-
-            Thread.Sleep(2000); //TODO: dlete me
+            
 
             // send some messages to each broker
             var sentMessages1 =
-                SendMessagesToBrokerPartition(Configs.First(), Topic, 0, nMessages)
-                .Union(SendMessagesToBrokerPartition(Configs.Last(), Topic, 0, nMessages)).ToList();
+                this.SendMessagesToBrokerPartition(Configs.First(), Topic, 0, nMessages)
+                .Union(this.SendMessagesToBrokerPartition(Configs.Last(), Topic, 0, nMessages)).ToList();
 
             // wait to make sure the topic and partition have a leader for the successful case
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 0, 500); 
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 1, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 0, 500); 
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 1, 500);
 
-            TestUtils.WaitUntilMetadataIsPropagated(Servers, Topic, 0, 1000);
-            TestUtils.WaitUntilMetadataIsPropagated(Servers, Topic, 1, 1000);
+            TestUtils.WaitUntilMetadataIsPropagated(this.Servers, Topic, 0, 1000);
+            TestUtils.WaitUntilMetadataIsPropagated(this.Servers, Topic, 1, 1000);
 
             // create a consuemr
             var consumerConfig1 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer1);
@@ -112,11 +112,6 @@
 
             var receivedMessages1 = this.GetMessages(nMessages * 2, topicMessageStreams1);
             Assert.Equal(sentMessages1.OrderBy(x => x).ToArray(), receivedMessages1.OrderBy(x => x).ToArray());
-
-            if (1 == 1) //TODO: dlete me
-            {
-                throw new Exception();
-            }
 
             // also check partition ownership
             var actual_1 = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
@@ -131,57 +126,72 @@
             zkConsumerConnector1.CommitOffsets();
 
             // create a consumer
+            var consumerConfig2 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer2);
+            consumerConfig2.RebalanceBackoffMs = RebalanceBackoutMs;
 
-            /*
-             * TODO: finsih me
+            var zkConsumerConnector2 = new ZookeeperConsumerConnector(consumerConfig2, true);
+            var topicMessageStreams2 =
+                zkConsumerConnector2.CreateMessageStreams(
+                    new Dictionary<string, int> { { Topic, 1 } }, new StringDecoder(), new StringDecoder());
 
+            // send some messages to each broker
+            var sentMessages2 =
+                SendMessagesToBrokerPartition(Configs.First(), Topic, 0, nMessages)
+                .Union(SendMessagesToBrokerPartition(Configs.Last(), Topic, 1, nMessages)).ToList();
 
-    val consumerConfig2 = new ConsumerConfig(TestUtils.createConsumerProperties(zkConnect, group, consumer2)) {
-      override val rebalanceBackoffMs = RebalanceBackoffMs
-    }
-    val zkConsumerConnector2 = new ZookeeperConsumerConnector(consumerConfig2, true)
-    val topicMessageStreams2 = zkConsumerConnector2.createMessageStreams(Map(topic -> 1), new StringDecoder(), new StringDecoder())
-    // send some messages to each broker
-    val sentMessages2 = sendMessagesToBrokerPartition(configs.head, topic, 0, nMessages) ++
-                        sendMessagesToBrokerPartition(configs.last, topic, 1, nMessages)
+            // wait to make sure the topic and partition have a leader for the successful case
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 0, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 1, 500);
 
-    waitUntilLeaderIsElectedOrChanged(zkClient, topic, 0, 500)
-    waitUntilLeaderIsElectedOrChanged(zkClient, topic, 1, 500)
+            Thread.Sleep(4000);
+            var xxx = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
+            Console.WriteLine(xxx);
 
-    val receivedMessages2 = getMessages(nMessages, topicMessageStreams1) ++ getMessages(nMessages, topicMessageStreams2)
-    assertEquals(sentMessages2.sorted, receivedMessages2.sorted)
+            var receivedMessages2 =
+                this.GetMessages(nMessages, topicMessageStreams1)
+                    .Union(this.GetMessages(nMessages, topicMessageStreams2))
+                    .ToList();
+            Assert.Equal(sentMessages2.OrderBy(x => x).ToList(), receivedMessages2.OrderBy(x => x).ToList());
 
-    // also check partition ownership
-    val actual_2 = getZKChildrenValues(dirs.consumerOwnerDir)
-    val expected_2 = List( ("0", "group1_consumer1-0"),
-                           ("1", "group1_consumer2-0"))
-    assertEquals(expected_2, actual_2)
+            // also check partition ownership
+            var actual_2 = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
+            var expected_2 = new List<Tuple<string, string>>
+                                 {
+                                     Tuple.Create("0", "group1_consumer1-0"),
+                                     Tuple.Create("1", "group1_consumer2-0")
+                                 };
+            Assert.Equal(expected_2, actual_2);
 
-    // create a consumer with empty map
-    val consumerConfig3 = new ConsumerConfig(
-      TestUtils.createConsumerProperties(zkConnect, group, consumer3))
-    val zkConsumerConnector3 = new ZookeeperConsumerConnector(consumerConfig3, true)
-    val topicMessageStreams3 = zkConsumerConnector3.createMessageStreams(new mutable.HashMap[String, Int]())
-    // send some messages to each broker
-    val sentMessages3 = sendMessagesToBrokerPartition(configs.head, topic, 0, nMessages) ++
-                        sendMessagesToBrokerPartition(configs.last, topic, 1, nMessages)
+            // create a consumer with empty map
+            var consumerConfig3 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer3);
+            var zkConsumerConnector3 = new ZookeeperConsumerConnector(consumerConfig3, true);
+            var topicMessageStreams3 = zkConsumerConnector3.CreateMessageStreams(new Dictionary<string, int>());
 
-    waitUntilLeaderIsElectedOrChanged(zkClient, topic, 0, 500)
-    waitUntilLeaderIsElectedOrChanged(zkClient, topic, 1, 500)
+            // send some messages to each broker
+            var sentMessages3 =
+                this.SendMessagesToBrokerPartition(Configs.First(), Topic, 0, nMessages)
+                    .Union(this.SendMessagesToBrokerPartition(Configs.Last(), Topic, 1, nMessages))
+                    .ToList();
 
-    val receivedMessages3 = getMessages(nMessages, topicMessageStreams1) ++ getMessages(nMessages, topicMessageStreams2)
-    assertEquals(sentMessages3.sorted, receivedMessages3.sorted)
+            // wait to make sure the topic and partition have a leader for the successful case
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 0, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 1, 500);
 
-    // also check partition ownership
-    val actual_3 = getZKChildrenValues(dirs.consumerOwnerDir)
-    assertEquals(expected_2, actual_3)
+            var receivedMessages3 =
+                this.GetMessages(nMessages, topicMessageStreams1)
+                    .Union(this.GetMessages(nMessages, topicMessageStreams2))
+                    .ToList();
+            Assert.Equal(sentMessages3.OrderBy(x => x).ToList(), receivedMessages3.OrderBy(x => x).ToList());
 
-    zkConsumerConnector1.shutdown
-    zkConsumerConnector2.shutdown
-    zkConsumerConnector3.shutdown
-    info("all consumer connectors stopped")
-    requestHandlerLogger.setLevel(Level.ERROR)*/
+            // also check partition ownership
+            var actual_3 = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
+            Assert.Equal(expected_2, actual_3);
 
+            zkConsumerConnector1.Shutdown();
+            zkConsumerConnector2.Shutdown();
+            zkConsumerConnector3.Shutdown();
+
+            Logger.Info("all consumer connectors stopped");
         }
 
         //TODO: other tests
@@ -200,7 +210,8 @@
                                 PartitionerClass = typeof(FixedValuePartitioner).AssemblyQualifiedName,
                                 CompressionCodec = compression,
                                 KeySerializer = typeof(IntEncoder).AssemblyQualifiedName,
-                                Serializer = typeof(StringEncoder).AssemblyQualifiedName
+                                Serializer = typeof(StringEncoder).AssemblyQualifiedName,
+                                RetryBackoffMs = 1000, //TODO: delete me
                             }; 
             var producer = new Producer<int, string>(props);
             var ms =
@@ -227,6 +238,7 @@
                 var messageStreams = kvp.Value;
                 foreach (var messageStream in messageStreams)
                 {
+                    
                     var iterator = messageStream.GetEnumerator();
                     for (int i = 0; i < nMessagesPerThread; i++)
                     {

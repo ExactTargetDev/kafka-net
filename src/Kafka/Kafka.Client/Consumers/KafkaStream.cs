@@ -39,7 +39,7 @@
 
         public IEnumerator<MessageAndMetadata<TKey, TValue>> GetEnumerator()
         {
-            if (this.iter.HasNext())
+            while (this.iter.HasNext())
             {
                 yield return this.iter.Next();
             }

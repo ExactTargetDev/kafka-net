@@ -21,7 +21,7 @@
 
         public const int ZkConnectionTimeout = 6000;
 
-        public const int ZkSessionTimeout = 60000; //TODO: revert to 6000
+        public const int ZkSessionTimeout = 6000;
 
         protected ZooKeeperTestHarness()
         {

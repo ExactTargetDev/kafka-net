@@ -476,8 +476,8 @@
         public void HandleDataChange(string dataPath, object data)
         {
             var dataPathSplited = dataPath.Split('/');
-            var t = dataPathSplited[dataPathSplited.Length - 2];
-            var p = int.Parse(dataPathSplited[dataPathSplited.Length - 1]);
+            var t = dataPathSplited[dataPathSplited.Length - 4];
+            var p = int.Parse(dataPathSplited[dataPathSplited.Length - 2]);
             this.leaderLock.Lock();
 
             try
