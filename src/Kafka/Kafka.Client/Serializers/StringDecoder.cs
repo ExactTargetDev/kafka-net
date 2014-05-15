@@ -10,7 +10,7 @@
 
         public StringDecoder(VerifiableProperties props = null)
          {
-             this.encoding = (props == null) ? "UTF8" : props.GetString("serializer.encoding", "UTF8");
+             this.encoding = (props == null) ? "UTF-8" : props.GetString("serializer.encoding", "UTF-8");
          }
 
         public string FromBytes(byte[] bytes)

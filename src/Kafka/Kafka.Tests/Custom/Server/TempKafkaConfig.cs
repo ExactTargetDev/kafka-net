@@ -25,6 +25,14 @@
             }
          }
 
+        public int BrokerId
+        {
+            get
+            {
+                return int.Parse(this["broker.id"]);
+            }
+        }
+
         public int Port
         {
             get

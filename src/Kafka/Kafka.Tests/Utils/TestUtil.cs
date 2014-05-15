@@ -6,7 +6,7 @@
 
     using Kafka.Client.Common.Imported;
 
-    public class Util
+    public class TestUtil
     {
         public static List<T> EnumeratorToArray<T>(IEnumerator<T> enumerator)
         {

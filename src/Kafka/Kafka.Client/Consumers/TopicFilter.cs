@@ -52,7 +52,7 @@
 
         public override bool IsTopicAllowed(string topic)
         {
-            var allowed = new Regex(RawRegexp).IsMatch(topic);
+            var allowed = new Regex(Regex).IsMatch(topic);
 
             Logger.DebugFormat("{0} {1}", topic, allowed ? "allowed" : "filtered");
 

@@ -42,6 +42,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\lib\log4Net\log4net.dll</HintPath>
     </Reference>
+    <Reference Include="Spring.Threading, Version=1.0.0.22880, Culture=neutral, PublicKeyToken=b745dc0af8c84db9, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Kafka.Client\bin\Debug\Spring.Threading.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
@@ -63,6 +67,8 @@
     <Compile Include="Api\SerializationTestUtils.cs" />
     <Compile Include="Common\ConfigTest.cs" />
     <Compile Include="Consumers\ConsumerIteratorTest.cs" />
+    <Compile Include="Consumers\TopicFilterTest.cs" />
+    <Compile Include="Consumers\ZookeeperConsumerConnectorTest.cs" />
     <Compile Include="Custom\ConsumerTest.cs" />
     <Compile Include="Custom\Extensions\BitOrder.cs" />
     <Compile Include="Custom\Extensions\RandomExtensions.cs" />
@@ -75,12 +81,11 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\KafkaRunClassHelper.cs" />
     <Compile Include="Utils\TestUtils.cs" />
-    <Compile Include="Utils\Util.cs" />
+    <Compile Include="Utils\TestUtil.cs" />
     <Compile Include="Zk\ZooKeeperTestHarness.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="Configs\zookeeper.properties" />
     <None Include="kafkaclient.snk" />
     <None Include="packages.config" />
   </ItemGroup>

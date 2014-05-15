@@ -14,6 +14,8 @@
     using Kafka.Client.ZKClient.Exceptions;
     using Kafka.Client.ZKClient.Serialize;
 
+    using Spring.Threading.Locks;
+
     using log4net;
 
     using Newtonsoft.Json;
@@ -85,11 +87,33 @@
                          .ToList();
         }
 
+        public static int? GetLeaderForPartition(ZkClient zkClient, string topic, int partition)
+        {
+            var leaderAndIsrOpt = ReadDataMaybeNull(zkClient, GetTopicPartitionLeaderAndIsrPath(topic, partition)).Item1;
+            if (leaderAndIsrOpt != null)
+            {
+                return JObject.Parse(leaderAndIsrOpt).SelectToken("leader").Value<int>();
+            }
+
+            return null;
+        }
+
         public static string GetConsumerPartitionOwnerPath(string group, string topic, int partition)
         {
             var topicDirs = new ZKGroupTopicDirs(group, topic);
             return topicDirs.ConsumerOwnerDir + "/" + partition;
         }
+
+        /// <summary>
+        /// Get JSON partition to replica map from zookeeper.
+        /// </summary>
+        /// <param name="map"></param>
+        /// <returns></returns>
+        public static string ReplicaAssignmentZkData(Dictionary<string, List<int>> map)
+        {
+            return JObject.FromObject(new { version = 1, partitions = map }).ToString();
+        }
+
 
         /// <summary>
         /// make sure a persistent path exists in ZK. Create the path if not exist.
@@ -237,6 +261,22 @@
                         // the node disappeared; retry creating the ephemeral node immediately
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        ///  Create an persistent node with the given path and data. Create parents if necessary.
+        /// </summary>
+        public static void CreatePersistentPath(ZkClient client, string path, string data)
+        {
+            try
+            {
+                client.CreatePersistent(path, data);
+            }
+            catch (ZkNoNodeException e)
+            {
+                CreateParentPath(client, path);
+                client.CreatePersistent(path, data);
             }
         }
 
@@ -403,6 +443,83 @@
             else
             {
                 return null;
+            }
+        }
+    }
+
+    internal class LeaderExistsOrChangedListener : IZkDataListener
+    {
+        private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+        private string topic;
+
+        private int partition;
+
+        private ReentrantLock leaderLock;
+
+        private ICondition leaderExistsOrChanged;
+
+        private int? oldLeaderOpt;
+
+        private ZkClient zkClient;
+
+        public LeaderExistsOrChangedListener(string topic, int partition, ReentrantLock leaderLock, ICondition leaderExistsOrChanged, int? oldLeaderOpt, ZkClient zkClient)
+        {
+            this.topic = topic;
+            this.partition = partition;
+            this.leaderLock = leaderLock;
+            this.leaderExistsOrChanged = leaderExistsOrChanged;
+            this.oldLeaderOpt = oldLeaderOpt;
+            this.zkClient = zkClient;
+        }
+
+        public void HandleDataChange(string dataPath, object data)
+        {
+            var dataPathSplited = dataPath.Split('/');
+            var t = dataPathSplited[dataPathSplited.Length - 2];
+            var p = int.Parse(dataPathSplited[dataPathSplited.Length - 1]);
+            this.leaderLock.Lock();
+
+            try
+            {
+                if (t == this.topic && p == this.partition)
+                {
+                    if (this.oldLeaderOpt.HasValue == false)
+                    {
+                        Logger.DebugFormat(
+                            "In leader existence listener on partition [{0}, {1}], leader has been created",
+                            topic,
+                            partition);
+                        this.leaderExistsOrChanged.Signal();
+                    }
+                    else
+                    {
+                        var newLeaderOpt = ZkUtils.GetLeaderForPartition(this.zkClient, t, p);
+                        if (newLeaderOpt.HasValue && newLeaderOpt.Value != this.oldLeaderOpt.Value)
+                        {
+                            Logger.DebugFormat("In leader change listener on partition [{0}, {1}], leader has been moved from {2} to {3}", topic, partition, oldLeaderOpt.Value, newLeaderOpt.Value);
+                            this.leaderExistsOrChanged.Signal();
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                this.leaderLock.Unlock();
+            }
+
+        }
+
+        public void HandleDataDeleted(string dataPath)
+        {
+            leaderLock.Lock();
+            try
+            {
+                leaderExistsOrChanged.Signal();
+            }
+            finally
+            {
+                leaderLock.Unlock();
             }
         }
     }

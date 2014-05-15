@@ -2,20 +2,35 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Reflection;
     using System.Text;
+    using System.Threading;
 
+    using Kafka.Client.Cfg;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
+    using Kafka.Client.Consumers;
     using Kafka.Client.Messages;
+    using Kafka.Client.Producers;
+    using Kafka.Client.Serializers;
     using Kafka.Client.Utils;
+    using Kafka.Client.ZKClient;
     using Kafka.Tests.Custom.Server;
+
+    using Spring.Threading.Locks;
 
     using Xunit;
 
+    using log4net;
+
+    //TODO: reorder methods
     public static class TestUtils
     {
+        static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
         private static readonly string IoTmpDir = Path.GetTempPath();
 
         private const string Letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -78,6 +93,14 @@
             return ChoosePorts(numConfigs).Select((port, node) => CreateBrokerConfig(node, port, customProps)).ToList();
         }
 
+        public static List<BrokerConfiguration> GetBrokerListFromConfigs(List<TempKafkaConfig> configs)
+        {
+            return
+                configs.Select(
+                    c => new BrokerConfiguration() { BrokerId = c.BrokerId, Host = "localhost", Port = c.Port })
+                       .ToList();
+        }
+
 
         public static TempKafkaConfig CreateBrokerConfig(
             int nodeId, int port, Func<int, Dictionary<string, string>> customProps)
@@ -97,6 +120,25 @@
                 props[kvp.Key] = kvp.Value;
             }
             return TempKafkaConfig.Create(props);
+        }
+
+        public static ConsumerConfig CreateConsumerProperties(
+            string zkConnect, string groupId, string consumerId, long consumerTimeout = -1)
+        {
+            var config = new ConsumerConfig();
+            config.ZooKeeper = new ZkConfig();
+            config.ZooKeeper.ZkConnect = zkConnect;
+            config.GroupId = groupId;
+            config.ConsumerId = consumerId;
+            config.ConsumerTimeoutMs = (int)consumerTimeout;
+
+            config.ZooKeeper.ZkSessionTimeoutMs = 400;
+            config.ZooKeeper.ZkSyncTimeMs = 200;
+            config.AutoCommitIntervalMs = 1000;
+            config.RebalanceMaxRetries = 4;
+            config.AutoOffsetReset = "smallest";
+            config.NumConsumerFetchers = 2;
+            return config;
         }
 
 
@@ -174,8 +216,64 @@
                 }
                 Assert.False(false, "Iterators have uneven length -- second has more " + length2 + " > " + length);
             }
-
         }
+
+        public static int? WaitUntilLeaderIsElectedOrChanged(
+            ZkClient zkClient, string topic, int partition, long timeoutMs, int? oldLeaderOpt = null)
+        {
+            var leaderLock = new ReentrantLock();
+            var leaderExistsOrChanged = leaderLock.NewCondition();
+
+            if (oldLeaderOpt.HasValue == false)
+            {
+                Logger.InfoFormat("Waiting for leader to be elected for partition [{0},{1}]", topic, partition);
+            }
+            else
+            {
+                Logger.InfoFormat("Waiting for leader for partition [{0},{1}] to be changed from old leader {2}", topic, partition, oldLeaderOpt.Value);
+            }
+            leaderLock.Lock();
+            try
+            {
+                zkClient.SubscribeDataChanges(ZkUtils.GetTopicPartitionLeaderAndIsrPath(topic, partition), new LeaderExistsOrChangedListener(topic, partition, leaderLock, leaderExistsOrChanged, oldLeaderOpt, zkClient));
+                leaderExistsOrChanged.Await(TimeSpan.FromMilliseconds(timeoutMs));
+
+                // check if leader is elected
+                var leader = ZkUtils.GetLeaderForPartition(zkClient, topic, partition);
+                if (leader != null)
+                {
+                    if (oldLeaderOpt.HasValue == false)
+                    {
+                        Logger.InfoFormat("Leader {0} is elected for partition [{1},{2}]", leader, topic, partition);
+                    }
+                    else
+                    {
+                        Logger.InfoFormat(
+                            "Leader for partition [{0},{1}] is changed from {2} to {3}",
+                            topic,
+                            partition,
+                            oldLeaderOpt.Value,
+                            leader);
+                    }
+                }
+                else
+                {
+                    Logger.ErrorFormat("Timing out after {0} ms since leader is not elected for partition [{1},{2}]", timeoutMs, topic, partition);
+                }
+                return leader;
+            }
+            finally
+            {
+                leaderLock.Unlock();
+            }
+        }
+
+        public static void WaitUntilMetadataIsPropagated(List<Process> serves, string topic, int partition, long timeout)
+        {
+            Thread.Sleep(1500);
+            //TODO 
+        }
+
     }
 
     internal static class TestZkUtils
@@ -188,6 +286,31 @@
         {
             ZookeeperPort = TestUtils.ChoosePort();
             ZookeeperConnect = "127.0.0.1:" + ZookeeperPort;
+        }
+    }
+
+    public class IntEncoder : IEncoder<int>
+    {
+
+         public IntEncoder(ProducerConfig config = null)
+         {
+         }
+
+        public byte[] ToBytes(int t)
+        {
+            return Encoding.UTF8.GetBytes(t.ToString());
+        }
+    }
+
+    public class FixedValuePartitioner : IPartitioner
+    {
+        public FixedValuePartitioner(ProducerConfig config)
+        {
+        }
+
+        public int Partition(object data, int numPartitions)
+        {
+            return (int)data;
         }
     }
 }

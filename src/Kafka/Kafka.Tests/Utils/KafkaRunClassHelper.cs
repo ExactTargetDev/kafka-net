@@ -41,7 +41,7 @@
             startInfo.UseShellExecute = false;
             startInfo.Arguments = MakeArgs(mainClass, args);
             startInfo.FileName = JavaExec;
-            startInfo.CreateNoWindow = true;
+            //TODO: startInfo.CreateNoWindow = true;
 
             p.StartInfo = startInfo;
             p.Start();

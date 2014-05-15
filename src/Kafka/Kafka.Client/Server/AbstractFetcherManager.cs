@@ -97,7 +97,7 @@ namespace Kafka.Client.Server
 
                     this.fetcherThreadMap.Get(brokerAndFetcherId)
                                     .AddPartitions(
-                                        partitionAndOffsets.ToDictionary(x => x.Key, x => x.Value.InitOffset));
+                                        partitionAndOffset.ToDictionary(x => x.Key, x => x.Value.InitOffset));
                 }
             }
 

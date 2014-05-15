@@ -182,9 +182,9 @@
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Logger.Error("Failed to send messages");
+                Logger.Error("Failed to send messages", e);
             }
 
             return failedProduceRequests;

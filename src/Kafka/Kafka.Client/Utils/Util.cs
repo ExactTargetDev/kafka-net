@@ -1,6 +1,7 @@
 ﻿namespace Kafka.Client.Utils
 {
     using System;
+    using System.Reflection;
     using System.Text;
 
     using Kafka.Client.Common.Imported;

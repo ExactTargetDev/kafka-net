@@ -28,7 +28,7 @@
         public void TestWrittenEqualsRead()
         {
             var messageSet = this.CreateMessageSet(this.messages);
-            var expected = Util.EnumeratorToArray(this.messages.GetEnumerator());
+            var expected = TestUtil.EnumeratorToArray(this.messages.GetEnumerator());
             var actual = messageSet.Select(m => m.Message).ToList();
             Assert.Equal(expected, actual);
         }
@@ -37,8 +37,8 @@
         public void TestIteratorIsConsistent()
         {
             var m = this.CreateMessageSet(messages);
-            var expected = Util.IteratorToArray(m.Iterator());
-            var actual = Util.IteratorToArray(m.Iterator());
+            var expected = TestUtil.IteratorToArray(m.Iterator());
+            var actual = TestUtil.IteratorToArray(m.Iterator());
             Assert.Equal(expected, actual);
         }
 
@@ -69,7 +69,7 @@
                 Assert.Equal(set.SizeInBytes, written);
                 stream.Position = 0;
                 var newSet = new ByteBufferMessageSet(stream);
-                Assert.Equal(Util.IteratorToArray(set.Iterator()), Util.IteratorToArray(newSet.Iterator()));
+                Assert.Equal(TestUtil.IteratorToArray(set.Iterator()), TestUtil.IteratorToArray(newSet.Iterator()));
             }
         }
 
@@ -278,9 +278,9 @@
             // make sure the offsets returned by a shallow iterator is a subset of that of a deep iterator
             var shallowOffsets =
                 new HashSet<long>(
-                    Util.IteratorToArray(messageSet.ShallowIterator()).Select(msgAndOff => msgAndOff.Offset));
+                    TestUtil.IteratorToArray(messageSet.ShallowIterator()).Select(msgAndOff => msgAndOff.Offset));
             var deepOffsets = new HashSet<long>(
-                Util.IteratorToArray(messageSet.Iterator()).Select(msgAndOff => msgAndOff.Offset)
+                TestUtil.IteratorToArray(messageSet.Iterator()).Select(msgAndOff => msgAndOff.Offset)
                 );
             Assert.True(shallowOffsets.IsSubsetOf(deepOffsets));
         }
