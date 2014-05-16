@@ -10,6 +10,7 @@
     using System.Threading;
 
     using Kafka.Client.Cfg;
+    using Kafka.Client.Clusters;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Consumers;
@@ -88,7 +89,7 @@
             }
         }
 
-        public static List<TempKafkaConfig> CreateBrokerConfigs(int numConfigs, Func<int, Dictionary<string, string>> customProps)
+        public static List<TempKafkaConfig> CreateBrokerConfigs(int numConfigs, Func<int, Dictionary<string, string>> customProps = null)
         {
             return ChoosePorts(numConfigs).Select((port, node) => CreateBrokerConfig(node, port, customProps)).ToList();
         }
@@ -103,7 +104,7 @@
 
 
         public static TempKafkaConfig CreateBrokerConfig(
-            int nodeId, int port, Func<int, Dictionary<string, string>> customProps)
+            int nodeId, int port, Func<int, Dictionary<string, string>> customProps = null)
         {
             var props = new Dictionary<string, string>
                             {
@@ -114,10 +115,13 @@
                                 { "zookeeper.connect", TestZkUtils.ZookeeperConnect },
                                 { "replica.socket.timeout.ms", "1500" }
                             };
-            var overrides = customProps(nodeId);
-            foreach (var kvp in overrides)
+            if (customProps != null)
             {
-                props[kvp.Key] = kvp.Value;
+                var overrides = customProps(nodeId);
+                foreach (var kvp in overrides)
+                {
+                    props[kvp.Key] = kvp.Value;
+                }
             }
             return TempKafkaConfig.Create(props);
         }
@@ -139,6 +143,16 @@
             config.AutoOffsetReset = "smallest";
             config.NumConsumerFetchers = 2;
             return config;
+        }
+
+        public static void UpdateConsumerOffset(ConsumerConfig config, string path, long offset)
+        {
+            var zkClient = new ZkClient(
+                config.ZooKeeper.ZkConnect,
+                config.ZooKeeper.ZkSessionTimeoutMs,
+                config.ZooKeeper.ZkConnectionTimeoutMs,
+                new ZkStringSerializer());
+            ZkUtils.UpdatePersistentPath(zkClient, path, offset.ToString());
         }
 
 
@@ -218,6 +232,39 @@
             }
         }
 
+        public static Producer<string, byte[]> CreateProducer(
+            List<BrokerConfiguration> brokerList)
+        {
+            return CreateProducer(brokerList, new DefaultEncoder(), new StringEncoder());
+        }
+
+        public static Producer<TKey, TValue> CreateProducer<TKey, TValue>(
+            List<BrokerConfiguration> brokerList, IEncoder<TValue> encoder, IEncoder<TKey> keyEncoder)
+        {
+            var config = new ProducerConfig();
+            config.Brokers = brokerList;
+            config.SendBufferBytes = 65536;
+            config.RequestTimeoutMs = 10000;
+            config.RetryBackoffMs = 10000;
+            config.Serializer = encoder.GetType().AssemblyQualifiedName;
+            config.KeySerializer = keyEncoder.GetType().AssemblyQualifiedName;
+            return new Producer<TKey, TValue>(config);
+        }
+
+        public static ProducerConfig GetProducerConfig(List<BrokerConfiguration> brokerList, string partitioner)
+        {
+            ProducerConfig config = new ProducerConfig();
+            config.Brokers = brokerList;
+            config.PartitionerClass = partitioner;
+            config.MessageSendMaxRetries = 3;
+            config.RetryBackoffMs = 1000;
+            config.RequestTimeoutMs = 500;
+            config.RequestRequiredAcks = -1;
+            config.Serializer = typeof(StringEncoder).AssemblyQualifiedName;
+            config.KeySerializer = typeof(StringEncoder).AssemblyQualifiedName;
+            return config;
+        }
+
         public static int? WaitUntilLeaderIsElectedOrChanged(
             ZkClient zkClient, string topic, int partition, long timeoutMs, int? oldLeaderOpt = null)
         {
@@ -270,7 +317,7 @@
 
         public static void WaitUntilMetadataIsPropagated(List<Process> serves, string topic, int partition, long timeout)
         {
-            Thread.Sleep(1500);
+            Thread.Sleep((int)timeout);
             //TODO 
         }
 
@@ -299,6 +346,18 @@
         public byte[] ToBytes(int t)
         {
             return Encoding.UTF8.GetBytes(t.ToString());
+        }
+    }
+
+    public class StaticPartitioner : IPartitioner
+    {
+        public StaticPartitioner(ProducerConfig config)
+        {
+        }
+
+        public int Partition(object data, int numPartitions)
+        {
+            return ((string)data).Length % numPartitions;
         }
     }
 

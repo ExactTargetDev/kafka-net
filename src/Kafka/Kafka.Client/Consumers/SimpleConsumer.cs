@@ -80,6 +80,7 @@
             this.Connect();
         }
 
+        //TODO: dispose!
         public void Close()
         {
             lock (@lock)

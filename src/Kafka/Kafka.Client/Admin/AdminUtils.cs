@@ -1,5 +1,6 @@
 ﻿namespace Kafka.Client.Admin
 {
+    using System;
     using System.Collections.Generic;
     using System.Reflection;
 
@@ -16,6 +17,63 @@
     public static class AdminUtils
     {
          static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+        private static Random rand = new Random();
+
+        public static Dictionary<int, List<int>> AssignReplicasToBrokers(
+            List<int> brokerList,
+            int nPartitions,
+            int replicationFactor,
+            int fixedStartIndex = -1,
+            int startPartitonId = -1)
+        {
+            if (nPartitions <= 0)
+            {
+                throw new ArgumentException("number of partitions must be larger than 0", "nPartitions");
+            }
+            if (replicationFactor <= 0)
+            {
+                throw new ArgumentException("replication factor must be larger than 0", "replicationFactor");
+            }
+            if (replicationFactor > brokerList.Count)
+            {
+                throw new Exception("replication factor: " + replicationFactor + " larger than available brokers: " + brokerList.Count);
+            }
+            var ret = new Dictionary<int, List<int>>();
+            var startIndex = (fixedStartIndex >= 0) ? fixedStartIndex : rand.Next(brokerList.Count);
+            var currentPartitionId = startPartitonId >= 0 ? startPartitonId : 0;
+
+            var nextReplicaShift = fixedStartIndex > -0 ? fixedStartIndex : rand.Next(brokerList.Count);
+            for (var i = 0; i < nPartitions; i++)
+            {
+                if (currentPartitionId > 0 && (currentPartitionId % brokerList.Count == 0))
+                {
+                    nextReplicaShift++;
+                }
+                var firstReplicaIndex = (currentPartitionId + startIndex) % brokerList.Count;
+                var replicaList = new List<int> { brokerList[firstReplicaIndex] };
+                for (var j = 0; j < replicationFactor - 1; j++)
+                {
+                    replicaList.Add(brokerList[ReplicaIndex(firstReplicaIndex, nextReplicaShift, j, brokerList.Count)]);
+                }
+                ret[currentPartitionId] = replicaList;
+                currentPartitionId++;
+            }
+
+            return ret;
+        }
+
+        public static void CreateTopic(
+            ZkClient zkClient,
+            string topic,
+            int partitions,
+            int replicationFactor,
+            Dictionary<string, string> topicConfig)
+        {
+            var brokerList = ZkUtils.GetSortedBrokerList(zkClient);
+            var replicaAssigment = AssignReplicasToBrokers(brokerList, partitions, replicationFactor);
+            CreateOrUpdateTopicPartitionAssignmentPathInZK(zkClient, topic, replicaAssigment, topicConfig);
+        }
 
          public static void CreateOrUpdateTopicPartitionAssignmentPathInZK(
              ZkClient zkClient,
@@ -64,6 +122,12 @@
             var map = new { version = 1, config = config };
 
             ZkUtils.UpdatePersistentPath(zkClient, ZkUtils.GetTopicConfigPath(topic), JObject.FromObject(map).ToString());
+        }
+
+        private static int ReplicaIndex(int firstReplicaIndex, int secondReplicaShirt, int replicaIndex, int nBrokers)
+        {
+            var shift = 1 + (secondReplicaShirt + replicaIndex) % (nBrokers - 1);
+            return (firstReplicaIndex + shift) % nBrokers;
         }
     }
 }

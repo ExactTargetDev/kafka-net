@@ -77,6 +77,11 @@
              return GetTopicPartitionPath(topic, partitionId) + "/" + "state";
          }
 
+        public static List<int> GetSortedBrokerList(ZkClient zkClient)
+        {
+            return GetChildren(zkClient, BrokerIdsPath).Select(int.Parse).OrderBy(x => x).ToList();
+        } 
+
         public static List<Broker> GetAllBrokersInCluster(ZkClient zkClient)
         {
             var brokerIds = GetChildrenParentMayNotExist(zkClient, BrokerIdsPath).OrderBy(x => x).ToList();
@@ -342,6 +347,11 @@
                 return Tuple.Create((string)null, stat);
             }
         }
+
+        public static List<string> GetChildren(ZkClient zkClient, string path)
+        {
+            return zkClient.GetChildren(path);
+        } 
 
         public static IList<string> GetChildrenParentMayNotExist(ZkClient client, string path)
         {

@@ -65,6 +65,7 @@
 
         private readonly ProducerTopicStats producerTopicStats;
 
+        //TODO: enumerable?
         public void Send(params KeyedMessage<TKey, TValue>[] messages)
         {
             lock (this.lockObject)

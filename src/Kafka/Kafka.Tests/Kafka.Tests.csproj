@@ -74,7 +74,11 @@
     <Compile Include="Custom\Extensions\RandomExtensions.cs" />
     <Compile Include="Custom\Server\TempZookeeperConfig.cs" />
     <Compile Include="Custom\Server\TempKafkaConfig.cs" />
+    <Compile Include="Integration\AutoOffsetResetTest.cs" />
+    <Compile Include="Integration\FetcherTest.cs" />
     <Compile Include="Integration\KafkaServerTestHarness.cs" />
+    <Compile Include="Integration\LazyInitProducerTest.cs" />
+    <Compile Include="Integration\ProducerConsumerTestHarness.cs" />
     <Compile Include="Messages\ByteBufferMessageSetTest.cs" />
     <Compile Include="Custom\Utils\IteratorTemplateTests.cs" />
     <Compile Include="Custom\ProducerTest.cs" />

@@ -8,7 +8,7 @@
     /// </summary>
     public class DefaultEncoder : IEncoder<byte[]>
     {
-        public DefaultEncoder(ProducerConfig config)
+        public DefaultEncoder(ProducerConfig config = null)
         {
         }
 
