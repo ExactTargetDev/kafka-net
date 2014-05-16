@@ -22,6 +22,14 @@
 
         private readonly IEventHandler<TKey, TValue> eventHandler;
 
+        public ProducerConfig Config
+        {
+            get
+            {
+                return this.config;
+            }
+        }
+
         public Producer(ProducerConfig config)
             : this(
                 config,

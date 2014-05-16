@@ -78,6 +78,7 @@
     <Compile Include="Integration\FetcherTest.cs" />
     <Compile Include="Integration\KafkaServerTestHarness.cs" />
     <Compile Include="Integration\LazyInitProducerTest.cs" />
+    <Compile Include="Integration\PrimitiveApiTest.cs" />
     <Compile Include="Integration\ProducerConsumerTestHarness.cs" />
     <Compile Include="Messages\ByteBufferMessageSetTest.cs" />
     <Compile Include="Custom\Utils\IteratorTemplateTests.cs" />
