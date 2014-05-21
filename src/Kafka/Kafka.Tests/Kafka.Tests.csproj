@@ -80,13 +80,17 @@
     <Compile Include="Integration\LazyInitProducerTest.cs" />
     <Compile Include="Integration\PrimitiveApiTest.cs" />
     <Compile Include="Integration\ProducerConsumerTestHarness.cs" />
+    <Compile Include="Integration\TopicMetadataTest.cs" />
     <Compile Include="Messages\ByteBufferMessageSetTest.cs" />
     <Compile Include="Custom\Utils\IteratorTemplateTests.cs" />
     <Compile Include="Custom\ProducerTest.cs" />
+    <Compile Include="Messages\MessageCompressionTest.cs" />
+    <Compile Include="Messages\MessageTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\KafkaRunClassHelper.cs" />
     <Compile Include="Utils\TestUtils.cs" />
     <Compile Include="Utils\TestUtil.cs" />
+    <Compile Include="Zk\ZKEphemeralTest.cs" />
     <Compile Include="Zk\ZooKeeperTestHarness.cs" />
   </ItemGroup>
   <ItemGroup>

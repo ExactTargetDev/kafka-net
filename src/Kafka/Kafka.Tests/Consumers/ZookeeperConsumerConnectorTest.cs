@@ -74,6 +74,8 @@
             log4net.Config.BasicConfigurator.Configure(
               new log4net.Appender.ConsoleAppender { Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level %logger{2} %ndc - %message%newline"), Threshold = Level.Info }
             );
+
+         
             
             // test consumer timeout logic
             var consumerConfig0 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer0, 200);

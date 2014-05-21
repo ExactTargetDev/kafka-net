@@ -365,6 +365,11 @@
             }
         }
 
+        public static bool PathExists(ZkClient client, string path)
+        {
+            return client.Exists(path);
+        }
+
         public static Cluster GetCluster(ZkClient zkClient)
         {
             var cluster = new Cluster();

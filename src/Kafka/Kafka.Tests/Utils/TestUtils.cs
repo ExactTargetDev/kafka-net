@@ -190,6 +190,20 @@
             return b.ToString();
         }
 
+        /// <summary>
+        /// Check that the buffer content from buffer.position() to buffer.limit() is equal
+        /// </summary>
+        /// <param name="b1"></param>
+        /// <param name="b2"></param>
+        public static void CheckEquals(ByteBuffer b1, ByteBuffer b2)
+        {
+            Assert.Equal(b1.Limit() - b1.Position, b2.Limit() - b2.Position);
+            for (var i = 0; i < b1.Limit() - b1.Position; i++)
+            {
+                Assert.Equal(b1.Get((int)b1.Position + i), b2.Get((int)b1.Position + i));
+            }
+        }
+
 
         /// <summary>
          /// Throw an exception if the two iterators are of differing lengths or contain

@@ -130,7 +130,7 @@
             var topics = new List<string> { "test1", "test2", "test3" };
             var messages = new Dictionary<string, List<string>>();
             var builder = new FetchRequestBuilder();
-            List<KeyedMessage<string, string>> producerList = new List<KeyedMessage<string, string>>();
+            var producerList = new List<KeyedMessage<string, string>>();
             foreach (var topic in topics)
             {
                 var set = new List<string> { "a_" + topic, "b_" + topic };
@@ -163,7 +163,7 @@
             var topics = new List<string> { "test1", "test2", "test3" };
             var messages = new Dictionary<string, List<string>>();
             var builder = new FetchRequestBuilder();
-            List<KeyedMessage<string, string>> producerList = new List<KeyedMessage<string, string>>();
+            var producerList = new List<KeyedMessage<string, string>>();
             foreach (var topic in topics)
             {
                 var set = new List<string> { "a_" + topic, "b_" + topic };

@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
 
     using Kafka.Client.Admin;
     using Kafka.Client.Api;
@@ -229,7 +230,50 @@
             Assert.False(fetchResponse.MessageSet(newTopic, 0).Iterator().HasNext());
         }
 
-        //TODO: testPipelinedProduceRequests
+        [Fact]
+        public void TestPipelinedProduceRequests()
+        {
+            this.CreateSimpleTopicsAndAwaitLeader(ZkClient, new List<string>{"test1", "test2", "test3", "test4"}, Configs.First().BrokerId);
+            var props = Producer.Config;
+            props.RequestRequiredAcks = 0;
+
+            var pipelinedProducer = new Producer<string, string>(props);
+
+            // send some messages
+            var topics = new List<Tuple<string, int>>
+                             {
+                                 Tuple.Create("test4", 0),
+                                 Tuple.Create("test1", 0),
+                                 Tuple.Create("test2", 0),
+                                 Tuple.Create("test3", 0)
+                             };
+            var messages = new Dictionary<string, List<string>>();
+            var builder = new FetchRequestBuilder();
+            var produceList = new List<KeyedMessage<string, string>>();
+            foreach (var topicAndPartition in topics)
+            {
+                var topic = topicAndPartition.Item1;
+                var partition = topicAndPartition.Item2;
+                var messageList = new List<string>{"a_" + topics, "b_" + topic};
+                var producerData = messageList.Select(m => new KeyedMessage<string, string>(topic, topic, m)).ToArray();
+                messages[topic] = messageList;
+                pipelinedProducer.Send(producerData);
+                builder.AddFetch(topic, partition, 0, 10000);
+            }
+
+            // wait until the messages are published
+            Thread.Sleep(7000); // ugly sleep as we can't access logManager endOffset
+
+            var request = builder.Build();
+            var response = Consumer.Fetch(request);
+            foreach (var topicAndPartition in topics)
+            {
+                var topic = topicAndPartition.Item1;
+                var partition = topicAndPartition.Item2;
+                var fetched = response.MessageSet(topic, partition);
+                Assert.Equal(messages[topic], fetched.Select(messageAndOffset => Util.ReadString(messageAndOffset.Message.Payload)).ToList());
+            }
+        }
 
         public void CreateSimpleTopicsAndAwaitLeader(ZkClient zkClient, List<string> topics, int brokerId)
         {

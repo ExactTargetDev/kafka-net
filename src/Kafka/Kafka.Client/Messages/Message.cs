@@ -43,7 +43,7 @@ namespace Kafka.Client.Messages
         /// <summary>
         /// The current "magic" value
         /// </summary>
-        private const byte CurrentMagicValue = 0;
+        public const byte CurrentMagicValue = 0;
 
         /// <summary>
         /// Specifies the mask for the compression code. 2 bits to hold the compression codec.
