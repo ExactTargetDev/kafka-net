@@ -17,7 +17,14 @@
 
         public byte[] ToBytes(string t)
         {
-            return Encoding.GetEncoding(this.encoding).GetBytes(t);
+            if (t == null)
+            {
+                return null;
+            }
+            else
+            {
+                return Encoding.GetEncoding(this.encoding).GetBytes(t);    
+            }
         }
     }
 }

@@ -33,7 +33,7 @@ namespace Kafka.Client.Messages
         /// <summary>
         /// The amount of overhead bytes in a message
         /// </summary>
-        private const int MessageOverhead = KeyOffset + ValueSizeLength;
+        public const int MessageOverhead = KeyOffset + ValueSizeLength;
 
         /// <summary>
         /// The minimum valid size for the message header

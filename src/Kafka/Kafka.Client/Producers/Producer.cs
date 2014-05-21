@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Reflection;
 
     using Kafka.Client.Cfg;
@@ -73,8 +74,12 @@
 
         private readonly ProducerTopicStats producerTopicStats;
 
-        //TODO: enumerable?
-        public void Send(params KeyedMessage<TKey, TValue>[] messages)
+        public void Send(KeyedMessage<TKey, TValue> message)
+        {
+            this.Send(new List<KeyedMessage<TKey, TValue>> { message });
+        }
+
+        public void Send(IEnumerable<KeyedMessage<TKey, TValue>> messages)
         {
             lock (this.lockObject)
             {
@@ -96,7 +101,7 @@
             }
         }
 
-        public void RecordStats(KeyedMessage<TKey, TValue>[] messages)
+        public void RecordStats(IEnumerable<KeyedMessage<TKey, TValue>> messages)
         {
             foreach (var message in messages)
             {
@@ -105,7 +110,7 @@
             }
         }
 
-        private void AsyncSend(KeyedMessage<TKey, TValue>[] messages)
+        private void AsyncSend(IEnumerable<KeyedMessage<TKey, TValue>> messages)
         {
             foreach (KeyedMessage<TKey, TValue> message in messages)
             {

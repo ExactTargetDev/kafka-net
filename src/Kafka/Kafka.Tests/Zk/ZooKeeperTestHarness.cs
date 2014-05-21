@@ -42,7 +42,10 @@
             }
             try
             {
-                Zookeeper.Kill();
+                using (Zookeeper)
+                {
+                    Zookeeper.Kill();    
+                }
             }
             catch
             {

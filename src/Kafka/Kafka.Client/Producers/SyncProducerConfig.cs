@@ -80,5 +80,10 @@ namespace Kafka.Client.Producers
         /// The ack timeout of the producer requests. Value must be non-negative and non-zero
         /// </summary>
         public int RequestTimeoutMs { get; set; }
+
+
+        public string Serializer { get; set; }
+
+        public string KeySerializer { get; set; }
     }
 }

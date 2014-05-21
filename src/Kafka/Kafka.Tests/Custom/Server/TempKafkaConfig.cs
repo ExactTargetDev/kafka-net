@@ -4,7 +4,9 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Text;
+    using System.Threading;
 
+    using Kafka.Client.Messages;
     using Kafka.Tests.Utils;
 
     public class TempKafkaConfig : Dictionary<string, string>, IDisposable
@@ -24,6 +26,16 @@
                  return this["log.dir"];
             }
          }
+
+        public int MessageMaxBytes
+        {
+            get
+            {
+                return this.ContainsKey("message.max.bytes")
+                           ? int.Parse(this["message.max.bytes"])
+                           : 1000000 + MessageSet.LogOverhead;
+            }
+        }
 
         public int BrokerId
         {
@@ -66,10 +78,17 @@
             {
                 if (this.ConfigLocation != null)
                 {
-                    File.Delete(this.ConfigLocation);
+                    SpinWait.SpinUntil(
+                        () =>
+                            {
+                                File.Delete(this.ConfigLocation);
+                                Thread.Sleep(50);
+                                return !File.Exists(this.ConfigLocation);
+                            },
+                        1000);
                 }
             }
-            catch
+            catch (Exception e)
             {
             }
             try

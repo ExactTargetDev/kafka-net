@@ -55,7 +55,11 @@
             {
                 try
                 {
-                    process.Kill();
+                    using (process)
+                    {
+                        process.Kill();
+                        SpinWait.SpinUntil(() => process.HasExited, 1000);
+                    }
                 }
                 catch
                 {

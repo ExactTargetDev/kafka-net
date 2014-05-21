@@ -9,6 +9,7 @@
     using System.Text;
     using System.Threading;
 
+    using Kafka.Client.Api;
     using Kafka.Client.Cfg;
     using Kafka.Client.Clusters;
     using Kafka.Client.Common;
@@ -28,7 +29,7 @@
     using log4net;
 
     //TODO: reorder methods
-    public static class TestUtils
+    internal static class TestUtils
     {
         static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -145,6 +146,19 @@
             return config;
         }
 
+        public static SyncProducerConfig GetSyncProducerConfig(int port)
+        {
+            return new SyncProducerConfig
+                       {
+                           Host = "localhost",
+                           Port = port,
+                           RequestTimeoutMs = 500,
+                           RequestRequiredAcks = 1,
+                           KeySerializer = typeof(StringEncoder).AssemblyQualifiedName,
+                           Serializer = typeof(StringEncoder).AssemblyQualifiedName
+                       };
+        }
+
         public static void UpdateConsumerOffset(ConsumerConfig config, string path, long offset)
         {
             var zkClient = new ZkClient(
@@ -179,6 +193,49 @@
          {
              return new MessageIterator(iter);
          }
+
+        public static List<string> GetMsgStrings(int n)
+        {
+            var buffer = new List<string>();
+            for (var i = 0; i < n; i++)
+            {
+                buffer.Add("msg" + i);    
+            }
+            return buffer;
+        }
+
+        public static ProducerRequest ProduceRequest(
+            string topic,
+            int partition,
+            ByteBufferMessageSet message,
+            int acks = SyncProducerConfig.DefaultRequiredAcks,
+            int timeout = SyncProducerConfig.DefaultAckTimeout,
+            int correlationId = 0,
+            string clientId = SyncProducerConfig.DefaultClientId)
+        {
+            return ProduceRequestWithAcks(
+                new List<string> { topic }, new List<int> { partition }, message, acks, timeout, correlationId, clientId);
+        }
+
+        public static ProducerRequest ProduceRequestWithAcks(
+            List<string> topics,
+            List<int> partitions, ByteBufferMessageSet message, 
+            int acks = SyncProducerConfig.DefaultRequiredAcks,
+            int timeout = SyncProducerConfig.DefaultAckTimeout,
+            int correlationId = 0,
+            string clientId = SyncProducerConfig.DefaultClientId)
+        {
+            var data =
+                topics.SelectMany(
+                    topic =>
+                    partitions.Select(partition => Tuple.Create(new TopicAndPartition(topic, partition), message)))
+                      .ToList();
+
+            return new ProducerRequest(
+                correlationId, clientId, (short)acks, timeout, data.ToDictionary(x => x.Item1, x => x.Item2));
+        }
+    
+
 
         public static string RandomString(int len)
         {

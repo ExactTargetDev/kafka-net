@@ -27,9 +27,9 @@
 
         public override void Dispose()
         {
-            base.Dispose();
             Producer.Dispose();
             Consumer.Close();
+            base.Dispose();
         }
     }
 }

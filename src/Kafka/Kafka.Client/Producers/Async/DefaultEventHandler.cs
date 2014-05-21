@@ -35,13 +35,18 @@
 
         private readonly Dictionary<string, TopicMetadata> topicPartitionInfos = new Dictionary<string, TopicMetadata>();
 
-        public DefaultEventHandler(ProducerConfig config, IPartitioner partitioner, IEncoder<TValue> encoder, IEncoder<TKey> keyEncoder, ProducerPool producerPool)
+        public DefaultEventHandler(ProducerConfig config, IPartitioner partitioner, IEncoder<TValue> encoder, IEncoder<TKey> keyEncoder, ProducerPool producerPool, Dictionary<string, TopicMetadata> topicPartitionInfos = null)
         {
             this.Config = config;
             this.partitioner = partitioner;
             this.encoder = encoder;
             this.keyEncoder = keyEncoder;
             this.producerPool = producerPool;
+
+            if (topicPartitionInfos != null)
+            {
+                this.topicPartitionInfos = topicPartitionInfos;
+            }
 
             this.brokerPartitionInfo = new BrokerPartitionInfo(this.Config, this.producerPool, this.topicPartitionInfos);
             this.topicMetadataRefreshInterval = TimeSpan.FromMilliseconds(config.TopicMetadataRefreshIntervalMs);
@@ -190,7 +195,7 @@
             return failedProduceRequests;
         }
 
-        private List<KeyedMessage<TKey, Message>> Serialize(IEnumerable<KeyedMessage<TKey, TValue>> events)
+        public List<KeyedMessage<TKey, Message>> Serialize(IEnumerable<KeyedMessage<TKey, TValue>> events)
         {
             return events.Select(
                 e =>
@@ -227,7 +232,7 @@
                     }).ToList();
         }
 
-        private IDictionary<int, Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>> PartitionAndCollate(List<KeyedMessage<TKey, Message>> messages)
+        public IDictionary<int, Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>> PartitionAndCollate(List<KeyedMessage<TKey, Message>> messages)
         {
             var ret = new Dictionary<int, Dictionary<TopicAndPartition, List<KeyedMessage<TKey, Message>>>>();
             try

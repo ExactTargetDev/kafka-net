@@ -77,8 +77,6 @@ namespace Kafka.Client.Producers.Async
 
         public int BatchNumMessages { get; set; }
 
-        public string Serializer { get; set; }
-
-        public string KeySerializer { get; set; }
+        
     }
 }
