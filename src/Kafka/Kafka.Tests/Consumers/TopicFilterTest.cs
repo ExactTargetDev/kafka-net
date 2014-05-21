@@ -24,7 +24,9 @@
         [Fact]
         public void TestBlacklists()
         {
-            var topicFilter1 = new Blacklist("black1");
+// ReSharper disable ObjectCreationAsStatement
+            new Blacklist("black1");
+// ReSharper restore ObjectCreationAsStatement
         }
     }
 }

@@ -40,25 +40,25 @@
         [Fact]
         public void TestResetToEarliestWhenOffsetTooHigh()
         {
-            Assert.Equal(NumMessages, ResetAndConsume(NumMessages, "smallest", LargeOffset));
+            Assert.Equal(NumMessages, this.ResetAndConsume(NumMessages, "smallest", LargeOffset));
         }
 
         [Fact]
         public void TestResetToEarliestWhenOffsetTooLow()
         {
-            Assert.Equal(NumMessages, ResetAndConsume(NumMessages , "smallest", SmallOffset));
+            Assert.Equal(NumMessages, this.ResetAndConsume(NumMessages, "smallest", SmallOffset));
         }
 
         [Fact]
         public void TestResetToLatestWhenOffsetTooHigh()
         {
-            Assert.Equal(0, ResetAndConsume(NumMessages, "largest", LargeOffset));
+            Assert.Equal(0, this.ResetAndConsume(NumMessages, "largest", LargeOffset));
         }
 
         [Fact]
         public void TestResetToLatestWhenOffsetTooLow()
         {
-            Assert.Equal(0, ResetAndConsume(NumMessages, "largest", SmallOffset));
+            Assert.Equal(0, this.ResetAndConsume(NumMessages, "largest", SmallOffset));
         }
 
         /// <summary>
@@ -71,8 +71,7 @@
         /// <returns>The count of messages received.</returns>
         public int ResetAndConsume(int numMessages, string resetTo, long offset)
         {
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 0, 1000);
-
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 0, 1000);
 
             var producer = TestUtils.CreateProducer(
                 TestUtils.GetBrokerListFromConfigs(Configs), new DefaultEncoder(), new StringEncoder());
@@ -82,7 +81,7 @@
                 producer.Send(new KeyedMessage<string, byte[]>(Topic, Topic, Encoding.UTF8.GetBytes("test")));
             }
 
-            TestUtils.WaitUntilMetadataIsPropagated(Servers, Topic, 0, 1000);
+            TestUtils.WaitUntilMetadataIsPropagated(this.Servers, Topic, 0, 1000);
 
             // update offset in zookeeper for consumer to jump "forward" in time
             var dirs = new ZKGroupTopicDirs(Group, Topic);
@@ -104,7 +103,7 @@
                 for (var i = 0; i < numMessages; i++)
                 {
                     iter.MoveNext(); // will throw a timeout exception if the message isn't there
-                    received ++;
+                    received++;
                 }
             }
             catch (ConsumerTimeoutException)
@@ -116,6 +115,7 @@
                 producer.Dispose();
                 consumerConnector.Shutdown();
             }
+
             return received;
         }
     }

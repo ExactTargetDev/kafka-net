@@ -3,7 +3,9 @@
     using System;
 
     using Kafka.Client.Api;
+    using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
+    using Kafka.Tests.Custom.Extensions;
     using Kafka.Tests.Utils;
 
     using Xunit;
@@ -19,7 +21,7 @@
             for (var i = 0; i < 100; i++)
             {
                 // Since we're using UTF-8 encoding, each encoded byte will be one to four bytes long 
-                var s = rnd.NextString(Math.Abs(ApiUtilsTest.rnd.Next() % (short.MaxValue / 4)));
+                var s = rnd.NextString(Math.Abs(rnd.Next() % (short.MaxValue / 4)));
                 var bb = ByteBuffer.Allocate(ApiUtils.ShortStringLength(s));
                 ApiUtils.WriteShortString(bb, s);
                 bb.Rewind();
@@ -49,26 +51,8 @@
 
             // One byte too big
             var s2 = TestUtils.RandomString(short.MaxValue + 1);
-            try
-            {
-                ApiUtils.ShortStringLength(s2);
-                Assert.False(true);
-            }
-            catch
-            {
-                // ok
-            }
-
-            try
-            {
-                ApiUtils.WriteShortString(bb1, s2);
-                Assert.False(true);
-            }
-            catch
-            {
-                // ok
-            }
+            Assert.Throws<KafkaException>(() => ApiUtils.ShortStringLength(s2));
+            Assert.Throws<KafkaException>(() => ApiUtils.WriteShortString(bb1, s2));
         }
-
     }
 }

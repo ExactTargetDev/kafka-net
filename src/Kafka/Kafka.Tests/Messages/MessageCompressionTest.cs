@@ -1,15 +1,13 @@
-﻿namespace Kafka.Tests
+﻿namespace Kafka.Tests.Messages
 {
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
 
+    using Kafka.Client.Extensions;
     using Kafka.Client.Messages;
 
     using Xunit;
-
-    using Kafka.Client.Extensions;
-
-    using System.Linq;
 
     public class MessageCompressionTest
     {
@@ -20,7 +18,7 @@
 
             foreach (var codec in codecs)
             {
-                TestSimpleCompressDecompressInner(codec);
+                this.TestSimpleCompressDecompressInner(codec);
             }
         } 
 

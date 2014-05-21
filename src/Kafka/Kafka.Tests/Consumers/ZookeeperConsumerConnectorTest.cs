@@ -2,9 +2,9 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Reflection;
-    using System.Threading;
 
     using Kafka.Client.Admin;
     using Kafka.Client.Consumers;
@@ -17,21 +17,19 @@
     using Kafka.Tests.Integration;
     using Kafka.Tests.Utils;
 
-    using Xunit;
-
     using log4net;
-    using log4net.Core;
+
+    using Xunit;
 
     public class ZookeeperConsumerConnectorTest : KafkaServerTestHarness
     {
-
         protected static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private const int RebalanceBackoutMs = 5000;
 
-        private ZKGroupTopicDirs dirs;
+        private readonly ZKGroupTopicDirs dirs;
 
-        private string zookeeperConnect = TestZkUtils.ZookeeperConnect;
+        private readonly string zookeeperConnect = TestZkUtils.ZookeeperConnect;
 
         private const int NumNodes = 2;
 
@@ -63,23 +61,16 @@
                idx => new Dictionary<string, string>
                            {
                                { "zookeeper.connect", "localhost:" + TestZkUtils.ZookeeperPort },
-                               { "num.partitions", NumParts.ToString()}
+                               { "num.partitions", NumParts.ToString(CultureInfo.InvariantCulture) }
                            });
         }
 
         [Fact]
         public void TestBasic()
         {
-            //TODO: move to separate class and config statically
-            log4net.Config.BasicConfigurator.Configure(
-              new log4net.Appender.ConsoleAppender { Layout = new log4net.Layout.PatternLayout("%timestamp [%thread] %-5level %logger{2} %ndc - %message%newline"), Threshold = Level.Info }
-            );
-
-         
-            
             // test consumer timeout logic
             var consumerConfig0 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer0, 200);
-            var zkConsumerConnector0 = new ZookeeperConsumerConnector(consumerConfig0, true);
+            var zkConsumerConnector0 = new ZookeeperConsumerConnector(consumerConfig0);
             var topicMessageSterams0 =
                 zkConsumerConnector0.CreateMessageStreams(
                     new Dictionary<string, int> { { Topic, 1 } }, new StringDecoder(), new StringDecoder());
@@ -89,11 +80,10 @@
             for (var i = 0; i < 2; i++)
             {
                 Assert.Throws<ConsumerTimeoutException>(
-                    () => GetMessages(nMessages * 2, topicMessageSterams0));
+                    () => this.GetMessages(nMessages * 2, topicMessageSterams0));
             }
 
             zkConsumerConnector0.Shutdown();
-            
 
             // send some messages to each broker
             var sentMessages1 =
@@ -109,7 +99,7 @@
 
             // create a consuemr
             var consumerConfig1 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer1);
-            var zkConsumerConnector1 = new ZookeeperConsumerConnector(consumerConfig1, true);
+            var zkConsumerConnector1 = new ZookeeperConsumerConnector(consumerConfig1);
             var topicMessageStreams1 =
                 zkConsumerConnector1.CreateMessageStreams(
                     new Dictionary<string, int> { { Topic, 1 } }, new StringDecoder(), new StringDecoder());
@@ -118,7 +108,7 @@
             Assert.Equal(sentMessages1.OrderBy(x => x).ToArray(), receivedMessages1.OrderBy(x => x).ToArray());
 
             // also check partition ownership
-            var actual_1 = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
+            var actual_1 = this.GetZKChildrenValues(this.dirs.ConsumerOwnerDir);
             var expected_1 = new List<Tuple<string, string>>
                                  {
                                      Tuple.Create("0", "group1_consumer1-0"),
@@ -133,19 +123,19 @@
             var consumerConfig2 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer2);
             consumerConfig2.RebalanceBackoffMs = RebalanceBackoutMs;
 
-            var zkConsumerConnector2 = new ZookeeperConsumerConnector(consumerConfig2, true);
+            var zkConsumerConnector2 = new ZookeeperConsumerConnector(consumerConfig2);
             var topicMessageStreams2 =
                 zkConsumerConnector2.CreateMessageStreams(
                     new Dictionary<string, int> { { Topic, 1 } }, new StringDecoder(), new StringDecoder());
 
             // send some messages to each broker
             var sentMessages2 =
-                SendMessagesToBrokerPartition(Configs.First(), Topic, 0, nMessages)
-                .Union(SendMessagesToBrokerPartition(Configs.Last(), Topic, 1, nMessages)).ToList();
+                this.SendMessagesToBrokerPartition(Configs.First(), Topic, 0, nMessages)
+                .Union(this.SendMessagesToBrokerPartition(Configs.Last(), Topic, 1, nMessages)).ToList();
 
             // wait to make sure the topic and partition have a leader for the successful case
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 0, 500);
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 1, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 0, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 1, 500);
 
             var receivedMessages2 =
                 this.GetMessages(nMessages, topicMessageStreams1)
@@ -154,7 +144,7 @@
             Assert.Equal(sentMessages2.OrderBy(x => x).ToList(), receivedMessages2.OrderBy(x => x).ToList());
 
             // also check partition ownership
-            var actual_2 = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
+            var actual_2 = this.GetZKChildrenValues(this.dirs.ConsumerOwnerDir);
             var expected_2 = new List<Tuple<string, string>>
                                  {
                                      Tuple.Create("0", "group1_consumer1-0"),
@@ -164,8 +154,8 @@
 
             // create a consumer with empty map
             var consumerConfig3 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer3);
-            var zkConsumerConnector3 = new ZookeeperConsumerConnector(consumerConfig3, true);
-            var topicMessageStreams3 = zkConsumerConnector3.CreateMessageStreams(new Dictionary<string, int>());
+            var zkConsumerConnector3 = new ZookeeperConsumerConnector(consumerConfig3);
+            zkConsumerConnector3.CreateMessageStreams(new Dictionary<string, int>());
 
             // send some messages to each broker
             var sentMessages3 =
@@ -174,8 +164,8 @@
                     .ToList();
 
             // wait to make sure the topic and partition have a leader for the successful case
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 0, 500);
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 1, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 0, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 1, 500);
 
             var receivedMessages3 =
                 this.GetMessages(nMessages, topicMessageStreams1)
@@ -184,7 +174,7 @@
             Assert.Equal(sentMessages3.OrderBy(x => x).ToList(), receivedMessages3.OrderBy(x => x).ToList());
 
             // also check partition ownership
-            var actual_3 = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
+            var actual_3 = this.GetZKChildrenValues(this.dirs.ConsumerOwnerDir);
             Assert.Equal(expected_2, actual_3);
 
             zkConsumerConnector1.Shutdown();
@@ -213,7 +203,7 @@
 
             // create a consuemr
             var consumerConfig1 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer1);
-            var zkConsumerConnector1 = new ZookeeperConsumerConnector(consumerConfig1, true);
+            var zkConsumerConnector1 = new ZookeeperConsumerConnector(consumerConfig1);
             var topicMessageStreams1 =
                 zkConsumerConnector1.CreateMessageStreams(
                     new Dictionary<string, int> { { Topic, 1 } }, new StringDecoder(), new StringDecoder());
@@ -222,7 +212,7 @@
             Assert.Equal(sentMessages1.OrderBy(x => x).ToArray(), receivedMessages1.OrderBy(x => x).ToArray());
 
             // also check partition ownership
-            var actual_1 = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
+            var actual_1 = this.GetZKChildrenValues(this.dirs.ConsumerOwnerDir);
             var expected_1 = new List<Tuple<string, string>>
                                  {
                                      Tuple.Create("0", "group1_consumer1-0"),
@@ -237,19 +227,19 @@
             var consumerConfig2 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer2);
             consumerConfig2.RebalanceBackoffMs = RebalanceBackoutMs;
 
-            var zkConsumerConnector2 = new ZookeeperConsumerConnector(consumerConfig2, true);
+            var zkConsumerConnector2 = new ZookeeperConsumerConnector(consumerConfig2);
             var topicMessageStreams2 =
                 zkConsumerConnector2.CreateMessageStreams(
                     new Dictionary<string, int> { { Topic, 1 } }, new StringDecoder(), new StringDecoder());
 
             // send some messages to each broker
             var sentMessages2 =
-                SendMessagesToBrokerPartition(Configs.First(), Topic, 0, nMessages, CompressionCodecs.GZIPCompressionCodec)
-                .Union(SendMessagesToBrokerPartition(Configs.Last(), Topic, 1, nMessages, CompressionCodecs.GZIPCompressionCodec)).ToList();
+                this.SendMessagesToBrokerPartition(Configs.First(), Topic, 0, nMessages, CompressionCodecs.GZIPCompressionCodec)
+                .Union(this.SendMessagesToBrokerPartition(Configs.Last(), Topic, 1, nMessages, CompressionCodecs.GZIPCompressionCodec)).ToList();
 
             // wait to make sure the topic and partition have a leader for the successful case
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 0, 500);
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 1, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 0, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 1, 500);
 
             var receivedMessages2 =
                 this.GetMessages(nMessages, topicMessageStreams1)
@@ -258,7 +248,7 @@
             Assert.Equal(sentMessages2.OrderBy(x => x).ToList(), receivedMessages2.OrderBy(x => x).ToList());
 
             // also check partition ownership
-            var actual_2 = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
+            var actual_2 = this.GetZKChildrenValues(this.dirs.ConsumerOwnerDir);
             var expected_2 = new List<Tuple<string, string>>
                                  {
                                      Tuple.Create("0", "group1_consumer1-0"),
@@ -268,8 +258,8 @@
 
             // create a consumer with empty map
             var consumerConfig3 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer3);
-            var zkConsumerConnector3 = new ZookeeperConsumerConnector(consumerConfig3, true);
-            var topicMessageStreams3 = zkConsumerConnector3.CreateMessageStreams(new Dictionary<string, int>());
+            var zkConsumerConnector3 = new ZookeeperConsumerConnector(consumerConfig3);
+            zkConsumerConnector3.CreateMessageStreams(new Dictionary<string, int>());
 
             // send some messages to each broker
             var sentMessages3 =
@@ -278,8 +268,8 @@
                     .ToList();
 
             // wait to make sure the topic and partition have a leader for the successful case
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 0, 500);
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 1, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 0, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 1, 500);
 
             var receivedMessages3 =
                 this.GetMessages(nMessages, topicMessageStreams1)
@@ -288,7 +278,7 @@
             Assert.Equal(sentMessages3.OrderBy(x => x).ToList(), receivedMessages3.OrderBy(x => x).ToList());
 
             // also check partition ownership
-            var actual_3 = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
+            var actual_3 = this.GetZKChildrenValues(this.dirs.ConsumerOwnerDir);
             Assert.Equal(expected_2, actual_3);
 
             zkConsumerConnector1.Shutdown();
@@ -314,7 +304,7 @@
 
             // create a consuemr
             var consumerConfig1 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer0);
-            var zkConsumerConnector1 = new ZookeeperConsumerConnector(consumerConfig1, true);
+            var zkConsumerConnector1 = new ZookeeperConsumerConnector(consumerConfig1);
             var topicMessageStreams1 =
                 zkConsumerConnector1.CreateMessageStreams(
                     new Dictionary<string, int> { { Topic, 1 } }, new StringDecoder(), new StringDecoder());
@@ -323,7 +313,7 @@
             Assert.Equal(sentMessages.OrderBy(x => x).ToArray(), receivedMessages1.OrderBy(x => x).ToArray());
 
             // also check partition ownership
-            var actual_2 = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
+            var actual_2 = this.GetZKChildrenValues(this.dirs.ConsumerOwnerDir);
             var expected_2 = new List<Tuple<string, string>>
                                  {
                                      Tuple.Create("0", "group1_consumer0-0"),
@@ -338,10 +328,10 @@
         {
             // send some messages to each broker
             var sentMessages = this.SendMessagesToBrokerPartition(
-                Configs.First(), Topic, 0, nMessages, CompressionCodecs.NoCompressionCodec)
+                Configs.First(), Topic, 0, nMessages)
                 .Union(
                     this.SendMessagesToBrokerPartition(
-                        Configs.First(), Topic, 1, nMessages, CompressionCodecs.NoCompressionCodec))
+                        Configs.First(), Topic, 1, nMessages))
                 .ToList();
 
             TestUtils.WaitUntilMetadataIsPropagated(this.Servers, Topic, 0, 1000);
@@ -350,10 +340,10 @@
             // create a consuemr
             var consumerConfig = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer1);
 
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 0, 500);
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, Topic, 1, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 0, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 1, 500);
 
-            var zkConsumerConnector = new ZookeeperConsumerConnector(consumerConfig, true);
+            var zkConsumerConnector = new ZookeeperConsumerConnector(consumerConfig);
             var topicMessageStreams =
                 zkConsumerConnector.CreateMessageStreams(
                     new Dictionary<string, int> { { Topic, 1 } }, new StringDecoder(), new StringDecoder());
@@ -367,20 +357,20 @@
         [Fact]
         public void TestLeaderSelectionForPartition()
         {
-            var zkClient = new ZkClient(zookeeperConnect, 6000, 30000, new ZkStringSerializer());
+            var zkClient = new ZkClient(this.zookeeperConnect, 6000, 30000, new ZkStringSerializer());
 
             // create topic topic1 with 1 partition on broker 0
             AdminUtils.CreateTopic(zkClient, Topic, 1, 1, new Dictionary<string, string>());
             TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, Topic, 0, 5000);
 
-            var sentMessages1 = SendMessages(
+            var sentMessages1 = this.SendMessages(
                 Configs.First(), nMessages, "batch1", CompressionCodecs.NoCompressionCodec, 1);
 
-            TestUtils.WaitUntilMetadataIsPropagated(Servers, Topic, 0, 1000);
+            TestUtils.WaitUntilMetadataIsPropagated(this.Servers, Topic, 0, 1000);
 
             // create a consuemr
             var consumerConfig1 = TestUtils.CreateConsumerProperties(ZkConnect, Group, Consumer1);
-            var zkConsumerConnector1 = new ZookeeperConsumerConnector(consumerConfig1, true);
+            var zkConsumerConnector1 = new ZookeeperConsumerConnector(consumerConfig1);
             var topicMessageStreams1 =
                 zkConsumerConnector1.CreateMessageStreams(
                     new Dictionary<string, int> { { Topic, 1 } }, new StringDecoder(), new StringDecoder());
@@ -396,7 +386,7 @@
             Assert.Equal(0, brokerPartition.PartitionId);
 
             // also check partition ownership
-            var actual_1 = this.GetZKChildrenValues(dirs.ConsumerOwnerDir);
+            var actual_1 = this.GetZKChildrenValues(this.dirs.ConsumerOwnerDir);
             var expected_1 = new List<Tuple<string, string>>
                                  {
                                      Tuple.Create("0", "group1_consumer1-0"),
@@ -424,7 +414,6 @@
                                 CompressionCodec = compression,
                                 KeySerializer = typeof(IntEncoder).AssemblyQualifiedName,
                                 Serializer = typeof(StringEncoder).AssemblyQualifiedName,
-                                RetryBackoffMs = 1000, //TODO: delete me
                             }; 
             var producer = new Producer<int, string>(props);
             var ms =
@@ -459,11 +448,10 @@
                 messages.AddRange(ms);
                 Logger.DebugFormat("Sent {0} messages to broker {1} for partition [{2},{3}]", ms.Count, config.BrokerId, Topic, partition);
             }
+
             producer.Dispose();
             return messages;
         }
-
-        //TODO : sendMessages
 
         public List<string> GetMessages(
             int nMessagesPerThread, IDictionary<string, IList<KafkaStream<string, string>>> topicMessageStreams)
@@ -472,11 +460,9 @@
 
             foreach (var kvp in topicMessageStreams)
             {
-                var topic = kvp.Key;
                 var messageStreams = kvp.Value;
                 foreach (var messageStream in messageStreams)
                 {
-                    
                     var iterator = messageStream.GetEnumerator();
                     for (int i = 0; i < nMessagesPerThread; i++)
                     {
@@ -487,10 +473,10 @@
                     }
                 }
             }
+
             return messages;
         }
             
-
         public List<Tuple<string, string>> GetZKChildrenValues(string path)
         {
             var children = ZkClient.GetChildren(path).OrderBy(x => x).ToList();
@@ -498,8 +484,6 @@
             return
                 children.Select(partition => Tuple.Create(partition, ZkClient.ReadData<string>(path + "/" + partition)))
                         .ToList();
-
         }
-
     }
 }

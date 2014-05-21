@@ -88,9 +88,10 @@
                         1000);
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
             }
+
             try
             {
                 if (this.LogDir != null)
@@ -101,6 +102,7 @@
             catch
             {
             }
+
             TestUtils.PortReleased(this.Port);
         }
     }

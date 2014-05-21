@@ -303,6 +303,18 @@
             }
         }
 
+        /// <summary>
+        /// Throw an exception if the two iterators are of differing lengths or contain
+        /// different messages on their Nth element
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="expected"></param>
+        /// <param name="actual"></param>
+        public static void CheckEquals<T>(IEnumerable<T> expected, IEnumerable<T> actual)
+        {
+            CheckEquals(expected.GetEnumerator(), actual.GetEnumerator());
+        }
+
         public static Producer<string, byte[]> CreateProducer(
             List<BrokerConfiguration> brokerList)
         {

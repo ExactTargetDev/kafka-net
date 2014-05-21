@@ -1,4 +1,4 @@
-﻿namespace Kafka.Tests
+﻿namespace Kafka.Tests.Custom.Utils
 {
     using System.Collections.Generic;
     using System.Linq;
@@ -28,10 +28,10 @@
 
         protected override string MakeNext()
         {
-            i++;
-            if (i < items.Count)
+            this.i++;
+            if (this.i < this.items.Count)
             {
-                return items[i];
+                return this.items[this.i];
             }
             this.AllDone();
             return null;

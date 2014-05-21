@@ -3,16 +3,14 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
-    using System.Threading;
 
     using Kafka.Client.Admin;
-    using Kafka.Client.Cfg;
     using Kafka.Client.Clusters;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Consumers;
     using Kafka.Client.Messages;
-    using Kafka.Client.Producers;
     using Kafka.Client.Serializers;
     using Kafka.Client.Utils;
     using Kafka.Tests.Custom.Server;
@@ -20,8 +18,6 @@
     using Kafka.Tests.Utils;
 
     using Xunit;
-
-    using System.Linq;
 
     public class ConsumerIteratorTest : KafkaServerTestHarness
     {
@@ -57,21 +53,15 @@
 
         public ConsumerIteratorTest()
         {
-
-            //TODO: move to separate class and config statically
-            log4net.Config.BasicConfigurator.Configure(
-              new log4net.Appender.ConsoleAppender { Layout = new log4net.Layout.SimpleLayout() }
-          );
-
             this.cluster = new Cluster(Configs.Select(c => new Broker(c.BrokerId, "localhost", c.Port)));
             this.topicInfos =
                 this.Configs.Select(
                     c =>
                     new PartitionTopicInfo(
-                        topic, 0, queue, new AtomicLong(consumedOffset), new AtomicLong(0), new AtomicInteger(0), ""))
+                        this.topic, 0, this.queue, new AtomicLong(this.consumedOffset), new AtomicLong(0), new AtomicInteger(0), string.Empty))
                     .ToList();
 
-            this.consumerConfig = TestUtils.CreateConsumerProperties(ZkConnect, group, consumer0);
+            this.consumerConfig = TestUtils.CreateConsumerProperties(this.ZkConnect, group, consumer0);
 
             AdminUtils.CreateOrUpdateTopicPartitionAssignmentPathInZK(
                 this.ZkClient,
@@ -79,7 +69,7 @@
                 new Dictionary<int, List<int>> { { 0, new List<int> { Configs.First().BrokerId } } },
                 new Dictionary<string, string>());
 
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, topic, 0, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, this.topic, 0, 500);
         }
 
         [Fact]
@@ -90,21 +80,21 @@
             var messageSet = new ByteBufferMessageSet(
                 CompressionCodecs.DefaultCompressionCodec, new AtomicLong(0), messages);
 
-            topicInfos[0].Enqueue(messageSet);
-            Assert.Equal(1, queue.Count);
+            this.topicInfos[0].Enqueue(messageSet);
+            Assert.Equal(1, this.queue.Count);
 
             this.queue.Add(ZookeeperConsumerConnector.ShutdownCommand);
 
-            var iter = new ConsumerIterator<string, string>(queue, consumerConfig.ConsumerTimeoutMs, new StringDecoder(), new StringDecoder(), string.Empty);
+            var iter = new ConsumerIterator<string, string>(this.queue, this.consumerConfig.ConsumerTimeoutMs, new StringDecoder(), new StringDecoder(), string.Empty);
 
             var receivedMessages = Enumerable.Range(0, 5).Select(_ => iter.Next().Message).ToList();
 
             Assert.False(iter.HasNext());
 
-            Assert.Equal(1, queue.Count); // This is only shutdown comamnd
+            Assert.Equal(1, this.queue.Count); // This is only shutdown comamnd
             Assert.Equal(5, receivedMessages.Count);
             var unconsumed =
-                messageSet.Where(x => x.Offset >= consumedOffset).Select(m => Util.ReadString(m.Message.Payload));
+                messageSet.Where(x => x.Offset >= this.consumedOffset).Select(m => Util.ReadString(m.Message.Payload));
             Assert.Equal(unconsumed, receivedMessages);
         }
 
@@ -116,18 +106,18 @@
             var messageSet = new ByteBufferMessageSet(
                 CompressionCodecs.NoCompressionCodec, new AtomicLong(0), messages);
 
-            topicInfos[0].Enqueue(messageSet);
-            Assert.Equal(1, queue.Count);
+            this.topicInfos[0].Enqueue(messageSet);
+            Assert.Equal(1, this.queue.Count);
 
             var iter = new ConsumerIterator<string, string>(
-                queue, ConsumerConfig.DefaultConsumerTimeoutMs, new FailDecoder(), new FailDecoder(), string.Empty);
+                this.queue, ConsumerConfig.DefaultConsumerTimeoutMs, new FailDecoder(), new FailDecoder(), string.Empty);
 
             for (var i = 0; i < 5; i++)
             {
                 Assert.True(iter.HasNext());
                 var message = iter.Next();
 
-                Assert.Equal(message.Offset, i + consumedOffset);
+                Assert.Equal(message.Offset, i + this.consumedOffset);
 
                 Assert.Throws<NotSupportedException>(() => message.Message);
             }

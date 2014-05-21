@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     using Kafka.Client.Api;
     using Kafka.Client.Common;
@@ -13,13 +14,11 @@
 
     using Xunit;
 
-    using System.Linq;
-
     public class LazyInitProducerTest : ProducerConsumerTestHarness
     {
         protected override List<TempKafkaConfig> CreateConfigs()
         {
-            return new List<TempKafkaConfig> { TestUtils.CreateBrokerConfig(0, TestUtils.ChoosePort())};
+            return new List<TempKafkaConfig> { TestUtils.CreateBrokerConfig(0, TestUtils.ChoosePort()) };
         }
 
         public LazyInitProducerTest()
@@ -40,7 +39,7 @@
 
             Producer.Send(producerData);
 
-            TestUtils.WaitUntilMetadataIsPropagated(Servers, topic, 0, 1000);
+            TestUtils.WaitUntilMetadataIsPropagated(this.Servers, topic, 0, 1000);
 
             ByteBufferMessageSet fetchedMessage = null;
             while (fetchedMessage == null || fetchedMessage.ValidBytes == 0)
@@ -59,6 +58,7 @@
                 {
                     ErrorMapping.MaybeThrowException(pdata.Error);
                 }
+
                 Assert.True(false, "Expected an OffsetOutOfRangeException exception to be thrown");
             }
             catch (OffsetOutOfRangeException)
@@ -70,7 +70,7 @@
         public void TestProduceAndMultiFetch()
         {
             // send some messages, with non-ordered topics
-            var topicOffsets = new List<Tuple<string, int>> { Tuple.Create("test4", 0), Tuple.Create("test1", 0) , Tuple.Create("test2", 0), Tuple.Create("test3", 0) };
+            var topicOffsets = new List<Tuple<string, int>> { Tuple.Create("test4", 0), Tuple.Create("test1", 0), Tuple.Create("test2", 0), Tuple.Create("test3", 0) };
 
             {
                 var messages = new Dictionary<string, List<string>>();
@@ -83,7 +83,7 @@
                     var producedData = new List<string> { "a_" + topic, "b_" + topic };
                     messages[topic] = producedData;
                     Producer.Send(producedData.Select(m => new KeyedMessage<string, string>(topic, topic, m)).ToArray());
-                    TestUtils.WaitUntilMetadataIsPropagated(Servers, topic, 0, 1000);
+                    TestUtils.WaitUntilMetadataIsPropagated(this.Servers, topic, 0, 1000);
                     builder.AddFetch(topic, offset, 0, 10000);
                 }
 
@@ -119,7 +119,6 @@
                         // this is good
                     }
                 }
-
             }
         }
 
@@ -142,7 +141,7 @@
             Producer.Send(producerList.ToArray());
             foreach (var topic in topics)
             {
-                TestUtils.WaitUntilMetadataIsPropagated(Servers, topic, 0, 1000);
+                TestUtils.WaitUntilMetadataIsPropagated(this.Servers, topic, 0, 1000);
             }
 
             // wait a bit for produced message to be available
@@ -154,7 +153,6 @@
                 Assert.Equal(messages[topic], fetched.Select(m => Util.ReadString(m.Message.Payload)).ToList());
             }
         }
-
 
         [Fact]
         public void TestMultiProduceResend()
@@ -175,7 +173,7 @@
             Producer.Send(producerList.ToArray());
             foreach (var topic in topics)
             {
-                TestUtils.WaitUntilMetadataIsPropagated(Servers, topic, 0, 1000);
+                TestUtils.WaitUntilMetadataIsPropagated(this.Servers, topic, 0, 1000);
             }
 
             Producer.Send(producerList.ToArray());

@@ -1,4 +1,4 @@
-﻿namespace Kafka.Tests
+﻿namespace Kafka.Tests.Messages
 {
     using System.Collections.Generic;
     using System.Text;
@@ -28,7 +28,7 @@
                 {
                     foreach (var codec in codecs)
                     {
-                        messages.Add(new MessageTestVal(k, v, codec, new Message(v, k, codec)));
+                        this.messages.Add(new MessageTestVal(k, v, codec, new Message(v, k, codec)));
                     }
                 }
             }
@@ -37,7 +37,7 @@
         [Fact]
         public void TestFieldValues()
         {
-            foreach (var v in messages)
+            foreach (var v in this.messages)
             {
                 if (v.Payload == null)
                 {
@@ -64,7 +64,7 @@
         [Fact]
         public void TestChecksum()
         {
-            foreach (var v in messages)
+            foreach (var v in this.messages)
             {
                 Assert.False(v.Message.Equals(null));
                 Assert.False(v.Message.Equals("asdf"));
@@ -89,7 +89,6 @@
                 Assert.Equal(v.Message, m[v.Message]);   
             }
         }
-
     }
 
     internal class MessageTestVal

@@ -48,6 +48,7 @@
             catch
             {
             }
+
             try
             {
                 File.Delete(this.ConfigLocation);
@@ -55,6 +56,7 @@
             catch
             {
             }
+
             TestUtils.PortReleased(this.Port);
         }
     }

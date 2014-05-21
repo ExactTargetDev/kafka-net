@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
     using System.Text;
 
@@ -10,7 +11,6 @@
     using Kafka.Client.Clusters;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Consumers;
-    using Kafka.Client.Messages;
     using Kafka.Client.Producers;
     using Kafka.Client.Serializers;
     using Kafka.Tests.Custom.Server;
@@ -28,7 +28,7 @@
                 NumNodes,
                 idx => new Dictionary<string, string>
                            {
-                               {"zookeeper.connect", "localhost:" + TestZkUtils.ZookeeperPort }
+                               { "zookeeper.connect", "localhost:" + TestZkUtils.ZookeeperPort }
                            });
         }
 
@@ -38,8 +38,6 @@
 
         private readonly Cluster cluster;
 
-        private readonly FetchedDataChunk shutdown = ZookeeperConsumerConnector.ShutdownCommand;
-
         private readonly BlockingCollection<FetchedDataChunk> queue = new BlockingCollection<FetchedDataChunk>();
 
         private readonly List<PartitionTopicInfo> topicInfos;
@@ -48,13 +46,12 @@
 
         public FetcherTest()
         {
-
             this.cluster = new Cluster(Configs.Select(c => new Broker(c.BrokerId, "localhost", c.Port)));
             this.topicInfos =
                 this.Configs.Select(
                     c =>
                     new PartitionTopicInfo(
-                        topic, 0, queue, new AtomicLong(0), new AtomicLong(0), new AtomicInteger(0), string.Empty))
+                        this.topic, 0, this.queue, new AtomicLong(0), new AtomicLong(0), new AtomicInteger(0), string.Empty))
                     .ToList();
 
             AdminUtils.CreateOrUpdateTopicPartitionAssignmentPathInZK(
@@ -63,23 +60,23 @@
                 new Dictionary<int, List<int>> { { 0, new List<int> { Configs.First().BrokerId } } },
                 new Dictionary<string, string>());
 
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, topic, 0, 500);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, this.topic, 0, 500);
 
-            this.fetcher = new ConsumerFetcherManager("consumer1", new ConsumerConfig("", 1234, ""), ZkClient);
-            fetcher.StopConnections();
-            fetcher.StartConnections(topicInfos, cluster);
+            this.fetcher = new ConsumerFetcherManager("consumer1", new ConsumerConfig(string.Empty, 1234, string.Empty), ZkClient);
+            this.fetcher.StopConnections();
+            this.fetcher.StartConnections(this.topicInfos, this.cluster);
         }
 
         public override void Dispose()
         {
-            fetcher.StopConnections();
+            this.fetcher.StopConnections();
             base.Dispose();
         }
 
         [Fact]
         public void TestFetcher()
         {
-            var perNode = 2;
+            int perNode = 2;
             var count = this.SendMessages(perNode);
 
             this.Fetch(count);
@@ -97,19 +94,20 @@
         public int SendMessages(int messagesPerNode)
         {
             var count = 0;
-            foreach (var conf in Configs)
+            foreach (var conf in this.Configs)
             {
                 var producer = TestUtils.CreateProducer(TestUtils.GetBrokerListFromConfigs(Configs), new DefaultEncoder(), new StringEncoder());
 
                 var ms =
                     Enumerable.Range(0, messagesPerNode)
-                              .Select(x => Encoding.UTF8.GetBytes(conf.BrokerId * 5 + x.ToString()))
+                              .Select(x => Encoding.UTF8.GetBytes((conf.BrokerId * 5) + x.ToString(CultureInfo.InvariantCulture)))
                               .ToList();
-                messages[conf.BrokerId] = ms;
-                producer.Send(ms.Select(m => new KeyedMessage<string, byte[]>(topic, topic, m)).ToArray());
+                this.messages[conf.BrokerId] = ms;
+                producer.Send(ms.Select(m => new KeyedMessage<string, byte[]>(this.topic, this.topic, m)).ToArray());
                 producer.Dispose();
                 count += ms.Count;
             }
+
             return count;
         }
 
@@ -119,12 +117,9 @@
             while (true)
             {
                 FetchedDataChunk chunk;
-                queue.TryTake(out chunk, TimeSpan.FromSeconds(2));
+                this.queue.TryTake(out chunk, TimeSpan.FromSeconds(2));
                 Assert.NotNull(chunk);
-                foreach (var message in chunk.Messages)
-                {
-                    count++;
-                }
+                count += chunk.Messages.Count();
                 if (count == expected)
                 {
                     return;

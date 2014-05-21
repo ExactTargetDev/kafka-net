@@ -1,6 +1,7 @@
 ﻿namespace Kafka.Tests.Integration
 {
     using System.Collections.Generic;
+    using System.Linq;
 
     using Kafka.Client.Admin;
     using Kafka.Client.Api;
@@ -12,8 +13,6 @@
     using Kafka.Tests.Utils;
 
     using Xunit;
-
-    using System.Linq;
 
     public class TopicMetadataTest : KafkaServerTestHarness
     {
@@ -57,7 +56,7 @@
             TestUtils.WaitUntilMetadataIsPropagated(this.Servers, topic, 0, 1000);
             TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, topic, 0, 1000);
             var topicsMetadata = ClientUtils.FetchTopicMetadata(
-                new HashSet<string> { topic }, this.Brokers, "TopicMetadataTest-testBasicTopicMetadata", 2000, 0)
+                new HashSet<string> { topic }, this.Brokers, "TopicMetadataTest-testBasicTopicMetadata", 2000)
                        .TopicsMetadata;
 
             Assert.Equal(ErrorMapping.NoError, topicsMetadata.First().ErrorCode);
@@ -77,8 +76,8 @@
             var topic1 = "testGetAllTopicMetadata1";
             var topic2 = "testGetAllTopicMetadata2";
 
-            AdminUtils.CreateTopic(ZkClient, topic1, 1, 1, new Dictionary<string, string>());
-            AdminUtils.CreateTopic(ZkClient, topic2, 1, 1, new Dictionary<string, string>());
+            AdminUtils.CreateTopic(this.ZkClient, topic1, 1, 1, new Dictionary<string, string>());
+            AdminUtils.CreateTopic(this.ZkClient, topic2, 1, 1, new Dictionary<string, string>());
 
             // wait for leader to be elected for both topics
             TestUtils.WaitUntilMetadataIsPropagated(this.Servers, topic1, 0, 1000);
@@ -87,7 +86,7 @@
             // issue metadata request with empty list of topics
             var topicsMetadata =
                 ClientUtils.FetchTopicMetadata(
-                    new HashSet<string>(), Brokers, "TopicMetadataTest-testGetAllTopicMetadata", 2000, 0).TopicsMetadata;
+                    new HashSet<string>(), this.Brokers, "TopicMetadataTest-testGetAllTopicMetadata", 2000).TopicsMetadata;
 
             Assert.Equal(ErrorMapping.NoError, topicsMetadata.First().ErrorCode);
             Assert.Equal(2, topicsMetadata.Count);
@@ -111,7 +110,7 @@
             var topic = "testAutoCreateTopic";
             var topicsMetadata =
                 ClientUtils.FetchTopicMetadata(
-                    new HashSet<string>{ topic }, Brokers, "TopicMetadataTest-testAutoCreateTopic", 2000, 0)
+                    new HashSet<string> { topic }, this.Brokers, "TopicMetadataTest-testAutoCreateTopic", 2000)
                            .TopicsMetadata;
             Assert.Equal(ErrorMapping.LeaderNotAvailableCode, topicsMetadata.First().ErrorCode);
             Assert.Equal(1, topicsMetadata.Count);
@@ -119,13 +118,13 @@
             Assert.Equal(0, topicsMetadata.First().PartitionsMetadata.Count);
 
             // wait for leader to be elected
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, topic, 0, 1000);
-            TestUtils.WaitUntilMetadataIsPropagated(Servers, topic, 0, 1000);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, topic, 0, 1000);
+            TestUtils.WaitUntilMetadataIsPropagated(this.Servers, topic, 0, 1000);
 
             // retry the metadata for the auto created topic
             topicsMetadata =
                 ClientUtils.FetchTopicMetadata(
-                    new HashSet<string> { topic }, Brokers, "TopicMetadataTest-testBasicTopicMetadata", 2000, 0)
+                    new HashSet<string> { topic }, this.Brokers, "TopicMetadataTest-testBasicTopicMetadata", 2000)
                            .TopicsMetadata;
             Assert.Equal(ErrorMapping.NoError, topicsMetadata.First().ErrorCode);
             Assert.Equal(ErrorMapping.NoError, topicsMetadata.First().PartitionsMetadata.First().ErrorCode);

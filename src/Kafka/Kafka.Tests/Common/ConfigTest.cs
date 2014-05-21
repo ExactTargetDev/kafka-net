@@ -16,7 +16,7 @@
              var badChars = new List<string> { "/", "\\", ",", "\0", ":", "\"", "\'", ";", "*", "?", " ", "\t", "\r", "\n", "=" };
              var invalidClientIds = badChars.Select(weirdChar => "Is " + weirdChar + "illegal").ToList();
 
-             foreach (string invalidClientId in invalidClientIds)
+             foreach (var invalidClientId in invalidClientIds)
              {
                  try
                  {
@@ -42,7 +42,7 @@
             var badChars = new List<string> { "/", "\\", ",", "\0", ":", "\"", "\'", ";", "*", "?", " ", "\t", "\r", "\n", "=" };
             var invalidGroupIds = badChars.Select(weirdChar => "Is " + weirdChar + "illegal").ToList();
 
-            foreach (string invalidGroupId in invalidGroupIds)
+            foreach (var invalidGroupId in invalidGroupIds)
             {
                 try
                 {

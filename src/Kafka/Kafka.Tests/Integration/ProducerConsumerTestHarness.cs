@@ -1,10 +1,10 @@
 ﻿namespace Kafka.Tests.Integration
 {
+    using System.Linq;
+
     using Kafka.Client.Consumers;
     using Kafka.Client.Producers;
     using Kafka.Tests.Utils;
-
-    using System.Linq;
 
     public abstract class ProducerConsumerTestHarness : KafkaServerTestHarness
     {
@@ -22,13 +22,13 @@
             var props = TestUtils.GetProducerConfig(
                 TestUtils.GetBrokerListFromConfigs(Configs), typeof(StaticPartitioner).AssemblyQualifiedName);
             this.Producer = new Producer<string, string>(props);
-            this.Consumer = new SimpleConsumer(host, port, 1000000, 64 * 1024, string.Empty);
+            this.Consumer = new SimpleConsumer(this.host, this.port, 1000000, 64 * 1024, string.Empty);
         }
 
         public override void Dispose()
         {
-            Producer.Dispose();
-            Consumer.Close();
+            this.Producer.Dispose();
+            this.Consumer.Close();
             base.Dispose();
         }
     }

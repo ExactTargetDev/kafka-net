@@ -104,8 +104,8 @@
         [Fact]
         public void TestProduceAndMultiFetch()
         {
-            CreateSimpleTopicsAndAwaitLeader(
-                ZkClient, new List<string> { "test1", "test2", "test3", "test4" }, Configs.First().BrokerId);
+            this.CreateSimpleTopicsAndAwaitLeader(
+                this.ZkClient, new List<string> { "test1", "test2", "test3", "test4" }, Configs.First().BrokerId);
 
             // send some messages, with non-ordered topics
             var topics = new List<Tuple<string, int>> { Tuple.Create("test4", 0), Tuple.Create("test1", 0), Tuple.Create("test2", 0), Tuple.Create("test3", 0) };
@@ -176,6 +176,7 @@
                     {
                         ErrorMapping.MaybeThrowException(pdata.Error);
                     }
+
                     Assert.True(false, "Expected exception when fetching message with invalid partition");
                 }
                 catch (UnknownTopicOrPartitionException)
@@ -187,8 +188,8 @@
 
         public void TestMultiProduce()
         {
-            CreateSimpleTopicsAndAwaitLeader(
-               ZkClient, new List<string> { "test1", "test2", "test3", "test4" }, Configs.First().BrokerId);
+            this.CreateSimpleTopicsAndAwaitLeader(
+               this.ZkClient, new List<string> { "test1", "test2", "test3", "test4" }, Configs.First().BrokerId);
 
             // send some messages
             var topics = new List<Tuple<string, int>> { Tuple.Create("test4", 0), Tuple.Create("test1", 0), Tuple.Create("test2", 0), Tuple.Create("test3", 0) };
@@ -223,9 +224,9 @@
         public void TestConsumerEmptyTopic()
         {
             var newTopic = "new-topic";
-            AdminUtils.CreateTopic(ZkClient, newTopic, 1, 1, new Dictionary<string, string>());
-            TestUtils.WaitUntilMetadataIsPropagated(Servers, newTopic, 0, 1000);
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, newTopic, 0, 500);
+            AdminUtils.CreateTopic(this.ZkClient, newTopic, 1, 1, new Dictionary<string, string>());
+            TestUtils.WaitUntilMetadataIsPropagated(this.Servers, newTopic, 0, 1000);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, newTopic, 0, 500);
             var fetchResponse = Consumer.Fetch(new FetchRequestBuilder().AddFetch(newTopic, 0, 0, 10000).Build());
             Assert.False(fetchResponse.MessageSet(newTopic, 0).Iterator().HasNext());
         }
@@ -233,7 +234,7 @@
         [Fact]
         public void TestPipelinedProduceRequests()
         {
-            this.CreateSimpleTopicsAndAwaitLeader(ZkClient, new List<string>{"test1", "test2", "test3", "test4"}, Configs.First().BrokerId);
+            this.CreateSimpleTopicsAndAwaitLeader(this.ZkClient, new List<string> { "test1", "test2", "test3", "test4" }, Configs.First().BrokerId);
             var props = Producer.Config;
             props.RequestRequiredAcks = 0;
 
@@ -249,12 +250,11 @@
                              };
             var messages = new Dictionary<string, List<string>>();
             var builder = new FetchRequestBuilder();
-            var produceList = new List<KeyedMessage<string, string>>();
             foreach (var topicAndPartition in topics)
             {
                 var topic = topicAndPartition.Item1;
                 var partition = topicAndPartition.Item2;
-                var messageList = new List<string>{"a_" + topics, "b_" + topic};
+                var messageList = new List<string> { "a_" + topics, "b_" + topic };
                 var producerData = messageList.Select(m => new KeyedMessage<string, string>(topic, topic, m)).ToArray();
                 messages[topic] = messageList;
                 pipelinedProducer.Send(producerData);
@@ -262,7 +262,7 @@
             }
 
             // wait until the messages are published
-            Thread.Sleep(7000); // ugly sleep as we can't access logManager endOffset
+            Thread.Sleep(7000); // ugly sleep as we can't access logManager endOffset //TODO: can we reduce this value ?
 
             var request = builder.Build();
             var response = Consumer.Fetch(request);
@@ -280,7 +280,7 @@
             foreach (var topic in topics)
             {
                 AdminUtils.CreateTopic(zkClient, topic, 1, 1, new Dictionary<string, string>());
-                TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, topic, 0, 500);
+                TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, topic, 0, 500);
             }
         }
     }

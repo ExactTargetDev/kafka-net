@@ -1,4 +1,4 @@
-﻿namespace Kafka.Tests
+﻿namespace Kafka.Tests.Custom.Extensions
 {
     using System;
     using System.Linq;
@@ -9,7 +9,7 @@
          {
              Func<char> safeChar = () =>
                  {
-                     var surrogateStart = 0xd800;
+                     const int surrogateStart = 0xd800;
                      var res = random.Next(surrogateStart - 1) + 1;
                      return (char)res;
                  };
