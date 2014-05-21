@@ -16,6 +16,8 @@ namespace Kafka.Console
     using Kafka.Tests.Consumers;
     using Kafka.Tests.Utils;
 
+    using log4net.Appender;
+
     using Console = System.Console;
 
     class Program
@@ -23,18 +25,32 @@ namespace Kafka.Console
         static void Main(string[] args)
         {
 
-            new ZookeeperConsumerConnectorTest().TestBasic();
+            log4net.Config.BasicConfigurator.Configure(new FileAppender
+            {
+                File = @"c:\tmp\kafka.log",
+                Layout = new log4net.Layout.SimpleLayout()
+            });
+            using (var test = new ZookeeperConsumerConnectorTest())
+            {
+                test.TestBasic();
+            }
 
-        }
+            Console.Clear();
 
-       
+            using (var test = new ZookeeperConsumerConnectorTest())
+            {
+                test.TestCompression();
+            }
 
-        public static byte[] StringToByteArray(string hex)
-        {
-            return Enumerable.Range(0, hex.Length)
-                             .Where(x => x % 2 == 0)
-                             .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
-                             .ToArray();
+            Console.Clear();
+            //TODO: move to separate class and config statically
+
+           
+
+            using (var test = new ZookeeperConsumerConnectorTest())
+            {
+                test.TestLeaderSelectionForPartition();
+            }
         }
     }
 }

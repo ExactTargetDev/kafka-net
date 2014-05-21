@@ -50,7 +50,6 @@
 
         public override void Dispose()
         {
-            base.Dispose();
             foreach (var process in this.Servers)
             {
                 try
@@ -58,7 +57,7 @@
                     using (process)
                     {
                         process.Kill();
-                        SpinWait.SpinUntil(() => process.HasExited, 1000);
+                        SpinWait.SpinUntil(() => process.HasExited, 5000);
                     }
                 }
                 catch
@@ -69,6 +68,7 @@
             {
                 serverConfig.Dispose();
             }
+            base.Dispose();
         }
     }
 }

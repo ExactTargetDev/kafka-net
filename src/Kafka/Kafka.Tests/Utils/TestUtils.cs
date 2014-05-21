@@ -417,6 +417,13 @@
             ZookeeperPort = TestUtils.ChoosePort();
             ZookeeperConnect = "127.0.0.1:" + ZookeeperPort;
         }
+
+        public static void ResetPorts()
+        {
+            ZookeeperPort = TestUtils.ChoosePort();
+            ZookeeperConnect = "127.0.0.1:" + ZookeeperPort;
+        }
+
     }
 
     public class IntEncoder : IEncoder<int>

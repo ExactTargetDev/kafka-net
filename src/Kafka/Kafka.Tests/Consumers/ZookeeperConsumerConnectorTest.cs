@@ -414,6 +414,7 @@
                                 CompressionCodec = compression,
                                 KeySerializer = typeof(IntEncoder).AssemblyQualifiedName,
                                 Serializer = typeof(StringEncoder).AssemblyQualifiedName,
+                                RetryBackoffMs = 1000, // custom: we need time to rebalance leader
                             }; 
             var producer = new Producer<int, string>(props);
             var ms =
@@ -436,6 +437,7 @@
                 PartitionerClass = typeof(FixedValuePartitioner).AssemblyQualifiedName,
                 KeySerializer = typeof(IntEncoder).AssemblyQualifiedName,
                 Serializer = typeof(StringEncoder).AssemblyQualifiedName,
+                RetryBackoffMs = 1000,
             };
             var producer = new Producer<int, string>(props);
             for (var partition = 0; partition < numParts; partition++)

@@ -329,9 +329,12 @@
             var topic = "new-topic";
 
             // create topic
-            AdminUtils.CreateOrUpdateTopicPartitionAssignmentPathInZK(ZkClient, topic, new Dictionary<int, List<int>>
-                                                                                           {
-                                                                                               { 0, new List<int> { 0 }},
+            AdminUtils.CreateOrUpdateTopicPartitionAssignmentPathInZK(
+                this.ZkClient,
+                topic,
+                new Dictionary<int, List<int>>
+                    {
+                        { 0, new List<int> { 0 }},
                                                                                                { 1, new List<int> { 0 }},
                                                                                                { 2, new List<int> { 0 }},
                                                                                                { 3, new List<int> { 0 }},

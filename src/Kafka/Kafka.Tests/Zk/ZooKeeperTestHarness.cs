@@ -3,6 +3,7 @@
     using System;
     using System.Diagnostics;
     using System.IO;
+    using System.Threading;
 
     using Kafka.Client.Utils;
     using Kafka.Client.ZKClient;
@@ -42,9 +43,10 @@
             }
             try
             {
-                using (Zookeeper)
+                using (this.Zookeeper)
                 {
-                    Zookeeper.Kill();    
+                    Zookeeper.Kill();
+                    SpinWait.SpinUntil(() => this.Zookeeper.HasExited, 5000);
                 }
             }
             catch
@@ -61,6 +63,7 @@
             catch
             {
             }
+            TestZkUtils.ResetPorts();
         }
     }
 }
