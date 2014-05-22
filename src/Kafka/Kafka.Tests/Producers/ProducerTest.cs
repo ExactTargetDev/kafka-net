@@ -173,7 +173,7 @@
             {
                 producer1.Dispose();
             }
-
+            
             var producerConfig2 = new ProducerConfig();
             producerConfig2.Brokers = new List<BrokerConfiguration>
                                           {

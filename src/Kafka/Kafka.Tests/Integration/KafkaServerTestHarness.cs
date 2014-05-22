@@ -12,6 +12,8 @@
     using Kafka.Tests.Utils;
     using Kafka.Tests.Zk;
 
+    using Xunit;
+
     public abstract class KafkaServerTestHarness : ZooKeeperTestHarness
     {
         protected List<TempKafkaConfig> Configs { get; private set; }
@@ -52,16 +54,11 @@
         {
             foreach (var process in this.Servers)
             {
-                try
+                using (process)
                 {
-                    using (process)
-                    {
-                        process.Kill();
-                        SpinWait.SpinUntil(() => process.HasExited, 5000);
-                    }
-                }
-                catch
-                {
+                    process.Kill();
+                    process.WaitForExit(5000);
+                    Assert.True(process.HasExited);
                 }
             }
             foreach (var serverConfig in this.Configs)

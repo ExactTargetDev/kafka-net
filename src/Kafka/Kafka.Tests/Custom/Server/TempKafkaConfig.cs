@@ -9,6 +9,8 @@
     using Kafka.Client.Messages;
     using Kafka.Tests.Utils;
 
+    using Xunit;
+
     public class TempKafkaConfig : Dictionary<string, string>, IDisposable
     {
          private TempKafkaConfig(Dictionary<string, string> props) : base(props)
@@ -23,7 +25,7 @@
          {
             get
             {
-                 return this["log.dir"];
+                 return this["log.dir"].Replace("\\\\", "\\");
             }
          }
 
@@ -74,35 +76,8 @@
 
         public void Dispose()
         {
-            try
-            {
-                if (this.ConfigLocation != null)
-                {
-                    SpinWait.SpinUntil(
-                        () =>
-                            {
-                                File.Delete(this.ConfigLocation);
-                                Thread.Sleep(50);
-                                return !File.Exists(this.ConfigLocation);
-                            },
-                        1000);
-                }
-            }
-            catch (Exception)
-            {
-            }
-
-            try
-            {
-                if (this.LogDir != null)
-                {
-                    Directory.Delete(this.LogDir, true);
-                }
-            }
-            catch
-            {
-            }
-
+            TestUtil.DeleteFile(this.ConfigLocation);
+            TestUtil.DeleteDir(this.LogDir);
             TestUtils.PortReleased(this.Port);
         }
     }

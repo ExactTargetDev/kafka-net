@@ -83,7 +83,7 @@
              bool update = false)
          {
 
-             //Note: validation was omited
+             // Note: validation was omited
              var topicPath = ZkUtils.GetTopicPath(topic);
              if (!update && zkClient.Exists(topicPath))
              {

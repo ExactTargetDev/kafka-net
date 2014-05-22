@@ -29,7 +29,7 @@
         {
             var sb = new StringBuilder();
             sb.Append("dataDir=");
-            sb.Append(this.DataDir);
+            sb.Append(this.DataDir.Replace("\\", "\\\\"));
             sb.AppendLine();
             sb.Append("clientPort=");
             sb.Append(this.Port);
@@ -41,22 +41,8 @@
 
         public void Dispose()
         {
-            try
-            {
-                Directory.Delete(this.DataDir, true);
-            }
-            catch
-            {
-            }
-
-            try
-            {
-                File.Delete(this.ConfigLocation);
-            }
-            catch
-            {
-            }
-
+            TestUtil.DeleteFile(this.ConfigLocation);
+            TestUtil.DeleteDir(this.DataDir);
             TestUtils.PortReleased(this.Port);
         }
     }

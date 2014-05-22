@@ -3,8 +3,11 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Text;
+    using System.Threading;
 
     using Kafka.Client.Common.Imported;
+
+    using Xunit;
 
     public class TestUtil
     {
@@ -26,6 +29,36 @@
                 result.Add(enumerator.Next());
             }
             return result;
+        }
+
+        public static void DeleteFile(string path)
+        {
+            if (path != null)
+            {
+                SpinWait.SpinUntil(
+                    () =>
+                        {
+                            try
+                            {
+                                File.Delete(path);
+                            }
+                            catch
+                            {
+                            }
+                            return !File.Exists(path);
+                        },
+                    1000);
+                Assert.False(File.Exists(path));
+            }
+        }
+
+        public static void DeleteDir(string path)
+        {
+            if (path != null)
+            {
+                Directory.Delete(path, true);
+                Assert.False(Directory.Exists(path));
+            }
         }
     }
 }

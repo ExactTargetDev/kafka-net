@@ -112,7 +112,7 @@
                                 { "broker.id", nodeId.ToString() },
                                 { "host.name", "localhost" },
                                 { "port", port.ToString() },
-                                { "log.dir", TempDir().FullName },
+                                { "log.dir", TempDir().FullName.Replace("\\", "\\\\") },
                                 { "zookeeper.connect", TestZkUtils.ZookeeperConnect },
                                 { "replica.socket.timeout.ms", "1500" }
                             };
@@ -414,8 +414,7 @@
 
         static TestZkUtils()
         {
-            ZookeeperPort = TestUtils.ChoosePort();
-            ZookeeperConnect = "127.0.0.1:" + ZookeeperPort;
+            ResetPorts();
         }
 
         public static void ResetPorts()

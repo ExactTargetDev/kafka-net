@@ -1,5 +1,6 @@
 ﻿namespace Kafka.Client.Network
 {
+    using System;
     using System.IO;
 
     using Kafka.Client.Common.Imported;

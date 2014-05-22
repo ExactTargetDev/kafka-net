@@ -107,6 +107,7 @@
             var producer = new SyncProducer(props);
             AdminUtils.CreateTopic(this.ZkClient, "test", 1, 1, new Dictionary<string, string>());
             TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, "test", 0, 500);
+            TestUtils.WaitUntilMetadataIsPropagated(Servers, "test", 0, 2000);
 
             var message1 = new Message(new byte[Configs[0].MessageMaxBytes + 1]);
             var messageSet1 = new ByteBufferMessageSet(CompressionCodecs.NoCompressionCodec, new List<Message> { message1 });
@@ -192,6 +193,7 @@
             AdminUtils.CreateTopic(this.ZkClient, "topic1", 1, 1, new Dictionary<string, string>());
             AdminUtils.CreateTopic(this.ZkClient, "topic3", 1, 1, new Dictionary<string, string>());
             TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, "topic3", 0, 5000);
+            TestUtils.WaitUntilMetadataIsPropagated(Servers, "topic3", 0, 2000);
 
             var response2 = producer.Send(request);
             Assert.NotNull(response2);
