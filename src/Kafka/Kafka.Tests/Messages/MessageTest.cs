@@ -48,6 +48,7 @@
                 {
                     TestUtils.CheckEquals(ByteBuffer.Wrap(v.Payload), v.Message.Payload);
                 }
+
                 Assert.Equal(Message.CurrentMagicValue, v.Message.Magic);
                 if (v.Message.HasKey)
                 {
@@ -57,6 +58,7 @@
                 {
                     Assert.Equal(null, v.Message.Key);
                 }
+
                 Assert.Equal(v.Codec, v.Message.CompressionCodec);
             }
         }

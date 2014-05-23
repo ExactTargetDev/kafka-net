@@ -250,6 +250,7 @@
     <Compile Include="Serializers\IDecoder.cs" />
     <Compile Include="Serializers\IEncoder.cs" />
     <Compile Include="Serializers\KafkaBinaryWriter.cs" />
+    <Compile Include="Serializers\NullEncoder.cs" />
     <Compile Include="Serializers\StringDecoder.cs" />
     <Compile Include="Serializers\StringEncoder.cs" />
     <Compile Include="Server\AbstractFetcherManager.cs" />
@@ -262,7 +263,6 @@
     <Compile Include="Utils\Pool.cs" />
     <Compile Include="Utils\ShutdownableThread.cs" />
     <Compile Include="Utils\Util.cs" />
-    <Compile Include="Utils\VerifiableProperties.cs" />
     <Compile Include="Utils\ZkUtils.cs" />
     <Compile Include="ZKClient\DataUpdater.cs" />
     <Compile Include="ZKClient\Exceptions\ZkBadVersionException.cs" />

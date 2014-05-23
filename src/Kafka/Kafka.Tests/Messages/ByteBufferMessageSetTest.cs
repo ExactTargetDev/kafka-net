@@ -5,20 +5,19 @@
     using System.Text;
 
     using Kafka.Client.Common.Imported;
+    using Kafka.Client.Extensions;
     using Kafka.Client.Messages;
     using Kafka.Tests.Utils;
 
     using Xunit;
 
-    using Kafka.Client.Extensions;
-
     public class ByteBufferMessageSetTest
     {
-        private List<Message> messages;
+        protected List<Message> Messages { get; private set; }
 
         public ByteBufferMessageSetTest()
         {
-            this.messages = new List<Message>
+            this.Messages = new List<Message>
                                 {
                                     new Message(Encoding.UTF8.GetBytes("abcd")),
                                     new Message(Encoding.UTF8.GetBytes("efgh")),
@@ -29,8 +28,8 @@
         [Fact]
         public void TestWrittenEqualsRead()
         {
-            var messageSet = this.CreateMessageSet(this.messages);
-            var expected = TestUtil.EnumeratorToArray(this.messages.GetEnumerator());
+            var messageSet = this.CreateMessageSet(this.Messages);
+            var expected = TestUtil.EnumeratorToArray(this.Messages.GetEnumerator());
             var actual = messageSet.Select(m => m.Message).ToList();
             Assert.Equal(expected, actual);
         }
@@ -38,7 +37,7 @@
         [Fact]
         public void TestIteratorIsConsistent()
         {
-            var m = this.CreateMessageSet(this.messages);
+            var m = this.CreateMessageSet(this.Messages);
             var expected = TestUtil.IteratorToArray(m.Iterator());
             var actual = TestUtil.IteratorToArray(m.Iterator());
             Assert.Equal(expected, actual);
@@ -48,7 +47,7 @@
         public void TestSizeInBytes()
         {
             Assert.Equal(0, this.CreateMessageSet(new List<Message>()).SizeInBytes);
-            Assert.Equal(MessageSet.MessageSetSize(this.messages), this.CreateMessageSet(this.messages).SizeInBytes);
+            Assert.Equal(MessageSet.MessageSetSize(this.Messages), this.CreateMessageSet(this.Messages).SizeInBytes);
         }
         
         [Fact]
@@ -56,7 +55,7 @@
         {
             // test empty message set
             this.TestWriteToWithMessageSet(this.CreateMessageSet(new List<Message>()));
-            this.TestWriteToWithMessageSet(this.CreateMessageSet(this.messages));
+            this.TestWriteToWithMessageSet(this.CreateMessageSet(this.Messages));
         }
 
         internal void TestWriteToWithMessageSet(MessageSet set)
@@ -79,7 +78,7 @@
         {
             var messages = new ByteBufferMessageSet(
                 CompressionCodecs.NoCompressionCodec,
-                new List<Message>() 
+                new List<Message>
                 {
                   new Message(Encoding.UTF8.GetBytes("hello")),
                   new Message(Encoding.UTF8.GetBytes("there"))
@@ -102,7 +101,7 @@
         {
             var messages = new ByteBufferMessageSet(
                 CompressionCodecs.DefaultCompressionCodec,
-                new List<Message>() 
+                new List<Message>
                 {
                   new Message(Encoding.UTF8.GetBytes("hello")),
                   new Message(Encoding.UTF8.GetBytes("there"))
@@ -119,14 +118,14 @@
         {
             var messages = new ByteBufferMessageSet(
                 CompressionCodecs.DefaultCompressionCodec,
-                new List<Message>() 
+                new List<Message> 
                 {
                   new Message(Encoding.UTF8.GetBytes("hello")),
                   new Message(Encoding.UTF8.GetBytes("there"))
                 });
             var moreMessages = new ByteBufferMessageSet(
                 CompressionCodecs.DefaultCompressionCodec,
-                new List<Message>() 
+                new List<Message>
                 {
                   new Message(Encoding.UTF8.GetBytes("hello")),
                   new Message(Encoding.UTF8.GetBytes("there"))
@@ -136,14 +135,14 @@
 
             messages = new ByteBufferMessageSet(
                CompressionCodecs.NoCompressionCodec,
-               new List<Message>() 
+               new List<Message>
                 {
                   new Message(Encoding.UTF8.GetBytes("hello")),
                   new Message(Encoding.UTF8.GetBytes("there"))
                 });
             moreMessages = new ByteBufferMessageSet(
                 CompressionCodecs.NoCompressionCodec,
-                new List<Message>() 
+                new List<Message>
                 {
                   new Message(Encoding.UTF8.GetBytes("hello")),
                   new Message(Encoding.UTF8.GetBytes("there"))
@@ -163,7 +162,7 @@
                                       new Message(Encoding.UTF8.GetBytes("msg3")),
                                   };
 
-            // test for uncompressed regular messages
+            // test for uncompressed regular Messages
             {
                 var messageSet = new ByteBufferMessageSet(CompressionCodecs.NoCompressionCodec, messageList);
                 TestUtils.CheckEquals(
@@ -179,7 +178,7 @@
                     TestUtils.GetMessageIterator(messageSet.Iterator()).ToEnumerable());
             }
 
-            // test for compressed regular messages
+            // test for compressed regular Messages
             {
                  var messageSet = new ByteBufferMessageSet(CompressionCodecs.DefaultCompressionCodec, messageList);
                 TestUtils.CheckEquals(
@@ -188,7 +187,6 @@
                 // make sure ByteBufferMessageSet is re-iterable.
                 TestUtils.CheckEquals(
                     messageList, TestUtils.GetMessageIterator(messageSet.Iterator()).ToEnumerable());
-
             }
 
             // test for mixed empty and non-empty messagesets uncompressed
@@ -240,12 +238,14 @@
         [Fact]
         public void TestOffsetAssigment()
         {
-            var messages = new ByteBufferMessageSet(CompressionCodecs.NoCompressionCodec, new List<Message>
-                                                                                              {
-                                                                                                  new Message(Encoding.UTF8.GetBytes("hello")),
-                                                                                                  new Message(Encoding.UTF8.GetBytes("there")),
-                                                                                                  new Message(Encoding.UTF8.GetBytes("beautiful")),
-                                                                                              });
+            var messages = new ByteBufferMessageSet(
+                CompressionCodecs.NoCompressionCodec,
+                new List<Message>
+                    {
+                        new Message(Encoding.UTF8.GetBytes("hello")),
+                        new Message(Encoding.UTF8.GetBytes("there")),
+                        new Message(Encoding.UTF8.GetBytes("beautiful")),
+                    });
 
             var compressedMessages = new ByteBufferMessageSet(
                 CompressionCodecs.DefaultCompressionCodec, messages.Select(m => m.Message).ToList());
@@ -280,8 +280,7 @@
                 new HashSet<long>(
                     TestUtil.IteratorToArray(messageSet.ShallowIterator()).Select(msgAndOff => msgAndOff.Offset));
             var deepOffsets = new HashSet<long>(
-                TestUtil.IteratorToArray(messageSet.Iterator()).Select(msgAndOff => msgAndOff.Offset)
-                );
+                TestUtil.IteratorToArray(messageSet.Iterator()).Select(msgAndOff => msgAndOff.Offset));
             Assert.True(shallowOffsets.IsSubsetOf(deepOffsets));
         }
         

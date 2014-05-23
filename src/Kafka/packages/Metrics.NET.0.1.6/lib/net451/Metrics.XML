@@ -1,0 +1,668 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Metrics</name>
+    </assembly>
+    <members>
+        <member name="T:Metrics.Core.BaseRegistry">
+            <summary>
+            Encapsulates common functionality for a metrics registry
+            </summary>
+        </member>
+        <member name="M:Metrics.Core.ExponentiallyDecayingReservoir.Rescale">
+            * "A common feature of the above techniques—indeed, the key technique that
+        </member>
+        <member name="T:Metrics.Gauge">
+            <summary>
+            A gauge is the simplest metric type. It just returns a value.
+            No operation can be triggered on the metric directly. 
+            Custom implementations can hook into any value provider.
+            <see cref="T:Metrics.Core.FunctionGauge"/> and <see cref="T:Metrics.Core.DerivedGauge"/>
+            </summary>
+        </member>
+        <member name="T:Metrics.Utils.IHideObjectMembers">
+            <summary>
+            Helper interface to cleanup editor visible members on metrics.
+            </summary>
+        </member>
+        <member name="T:Metrics.Counter">
+            <summary>
+            A counter is a simple incrementing and decrementing 64-bit integer.
+            </summary>
+        </member>
+        <member name="T:Metrics.Meter">
+            <summary>
+            A meter measures the rate at which a set of events occur, in a few different ways. 
+            The mean rate is the average rate of events. It’s generally useful for trivia, 
+            but as it represents the total rate for your application’s entire lifetime (e.g., the total number of requests handled, 
+            divided by the number of seconds the process has been running), it doesn’t offer a sense of recency. 
+            Luckily, meters also record three different exponentially-weighted moving average rates: the 1-, 5-, and 15-minute moving averages.
+            </summary>
+        </member>
+        <member name="M:Metrics.Meter.Mark">
+            <summary>
+            Mark the occurrence of an event.
+            </summary>
+        </member>
+        <member name="M:Metrics.Meter.Mark(System.Int64)">
+            <summary>
+            Mark the occurrence of <paramref name="count"/> events.
+            </summary>
+            <param name="count"></param>
+        </member>
+        <member name="T:Metrics.Histogram">
+            <summary>
+            A Histogram measures the distribution of values in a stream of data: e.g., the number of results returned by a search.
+            </summary>
+        </member>
+        <member name="M:Metrics.Histogram.Update(System.Int64)">
+            <summary>
+            Records a value.
+            </summary>
+            <param name="value">Value to be added to the histogram.</param>
+        </member>
+        <member name="T:Metrics.Timer">
+            <summary>
+            A timer is basically a histogram of the duration of a type of event and a meter of the rate of its occurrence.
+            <seealso cref="T:Metrics.Histogram"/> and <seealso cref="T:Metrics.Meter"/>
+            </summary>
+        </member>
+        <member name="M:Metrics.Timer.Record(System.Int64,Metrics.TimeUnit)">
+            <summary>
+            Manualy record timer value
+            </summary>
+            <param name="time">The value representing the manualy measured time.</param>
+            <param name="unit">Unit for the value.</param>
+        </member>
+        <member name="M:Metrics.Timer.Time(System.Action)">
+            <summary>
+            Runs the <paramref name="action"/> and records the time it took.
+            </summary>
+            <param name="action">Action to run and record time for.</param>
+        </member>
+        <member name="M:Metrics.Timer.Time``1(System.Func{``0})">
+            <summary>
+            Runs the <paramref name="action"/> returning the result and records the time it took.
+            </summary>
+            <typeparam name="T">Type of the value returned by the action</typeparam>
+            <param name="action">Action to run and record time for.</param>
+            <returns>The result of the <paramref name="action"/></returns>
+        </member>
+        <member name="M:Metrics.Timer.NewContext">
+            <summary>
+            Creates a new disposable instance and records the time it takes until the instance is disposed.
+            <code>
+            using(timer.NewContext())
+            {
+                ExecuteMethodThatNeedsMonitoring();
+            }
+            </code>
+            </summary>
+            <returns>A disposable instance that will record the time passed until disposed.</returns>
+        </member>
+        <member name="T:Metrics.HealthCheckResult">
+            <summary>
+            Result of a health check
+            </summary>
+        </member>
+        <member name="F:Metrics.HealthCheckResult.IsHealthy">
+            <summary>
+            True if the check was successful, false if the check failed.
+            </summary>
+        </member>
+        <member name="F:Metrics.HealthCheckResult.Message">
+            <summary>
+            Status message of the check. A status can be provided for both healthy and unhealthy states.
+            </summary>
+        </member>
+        <member name="M:Metrics.HealthCheckResult.Healthy">
+            <summary>
+            Create a healthy status response.
+            </summary>
+            <returns>Healthy status response.</returns>
+        </member>
+        <member name="M:Metrics.HealthCheckResult.Healthy(System.String,System.Object[])">
+            <summary>
+            Create a healthy status response.
+            </summary>
+            <param name="message">Status message.</param>
+            <param name="values">Values to format the status message with.</param>
+            <returns>Healthy status response.</returns>
+        </member>
+        <member name="M:Metrics.HealthCheckResult.Unhealthy">
+            <summary>
+            Create a unhealthy status response.
+            </summary>
+            <returns>Unhealthy status response.</returns>
+        </member>
+        <member name="M:Metrics.HealthCheckResult.Unhealthy(System.String,System.Object[])">
+            <summary>
+            Create a unhealthy status response.
+            </summary>
+            <param name="message">Status message.</param>
+            <param name="values">Values to format the status message with.</param>
+            <returns>Unhealthy status response.</returns>
+        </member>
+        <member name="M:Metrics.HealthCheckResult.Unhealthy(System.Exception)">
+            <summary>
+            Create a unhealthy status response.
+            </summary>
+            <param name="exception">Exception to use for reason.</param>
+            <returns>Unhealthy status response.</returns>
+        </member>
+        <member name="T:Metrics.CounterValueSource">
+            <summary>
+            Combines the value for a counter with the defined unit for the value.
+            </summary>
+        </member>
+        <member name="T:Metrics.MetricValueSource`1">
+            <summary>
+            Provides the value of a metric and information about units.
+            This is the class that metric consumers should use.
+            </summary>
+            <typeparam name="T">Type of the metric value</typeparam>
+        </member>
+        <member name="P:Metrics.MetricValueSource`1.Name">
+            <summary>
+            Name of the metric.
+            </summary>
+        </member>
+        <member name="P:Metrics.MetricValueSource`1.Value">
+            <summary>
+            The current value of the metric.
+            </summary>
+        </member>
+        <member name="P:Metrics.MetricValueSource`1.Unit">
+            <summary>
+            Unit representing what the metric is measuring.
+            </summary>
+        </member>
+        <member name="T:Metrics.GaugeValueSource">
+            <summary>
+            Combines the value of a gauge with the defined unit for the value.
+            </summary>
+        </member>
+        <member name="T:Metrics.HealthStatus">
+            <summary>
+            Structure describing the status of executing all the health checks operations.
+            </summary>
+        </member>
+        <member name="F:Metrics.HealthStatus.HasRegisteredChecks">
+            <summary>
+            Flag indicating whether any checks are registered
+            </summary>
+        </member>
+        <member name="F:Metrics.HealthStatus.IsHealty">
+            <summary>
+            All health checks passed.
+            </summary>
+        </member>
+        <member name="F:Metrics.HealthStatus.Results">
+            <summary>
+            Result of each health check operation
+            </summary>
+        </member>
+        <member name="T:Metrics.HealthChecks">
+            <summary>
+            Registry for health checks
+            </summary>
+        </member>
+        <member name="M:Metrics.HealthChecks.RegisterHealthCheck(System.String,System.Action)">
+            <summary>
+            Registers an action to monitor. If the action throws the health check fails, otherwise is successful.
+            </summary>
+            <param name="name">Name of the health check.</param>
+            <param name="check">Action to execute.</param>
+        </member>
+        <member name="M:Metrics.HealthChecks.RegisterHealthCheck(System.String,System.Func{System.String})">
+            <summary>
+            Registers an action to monitor. If the action throws the health check fails, 
+            otherwise is successful and the returned string is used as status message.
+            </summary>
+            <param name="name">Name of the health check.</param>
+            <param name="check">Function to execute.</param>
+        </member>
+        <member name="M:Metrics.HealthChecks.RegisterHealthCheck(System.String,System.Func{Metrics.HealthCheckResult})">
+            <summary>
+            Registers a function to monitor. If the function throws or returns an HealthCheckResult.Unhealthy the check fails,
+            otherwise the result of the function is used as a status.
+            </summary>
+            <param name="name">Name of the health check.</param>
+            <param name="check">Function to execute</param>
+        </member>
+        <member name="M:Metrics.HealthChecks.RegisterHealthCheck(Metrics.Core.HealthCheck)">
+            <summary>
+            Registers a custom health check.
+            </summary>
+            <param name="healthCheck">Custom health check to register.</param>
+        </member>
+        <member name="M:Metrics.HealthChecks.GetStatus">
+            <summary>
+            Execute all registered checks and return overall.
+            </summary>
+            <returns>Status of the system.</returns>
+        </member>
+        <member name="M:Metrics.HealthChecks.UnregisterAllHealthChecks">
+            <summary>
+            Remove all the registered health checks.
+            </summary>
+        </member>
+        <member name="T:Metrics.HistogramValue">
+            <summary>
+            The value reported by a Histogram Metric
+            </summary>
+        </member>
+        <member name="T:Metrics.HistogramValueSource">
+            <summary>
+            Combines the value of the histogram with the defined unit for the value.
+            </summary>
+        </member>
+        <member name="T:Metrics.MeterValue">
+            <summary>
+            The value reported by a Meter Metric
+            </summary>
+        </member>
+        <member name="T:Metrics.MeterValueSource">
+            <summary>
+            Combines the value of the meter with the defined unit and the rate unit at which the value is reported.
+            </summary>
+        </member>
+        <member name="M:Metrics.MetricsConfig.CompletelyDisableMetrics">
+            <summary>
+            All metrics operations will be NO-OP.
+            This is usefull for measuring the impact of the metrics library on the application.
+            If you think the Metrics library is causing issues, this will disable all Metrics operations.
+            </summary>
+        </member>
+        <member name="M:Metrics.MetricsConfig.WithHttpEndpoint(System.String)">
+            <summary>
+            Create HTTP endpoint where metrics will be available in various formats:
+            GET / => visualization application
+            GET /json => metrics serialized as JSON
+            GET /text => metrics in human readable text format
+            </summary>
+            <param name="httpUriPrefix">prefix where to start HTTP endpoint</param>
+        </member>
+        <member name="M:Metrics.MetricsConfig.WithRegistry(Metrics.Core.MetricsRegistry)">
+            <summary>
+            Configure the Metrics library to use a custom MetricsRegistry.
+            </summary>
+            <remarks>
+            You must call Metric.Config.WithRegistry before any other Metric call.
+            </remarks>
+            <param name="registry">The custom registry to use for registering metrics.</param>
+            <returns>Chainable configuration object.</returns>
+        </member>
+        <member name="M:Metrics.MetricsConfig.WithHealthStatus(System.Func{Metrics.HealthStatus})">
+            <summary>
+            Configure Metrics library to use a custom health status reporter. By default HealthChecks.GetStatus() is used.
+            </summary>
+            <param name="healthStatus">Function that provides the current health status.</param>
+            <returns>Chainable configuration object.</returns>
+        </member>
+        <member name="M:Metrics.MetricsConfig.WithErrorHandler(System.Action{System.Exception})">
+            <summary>
+            Global error handler for the metrics library. If a handler is registered any error will be passed to the handler.
+            </summary>
+            <param name="errorHandler">Action with will be executed with the exception.</param>
+            <returns>Chainable configuration object.</returns>
+        </member>
+        <member name="M:Metrics.MetricsConfig.WithReporting(System.Action{Metrics.Reports.MetricsReports})">
+            <summary>
+            Configure the way metrics are reported
+            </summary>
+            <param name="reportsConfig">Reports configuration action</param>
+            <returns>Chainable configuration object.</returns>
+        </member>
+        <member name="P:Metrics.MetricsConfig.Registry">
+            <summary>
+            The registry where all the metrics are registered. 
+            </summary>
+        </member>
+        <member name="P:Metrics.MetricsConfig.HealthStatus">
+            <summary>
+            Function that provides the current health status.
+            </summary>
+        </member>
+        <member name="P:Metrics.MetricsConfig.ErrorHandler">
+            <summary>
+            Configured error handler
+            </summary>
+        </member>
+        <member name="M:Metrics.Reports.MetricsReports.WithConsoleReport(System.TimeSpan)">
+            <summary>
+            Schedule a Console Report to be executed and displayed on the console at a fixed <paramref name="interval"/>.
+            </summary>
+            <param name="interval">Interval at which to display the report on the Console.</param>
+        </member>
+        <member name="M:Metrics.Reports.MetricsReports.WithCSVReports(System.String,System.TimeSpan)">
+            <summary>
+            Configure Metrics to append a line for each metric to a CSV file in the <paramref name="directory"/>.
+            </summary>
+            <param name="directory">Directory where to store the CSV files.</param>
+            <param name="interval">Interval at which to append a line to the files.</param>
+        </member>
+        <member name="M:Metrics.Reports.MetricsReports.WithTextFileReport(System.String,System.TimeSpan)">
+            <summary>
+            Schedule a Human Readable report to be executed and appended to a text file.
+            </summary>
+            <param name="filePath">File where to append the report.</param>
+            <param name="interval">Interval at which to run the report.</param>
+        </member>
+        <member name="M:Metrics.Reports.MetricsReports.StopAndClearAllReports">
+            <summary>
+            Stop all registered reports and clear the registrations.
+            </summary>
+        </member>
+        <member name="T:Metrics.MetricValueProvider`1">
+            <summary>
+            Indicates the ability to provide the value for a metric.
+            This is the raw value. Consumers should use <see cref="T:Metrics.MetricValueSource`1"/>
+            </summary>
+            <typeparam name="T">Type of the value returned by the metric</typeparam>
+        </member>
+        <member name="P:Metrics.MetricValueProvider`1.Value">
+            <summary>
+            The current value of the metric.
+            </summary>
+        </member>
+        <member name="M:Metrics.PerformanceCountersConfigExtensions.WithAllCounters(Metrics.MetricsConfig)">
+            <summary>
+            Register all pre-defined performance counters as Gauge metrics.
+            This includes System Counters, CLR Global Counters and CLR App Counters.
+            </summary>
+        </member>
+        <member name="M:Metrics.PerformanceCountersConfigExtensions.WithSystemCounters(Metrics.MetricsConfig)">
+            <summary>
+            Register all pre-defined system performance counters as Gauge metrics.
+            This includes: Available RAM, CPU Usage, Disk Writes/sec, Disk Reads/sec
+            </summary>
+        </member>
+        <member name="M:Metrics.PerformanceCountersConfigExtensions.WithCLRGlobalCounters(Metrics.MetricsConfig)">
+            <summary>
+            Register global, CLR related performance counters as Gauge metrics.
+            This includes: total .NET Mb in all heaps and total .NET time spent in GC
+            </summary>
+        </member>
+        <member name="M:Metrics.PerformanceCountersConfigExtensions.WithCLRAppCounters(Metrics.MetricsConfig)">
+            <summary>
+            Register application level, CLR related performance counters as Gauge metrics.
+            This includes: Mb in all heaps, time in GC, exceptions per sec, Threads etc.
+            </summary>
+        </member>
+        <member name="F:Metrics.SamplingType.FavourRecent">
+            <summary>
+            Sampling will be done with a Exponentially Decaying Reservoir.
+            </summary>
+            <remarks>
+            A histogram with an exponentially decaying reservoir produces quantiles which are representative of (roughly) the last five minutes of data.
+            It does so by using a forward-decaying priority reservoir with an exponential weighting towards newer data. 
+            Unlike the uniform reservoir, an exponentially decaying reservoir represents recent data, allowing you to know very quickly if the distribution 
+            of the data has changed.
+            More information about <a href="http://metrics.codahale.com/manual/core/#man-core-histograms">Exponentially Decaying Reservoir</a>
+            </remarks>
+        </member>
+        <member name="F:Metrics.SamplingType.LongTerm">
+            <summary>
+            Sampling will done with a Uniform Reservoir.
+            </summary>
+            <remarks>
+            A histogram with a uniform reservoir produces quantiles which are valid for the entirely of the histogram’s lifetime.
+            It will return a median value, for example, which is the median of all the values the histogram has ever been updated with.
+            Use a uniform histogram when you’re interested in long-term measurements. 
+            Don’t use one where you’d want to know if the distribution of the underlying data stream has changed recently.
+            More information about <a href="http://metrics.codahale.com/manual/core/#man-core-histograms">Exponentially Decaying Reservoir</a>
+            </remarks>
+        </member>
+        <member name="F:Metrics.SamplingType.SlidingWindow">
+            <summary>
+            Sampling will done with a Sliding Window Reservoir.
+            A histogram with a sliding window reservoir produces quantiles which are representative of the past N measurements.
+            More information about <a href="http://metrics.codahale.com/manual/core/#man-core-histograms">Exponentially Decaying Reservoir</a>
+            </summary>
+        </member>
+        <member name="T:Metrics.Metric">
+            <summary>
+            Helper class to ease interaction with metrics
+            </summary>
+        </member>
+        <member name="M:Metrics.Metric.PerformanceCounter(System.String,System.String,System.String,System.String,Metrics.Unit)">
+            <summary>
+            Register a performance counter as a Gauge metric.
+            </summary>
+            <param name="name">Name of this gauge metric. Must be unique across all gauges.</param>
+            <param name="counterCategory">Category of the performance counter</param>
+            <param name="counterName">Name of the performance counter</param>
+            <param name="counterInstance">Instance of the performance counter</param>
+            <param name="unit">Description of want the value represents ( Unit.Requests , Unit.Items etc ) .</param>
+            <returns>Reference to the gauge</returns>
+        </member>
+        <member name="M:Metrics.Metric.Gauge``1(System.String,System.Func{System.Double},Metrics.Unit)">
+            <summary>
+            A gauge is the simplest metric type. It just returns a value.
+            This metric is suitable for instantaneous values. 
+            <typeparamref name="T"/> is used as a prefix for the metric name.
+            </summary>
+            <typeparam name="T">Type used as a prefix for the metric name</typeparam>
+            <param name="name">Name of this gauge metric. Must be unique across all gauges.</param>
+            <param name="valueProvider">Function that returns the value for the gauge.</param>
+            <param name="unit">Description of want the value represents ( Unit.Requests , Unit.Items etc ) .</param>
+            <returns>Reference to the gauge</returns>
+        </member>
+        <member name="M:Metrics.Metric.Gauge(System.String,System.Func{System.Double},Metrics.Unit)">
+            <summary>
+            A gauge is the simplest metric type. It just returns a value. This metric is suitable for instantaneous values.
+            </summary>
+            <param name="name">Name of this gauge metric. Must be unique across all gauges.</param>
+            <param name="valueProvider">Function that returns the value for the gauge.</param>
+            <param name="unit">Description of want the value represents ( Unit.Requests , Unit.Items etc ) .</param>
+            <returns>Reference to the gauge</returns>
+        </member>
+        <member name="M:Metrics.Metric.Meter``1(System.String,Metrics.Unit,Metrics.TimeUnit)">
+            <summary>
+            A meter measures the rate at which a set of events occur, in a few different ways. 
+            This metric is suitable for keeping a record of now often something happens ( error, request etc ).
+            <typeparamref name="T"/> is used as a prefix for the metric name.
+            </summary>
+            <remarks>
+            The mean rate is the average rate of events. It’s generally useful for trivia, 
+            but as it represents the total rate for your application’s entire lifetime (e.g., the total number of requests handled, 
+            divided by the number of seconds the process has been running), it doesn’t offer a sense of recency. 
+            Luckily, meters also record three different exponentially-weighted moving average rates: the 1-, 5-, and 15-minute moving averages.
+            </remarks>
+            <typeparam name="T">Type used as a prefix for the metric name</typeparam>
+            <param name="name">Name of the metric. Must be unique across all meters.</param>
+            <param name="unit">Description of what the is being measured ( Unit.Requests , Unit.Items etc ) .</param>
+            <param name="rateUnit">Time unit for rates reporting. Defaults to Second ( occurrences / second ).</param>
+            <returns>Reference to the metric</returns>
+        </member>
+        <member name="M:Metrics.Metric.Meter(System.String,Metrics.Unit,Metrics.TimeUnit)">
+            <summary>
+            A meter measures the rate at which a set of events occur, in a few different ways. 
+            This metric is suitable for keeping a record of now often something happens ( error, request etc ).
+            </summary>
+            <remarks>
+            The mean rate is the average rate of events. It’s generally useful for trivia, 
+            but as it represents the total rate for your application’s entire lifetime (e.g., the total number of requests handled, 
+            divided by the number of seconds the process has been running), it doesn’t offer a sense of recency. 
+            Luckily, meters also record three different exponentially-weighted moving average rates: the 1-, 5-, and 15-minute moving averages.
+            </remarks>
+            <param name="name">Name of the metric. Must be unique across all meters.</param>
+            <param name="unit">Description of what the is being measured ( Unit.Requests , Unit.Items etc ) .</param>
+            <param name="rateUnit">Time unit for rates reporting. Defaults to Second ( occurrences / second ).</param>
+            <returns>Reference to the metric</returns>
+        </member>
+        <member name="M:Metrics.Metric.Counter``1(System.String,Metrics.Unit)">
+            <summary>
+            A counter is a simple incrementing and decrementing 64-bit integer. Ex number of active requests.
+            <typeparamref name="T"/> is used as a prefix for the metric name.
+            </summary>
+            <typeparam name="T">Type used as a prefix for the metric name</typeparam>
+            <param name="name">Name of the metric. Must be unique across all counters.</param>
+            <param name="unit">Description of what the is being measured ( Unit.Requests , Unit.Items etc ) .</param>
+            <returns>Reference to the metric</returns>
+        </member>
+        <member name="M:Metrics.Metric.Counter(System.String,Metrics.Unit)">
+            <summary>
+            A counter is a simple incrementing and decrementing 64-bit integer. Ex number of active requests.
+            </summary>
+            <param name="name">Name of the metric. Must be unique across all counters.</param>
+            <param name="unit">Description of what the is being measured ( Unit.Requests , Unit.Items etc ) .</param>
+            <returns>Reference to the metric</returns>
+        </member>
+        <member name="M:Metrics.Metric.Histogram``1(System.String,Metrics.Unit,Metrics.SamplingType)">
+            <summary>
+            A Histogram measures the distribution of values in a stream of data: e.g., the number of results returned by a search.
+            <typeparamref name="T"/> is used as a prefix for the metric name.
+            </summary>
+            <typeparam name="T">Type used as a prefix for the metric name</typeparam>
+            <param name="name">Name of the metric. Must be unique across all histograms.</param>
+            <param name="unit">Description of what the is being measured ( Unit.Requests , Unit.Items etc ) .</param>
+            <param name="samplingType">Type of the sampling to use (see SamplingType for details ).</param>
+            <returns>Reference to the metric</returns>
+        </member>
+        <member name="M:Metrics.Metric.Histogram(System.String,Metrics.Unit,Metrics.SamplingType)">
+            <summary>
+            A Histogram measures the distribution of values in a stream of data: e.g., the number of results returned by a search.
+            </summary>
+            <param name="name">Name of the metric. Must be unique across all histograms.</param>
+            <param name="unit">Description of what the is being measured ( Unit.Requests , Unit.Items etc ) .</param>
+            <param name="samplingType">Type of the sampling to use (see SamplingType for details ).</param>
+            <returns>Reference to the metric</returns>
+        </member>
+        <member name="M:Metrics.Metric.Timer``1(System.String,Metrics.Unit,Metrics.SamplingType,Metrics.TimeUnit,Metrics.TimeUnit)">
+            <summary>
+            A timer is basically a histogram of the duration of a type of event and a meter of the rate of its occurrence.
+            <seealso cref="M:Metrics.Metric.Histogram(System.String,Metrics.Unit,Metrics.SamplingType)"/> and <seealso cref="M:Metrics.Metric.Meter(System.String,Metrics.Unit,Metrics.TimeUnit)"/>
+            <typeparamref name="T"/> is used as a prefix for the metric name.
+            </summary>
+            <typeparam name="T">Type used as a prefix for the metric name</typeparam>
+            <param name="samplingType">Type of the sampling to use (see SamplingType for details ).</param>
+            <param name="unit">Description of what the is being measured ( Unit.Requests , Unit.Items etc ) .</param>
+            <param name="name">Name of the metric. Must be unique across all counters.</param>
+            <param name="rateUnit">Time unit for rates reporting. Defaults to Second ( occurrences / second ).</param>
+            <param name="durationUnit">Time unit for reporting durations. Defaults to Milliseconds. </param>
+            <returns>Reference to the metric</returns>
+        </member>
+        <member name="M:Metrics.Metric.Timer(System.String,Metrics.Unit,Metrics.SamplingType,Metrics.TimeUnit,Metrics.TimeUnit)">
+            <summary>
+            A timer is basically a histogram of the duration of a type of event and a meter of the rate of its occurrence.
+            <seealso cref="M:Metrics.Metric.Histogram(System.String,Metrics.Unit,Metrics.SamplingType)"/> and <seealso cref="M:Metrics.Metric.Meter(System.String,Metrics.Unit,Metrics.TimeUnit)"/>
+            </summary>
+            <param name="name">Name of the metric. Must be unique across all counters.</param>
+            <param name="unit">Description of what the is being measured ( Unit.Requests , Unit.Items etc ) .</param>
+            <param name="samplingType">Type of the sampling to use (see SamplingType for details ).</param>
+            <param name="rateUnit">Time unit for rates reporting. Defaults to Second ( occurrences / second ).</param>
+            <param name="durationUnit">Time unit for reporting durations. Defaults to Milliseconds. </param>
+            <returns>Reference to the metric</returns>
+        </member>
+        <member name="P:Metrics.Metric.Config">
+            <summary>
+            Entrypoint for Metrics Configuration.
+            </summary>
+            <example>
+            <code>
+            Metric.Config
+                .WithHttpEndpoint("http://localhost:1234/")
+                .WithErrorHandler(x => Console.WriteLine(x.ToString()))
+                .WithPerformanceCounters(c => c.RegisterAll())
+                .WithReporting(config => config
+                    .WithConsoleReport(TimeSpan.FromSeconds(30))
+                    .WithCSVReports(@"c:\temp\reports\", TimeSpan.FromSeconds(10))
+                    .WithTextFileReport(@"C:\temp\reports\metrics.txt", TimeSpan.FromSeconds(10))
+                );
+            </code>
+            </example>
+        </member>
+        <member name="T:Metrics.TimerValue">
+            <summary>
+            The value reported by a Timer Metric
+            </summary>
+        </member>
+        <member name="T:Metrics.TimerValueSource">
+            <summary>
+            Combines the value of the timer with the defined unit and the time units for rate and duration.
+            </summary>
+        </member>
+        <member name="T:Metrics.Utils.ActionScheduler">
+            <summary>
+            Utility class to schedule an Action to be executed repeatedly according to the interval.
+            </summary>
+            <remarks>
+            The scheduling code is inspired form Daniel Crenna's metrics port
+            https://github.com/danielcrenna/metrics-net/blob/master/src/metrics/Reporting/ReporterBase.cs
+            </remarks>
+        </member>
+        <member name="T:Metrics.Utils.Scheduler">
+            <summary>
+            Indicates the ability to schedule the execution of an Action at a specified interval
+            </summary>
+        </member>
+        <member name="M:Metrics.Utils.Scheduler.Start(System.TimeSpan,System.Action)">
+            <summary>
+            Schedule the <paramref name="action"/> to be executed at <paramref name="interval"/>.
+            </summary>
+            <param name="interval">Interval at which to execute action</param>
+            <param name="action">Action to execute</param>
+        </member>
+        <member name="M:Metrics.Utils.Scheduler.Start(System.TimeSpan,System.Action{System.Threading.CancellationToken})">
+            <summary>
+            Schedule the <paramref name="action"/> to be executed at <paramref name="interval"/>.
+            </summary>
+            <param name="interval">Interval at which to execute action</param>
+            <param name="action">Action to execute</param>
+        </member>
+        <member name="M:Metrics.Utils.Scheduler.Start(System.TimeSpan,System.Func{System.Threading.Tasks.Task})">
+            <summary>
+            Schedule the <paramref name="action"/> to be executed at <paramref name="interval"/>.
+            The returned task is await-ed on each time the <paramref name="action"/> is invoked.
+            </summary>
+            <param name="interval">Interval at which to execute action</param>
+            <param name="action">Action to execute</param>
+        </member>
+        <member name="M:Metrics.Utils.Scheduler.Start(System.TimeSpan,System.Func{System.Threading.CancellationToken,System.Threading.Tasks.Task})">
+            <summary>
+            Schedule the <paramref name="action"/> to be executed at <paramref name="interval"/>.
+            The returned task is await-ed on each time the <paramref name="action"/> is invoked.
+            </summary>
+            <param name="interval">Interval at which to execute action</param>
+            <param name="action">Action to execute</param>
+        </member>
+        <member name="M:Metrics.Utils.Scheduler.Stop">
+            <summary>
+            Stop the scheduler.
+            </summary>
+        </member>
+        <member name="T:Metrics.Utils.DisposableAction">
+            <summary>
+            Utility structure that executed an action when it is disposed;
+            </summary>
+        </member>
+        <member name="M:Metrics.Utils.DisposableAction.#ctor(System.Action)">
+            <summary>
+            Creates a new instance that will execute <paramref name="action"/> when it is disposed
+            </summary>
+            <param name="action">Action to execute when struct is disposed.</param>
+        </member>
+        <member name="M:Metrics.Utils.DisposableAction.Dispose">
+            <summary>
+            Executed the action this instance has been constructed with.
+            </summary>
+        </member>
+        <member name="T:Metrics.Utils.EWMA">
+            <summary>
+            An exponentially-weighted moving average.
+            <a href="http://www.teamquest.com/pdfs/whitepaper/ldavg1.pdf">UNIX Load Average Part 1: How It Works</a>
+            <a href="http://www.teamquest.com/pdfs/whitepaper/ldavg2.pdf">UNIX Load Average Part 2: Not Your Average Average</a>
+            <a href="http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average">EMA</a>
+            </summary>
+        </member>
+        <member name="T:Metrics.Utils.AtomicLong">
+            <summary>
+            Atomic long.
+            TBD: implement optimizations behind LongAdder from 
+            <a href="https://github.com/dropwizard/metrics/blob/master/metrics-core/src/main/java/com/codahale/metrics/LongAdder.java">metrics-core</a>
+            </summary>
+        </member>
+    </members>
+</doc>

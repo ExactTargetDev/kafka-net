@@ -20,8 +20,6 @@
 
     using Xunit;
 
-    using Kafka.Client.Extensions;
-
     public class AsyncProducerTest : IDisposable
     {
         private List<TempKafkaConfig> props;
@@ -37,13 +35,13 @@
             var config = new ProducerConfig();
             config.KeySerializer = typeof(StringEncoder).AssemblyQualifiedName;
             config.Serializer = typeof(StringEncoder).AssemblyQualifiedName;
-            config.Brokers = TestUtils.GetBrokerListFromConfigs(props);
+            config.Brokers = TestUtils.GetBrokerListFromConfigs(this.props);
             config.ProducerType = ProducerTypes.Async;
             config.QueueBufferingMaxMessages = 10;
             config.BatchNumMessages = 1;
             config.QueueEnqueueTimeoutMs = 0;
 
-            var produceData = GetProduceData(12);
+            var produceData = this.GetProduceData(12);
             var producer = new Producer<string, string>(config, new MockEventHandler());
             try
             {
@@ -67,7 +65,7 @@
             var config = new ProducerConfig();
             config.Serializer = typeof(StringEncoder).AssemblyQualifiedName;
             config.KeySerializer = typeof(StringEncoder).AssemblyQualifiedName;
-            config.Brokers = TestUtils.GetBrokerListFromConfigs(props);
+            config.Brokers = TestUtils.GetBrokerListFromConfigs(this.props);
             config.ProducerType = ProducerTypes.Async;
             config.BatchNumMessages = 1;
 
@@ -174,8 +172,7 @@
                                           { 1, new Dictionary<TopicAndPartition, List<KeyedMessage<int, Message>>>
                                                    {
                                                        { new TopicAndPartition("topic1", 1), topic1Broker2Data },
-                                                       { new TopicAndPartition("topic2", 1), topic2Broker2Data }
-                                                   }},
+                                                       { new TopicAndPartition("topic2", 1), topic2Broker2Data }}},
                                       };
 
             var actualResut = handler.PartitionAndCollate(producerDataList);
@@ -324,7 +321,6 @@
             {
                 foreach (var brokerAndData in partitionedDataOpt)
                 {
-                    var brokerId = brokerAndData.Key;
                     var dataPerBroker = brokerAndData.Value;
                     foreach (var topicPartitionData in dataPerBroker)
                     {
@@ -337,7 +333,6 @@
             {
                 Assert.False(true, "Failed to collate requests by topic, partition");
             }
-
         }
 
         public void Dispose()
@@ -358,6 +353,7 @@
             {
                 producerDataList.Add(new KeyedMessage<string, string>("topic1", null, "msg" + i));
             }
+
             return producerDataList;
         }
 

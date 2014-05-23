@@ -50,12 +50,14 @@
                 {
                     nextReplicaShift++;
                 }
+
                 var firstReplicaIndex = (currentPartitionId + startIndex) % brokerList.Count;
                 var replicaList = new List<int> { brokerList[firstReplicaIndex] };
                 for (var j = 0; j < replicationFactor - 1; j++)
                 {
                     replicaList.Add(brokerList[ReplicaIndex(firstReplicaIndex, nextReplicaShift, j, brokerList.Count)]);
                 }
+
                 ret[currentPartitionId] = replicaList;
                 currentPartitionId++;
             }
@@ -114,6 +116,7 @@
                 Logger.InfoFormat("Topic update {0}" + jsonPartitonData);
                 ZkUtils.UpdatePersistentPath(zkClient, zkPath, jsonPartitonData);
             }
+
             Logger.DebugFormat("Updated path {0} with {1} for replica assignment", zkPath, jsonPartitonData);
         }
 

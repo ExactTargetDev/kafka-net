@@ -65,13 +65,13 @@
             this.config2 = TestUtils.CreateBrokerConfig(
                 BrokerId2, this.port2, idx => new Dictionary<string, string> { { "num.partitons", "4" } });
 
-            this.server1 = this.StartServer(config1);
-            this.server2 = this.StartServer(config2);
+            this.server1 = this.StartServer(this.config1);
+            this.server2 = this.StartServer(this.config2);
 
             this.servers = new List<Process> { this.server1, this.server2 };
 
-            this.consumer1 = new SimpleConsumer("localhost", port1, 1000000, 64 * 1024, string.Empty);
-            this.consumer2 = new SimpleConsumer("localhost", port2, 100, 64 * 1024, string.Empty);
+            this.consumer1 = new SimpleConsumer("localhost", this.port1, 1000000, 64 * 1024, string.Empty);
+            this.consumer2 = new SimpleConsumer("localhost", this.port2, 100, 64 * 1024, string.Empty);
 
             this.WaitForServersToSettle();
         }
@@ -138,7 +138,7 @@
             AdminUtils.CreateTopic(this.ZkClient, topic, 1, 2, new Dictionary<string, string>());
 
             // wait until the update metadata request for new topic reaches all servers
-            TestUtils.WaitUntilMetadataIsPropagated(servers, topic, 0, 500);
+            TestUtils.WaitUntilMetadataIsPropagated(this.servers, topic, 0, 500);
             TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, topic, 0, 500);
 
             var producerConfig1 = new ProducerConfig();
@@ -187,7 +187,7 @@
                                                       {
                                                           BrokerId = 1,
                                                           Host = "localhost",
-                                                          Port = port1
+                                                          Port = this.port1
                                                       }
                                           };
             producerConfig2.KeySerializer = typeof(StringEncoder).AssemblyQualifiedName;
@@ -335,10 +335,10 @@
                 new Dictionary<int, List<int>>
                     {
                         { 0, new List<int> { 0 }},
-                                                                                               { 1, new List<int> { 0 }},
-                                                                                               { 2, new List<int> { 0 }},
-                                                                                               { 3, new List<int> { 0 }},
-                                                                                           }, new Dictionary<string, string>());
+                        { 1, new List<int> { 0 }},
+                        { 2, new List<int> { 0 }},
+                        { 3, new List<int> { 0 }},
+                    }, new Dictionary<string, string>());
 
             // waiting for 1 partition is enought
             TestUtils.WaitUntilMetadataIsPropagated(this.servers, topic, 0, 1000);
@@ -396,7 +396,7 @@
            {
                // create topic
                AdminUtils.CreateTopic(ZkClient, "new-topic", 2, 1, new Dictionary<string, string>());
-               TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, "new-topic", 0, 500);
+               TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, "new-topic", 0, 500);
 
                producer.Send(new KeyedMessage<string, string>("new-topic", "key", null));
            }
@@ -405,6 +405,5 @@
                producer.Dispose();
            }
         }
-
     }
 }

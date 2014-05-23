@@ -126,10 +126,6 @@
 
     public class FailDecoder : IDecoder<string>
     {
-        public FailDecoder(VerifiableProperties props = null)
-         {
-         }
-
         public string FromBytes(byte[] bytes)
         {
             throw new NotSupportedException("This decoder does not work at all..");

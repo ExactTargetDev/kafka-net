@@ -20,6 +20,11 @@
             return Interlocked.Read(ref this.value);
         }
 
+        public long AddAndGet(long delta)
+        {
+            return Interlocked.Add(ref this.value, delta);
+        }
+
         public void Set(long newValue)
         {
             Interlocked.Exchange(ref this.value, newValue);

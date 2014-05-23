@@ -2,9 +2,7 @@
 {
     using System.Text;
 
-    using Kafka.Client.Cfg;
     using Kafka.Client.Producers;
-    using Kafka.Client.Utils;
 
     public class StringEncoder : IEncoder<string>
     {
