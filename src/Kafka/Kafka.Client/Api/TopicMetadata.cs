@@ -20,10 +20,11 @@
             var topic = ApiUtils.ReadShortString(buffer);
             var numPartitions = ApiUtils.ReadIntInRange(buffer, "number of partitions", Tuple.Create(0, int.MaxValue));
 
-            var partitionsMetadata = new List<PartitionMetadata>();
+            var partitionsMetadata = new List<PartitionMetadata>(numPartitions);
             for (var i = 0; i < numPartitions; i++)
             {
-                partitionsMetadata.Add(PartitionMetadata.ReadFrom(buffer, brokers));
+                var partitionMetadata = PartitionMetadata.ReadFrom(buffer, brokers);
+                partitionsMetadata.Add(partitionMetadata);
             }
 
             return new TopicMetadata(topic, partitionsMetadata, errorCode);
