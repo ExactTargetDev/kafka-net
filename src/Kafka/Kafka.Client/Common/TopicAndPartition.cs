@@ -7,14 +7,20 @@
     /// </summary>
     public class TopicAndPartition
     {
-        public string Topic { get; private set; }
+        public readonly string Topic;
 
-        public int Partiton { get; private set; }
+        public readonly int Partiton;
+
+        private readonly int _hashCode;
 
         public TopicAndPartition(string topic, int partiton)
         {
             this.Topic = topic;
             this.Partiton = partiton;
+            unchecked
+            {
+                this._hashCode = ((this.Topic != null ? this.Topic.GetHashCode() : 0) * 397) ^ this.Partiton;
+            }
         }
 
         public TopicAndPartition(Tuple<string, int> tuple)
@@ -34,7 +40,7 @@
 
         protected bool Equals(TopicAndPartition other)
         {
-            return string.Equals(this.Topic, other.Topic) && this.Partiton == other.Partiton;
+            return this.Topic == other.Topic && this.Partiton == other.Partiton;
         }
 
         public override bool Equals(object obj)
@@ -59,10 +65,7 @@
 
         public override int GetHashCode()
         {
-            unchecked
-            {
-                return ((this.Topic != null ? this.Topic.GetHashCode() : 0) * 397) ^ this.Partiton;
-            }
+            return this._hashCode;
         }
     }
 }

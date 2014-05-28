@@ -6,9 +6,9 @@
     /// </summary>
     public class ClientIdAndTopic
     {
-        public string ClientId { get; private set; }
+        public readonly string ClientId;
 
-        public string Topic { get; private set; }
+        public readonly string Topic;
 
         public ClientIdAndTopic(string clientId, string topic)
         {
@@ -18,7 +18,7 @@
 
         protected bool Equals(ClientIdAndTopic other)
         {
-            return string.Equals(this.ClientId, other.ClientId) && string.Equals(this.Topic, other.Topic);
+            return this.ClientId == other.ClientId && this.Topic == other.Topic;
         }
 
         public override bool Equals(object obj)

@@ -57,6 +57,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Integration|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
@@ -171,7 +172,6 @@
     <Compile Include="Common\Imported\AtomicBoolean.cs" />
     <Compile Include="Common\Imported\AtomicReference.cs" />
     <Compile Include="Common\Imported\ByteBuffer.cs" />
-    <Compile Include="Common\Imported\HeapByteBuffer.cs" />
     <Compile Include="Common\Imported\IGauge.cs" />
     <Compile Include="Common\Imported\IHistogram.cs" />
     <Compile Include="Common\Imported\IIterable.cs" />

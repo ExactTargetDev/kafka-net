@@ -259,11 +259,7 @@
 
                     var topicAndPartition = new TopicAndPartition(message.Topic, brokerPartition.PartitionId);
                     List<KeyedMessage<TKey, Message>> dataPerTopicPartition;
-                    if (dataPerBroker.ContainsKey(topicAndPartition))
-                    {
-                        dataPerTopicPartition = dataPerBroker[topicAndPartition];
-                    }
-                    else
+                    if (dataPerBroker.TryGetValue(topicAndPartition, out dataPerTopicPartition) == false)
                     {
                         dataPerTopicPartition = new List<KeyedMessage<TKey, Message>>();
                         dataPerBroker[topicAndPartition] = dataPerTopicPartition;

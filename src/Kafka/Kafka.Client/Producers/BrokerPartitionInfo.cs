@@ -130,11 +130,11 @@
 
     internal class PartitionAndLeader
     {
-        public string Topic { get; private set; }
+        public readonly string Topic;
 
-        public int PartitionId { get; private set; }
+        public readonly int PartitionId;
 
-        public int? LeaderBrokerIdOpt { get; private set; }
+        public readonly int? LeaderBrokerIdOpt;
 
         public PartitionAndLeader(string topic, int partitionId, int? leaderBrokerIdOpt)
         {

@@ -30,11 +30,11 @@
             return new TopicMetadata(topic, partitionsMetadata, errorCode);
         }
 
-        public string Topic { get; private set; }
+        public readonly string Topic;
 
-        public List<PartitionMetadata> PartitionsMetadata { get; private set; }
+        public readonly List<PartitionMetadata> PartitionsMetadata;
 
-        public short ErrorCode { get; private set; }
+        public readonly short ErrorCode;
 
         public TopicMetadata(string topic, List<PartitionMetadata> partitionsMetadata, short errorCode = ErrorMapping.NoError)
         {
@@ -173,13 +173,13 @@
 
         public int PartitionId { get; private set; }
 
-        internal Broker Leader { get; private set; }
+        internal readonly Broker Leader;
 
-        internal IEnumerable<Broker> Replicas { get; private set; }
+        internal readonly IEnumerable<Broker> Replicas;
 
-        internal IEnumerable<Broker> Isr { get; private set; }
+        internal readonly IEnumerable<Broker> Isr;
 
-        public short ErrorCode { get; private set; }
+        public readonly short ErrorCode;
 
         public PartitionMetadata(int partitionId, Broker leader, IEnumerable<Broker> replicas, IEnumerable<Broker> isr = null, short errorCode = ErrorMapping.NoError)
         {

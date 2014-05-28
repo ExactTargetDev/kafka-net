@@ -8,6 +8,7 @@
     using System.Threading;
 
     using Kafka.Client.Cfg;
+    using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Messages;
     using Kafka.Client.Metrics;
@@ -69,7 +70,7 @@
                 totalMessagesSent.Get(),
                 totalMessagesSent.Get() / elapsedSecs);
 
-            Console.ReadKey(); //TODO: remove
+           // Console.ReadKey(); //TODO: remove
         } 
     }
 
@@ -206,7 +207,7 @@
                 }
                 props["kafka.csv.metrics.reporter.enabled"] = "true";
 
-                KafkaMetricsReporter.StartReporters(props);
+                KafkaMetricsReporter.StartReporters(new Config());//TODO: change me!
             }
         }
 

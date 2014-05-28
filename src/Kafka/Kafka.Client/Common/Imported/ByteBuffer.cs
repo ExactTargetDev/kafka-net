@@ -2,11 +2,13 @@
 {
     using System;
     using System.IO;
+    using System.Net;
     using System.Text;
 
-    public abstract class ByteBuffer : Stream
+    public class ByteBuffer : Stream
     {
-        #region Buffer
+       
+         #region Buffer
 
         private int mark = -1;
 
@@ -233,14 +235,14 @@
                 throw new ArgumentException();
             }
 
-            return new HeapByteBuffer(capacity, capacity);
+            return new ByteBuffer(capacity, capacity);
         }
 
         public static ByteBuffer Wrap(byte[] array, int offset, int length)
         {
             try
             {
-                return new HeapByteBuffer(array, offset, length);
+                return new ByteBuffer(array, offset, length);
             }
             catch (ArgumentException)
             {
@@ -253,76 +255,9 @@
             return Wrap(array, 0, array.Length);
         }
 
-        public abstract ByteBuffer Slice();
-
-        public abstract ByteBuffer Duplicate();
-
-        public abstract byte Get();
-
-        public abstract ByteBuffer Put(byte b);
-
-        public abstract byte Get(int index);
-
-        public abstract ByteBuffer Put(int index, byte b);
-
-        public virtual ByteBuffer Get(byte[] dst, int offset, int length)
-        {
-            CheckBounds(offset, length, dst.Length);
-            if (length > this.Remaining())
-            {
-                throw new ArgumentOutOfRangeException();
-            }
-                
-            int end = offset + length;
-            for (int i = offset; i < end; i++)
-            {
-                dst[i] = this.Get();
-            }
-
-            return this;
-        }
-
         public ByteBuffer Get(byte[] dst)
         {
             return this.Get(dst, 0, dst.Length);
-        }
-
-        public virtual ByteBuffer Put(ByteBuffer src)
-        {
-            if (src == this)
-            {
-                throw new ArgumentException();
-            }
-                
-            int n = src.Remaining();
-            if (n > this.Remaining())
-            {
-                throw new ArgumentOutOfRangeException();
-            }
-
-            for (int i = 0; i < n; i++)
-            {
-                this.Put(src.Get());
-            }
-
-            return this;
-        }
-
-        public virtual ByteBuffer Put(byte[] src, int offset, int length)
-        {
-            CheckBounds(offset, length, src.Length);
-            if (length > this.Remaining())
-            {
-                throw new IndexOutOfRangeException();
-            }
-
-            int end = offset + length;
-            for (int i = offset; i < end; i++)
-            {
-                this.Put(src[i]);
-            }
-                
-            return this;
         }
 
         public ByteBuffer Put(byte[] src)
@@ -357,10 +292,6 @@
                 
             return this.offset;
         }
-
-        public abstract ByteBuffer Compact();
-
-        public abstract bool IsDirect();
 
         public override string ToString()
         {
@@ -420,34 +351,6 @@
 
             return this.Equals((ByteBuffer)obj);
         }
-
-        internal abstract byte _Get(int i);
-
-        internal abstract void _Put(int i, byte b);
-
-        public abstract short GetShort();
-
-        public abstract ByteBuffer PutShort(short value);
-
-        public abstract short GetShort(int index);
-
-        public abstract ByteBuffer PutShort(int index, short value);
-
-        public abstract int GetInt();
-
-        public abstract ByteBuffer PutInt(int value);
-
-        public abstract int GetInt(int index);
-
-        public abstract ByteBuffer PutInt(int index, int value);
-
-        public abstract long GetLong();
-
-        public abstract ByteBuffer PutLong(long value);
-
-        public abstract long GetLong(int index);
-
-        public abstract ByteBuffer PutLong(int index, long value);
 
         #endregion
 
@@ -533,5 +436,279 @@
             }
         }
         #endregion
+
+
+        internal ByteBuffer(int cap, int lim)
+            : this(-1, 0, lim, cap, new byte[cap], 0)
+        {
+        }
+
+        internal ByteBuffer(byte[] buf, int off, int len)
+            : this(-1, off, off + len, buf.Length, buf, 0)
+        {
+        }
+
+        protected ByteBuffer(byte[] buf, int mark, int pos, int lim, int cap, int off)
+            : this(mark, pos, lim, cap, buf, off)
+        {
+        }
+
+        public ByteBuffer Slice()
+        {
+            return new ByteBuffer(
+                hb,
+                -1,
+                0,
+                this.Remaining(),
+                this.Remaining(),
+                (int)this.Position + offset);
+        }
+
+        public ByteBuffer Duplicate()
+        {
+            return new ByteBuffer(
+                hb,
+                this.MarkValue(),
+                (int)this.Position,
+                this.Limit(),
+                this.Capacity(),
+                offset);
+        }
+
+        protected int Ix(int i)
+        {
+            return i + this.offset;
+        }
+
+        public byte Get()
+        {
+            return this.hb[this.Ix(this.NextGetIndex())];
+        }
+
+        public byte Get(int i)
+        {
+            return this.hb[this.Ix(this.CheckIndex(i))];
+        }
+
+        public ByteBuffer Get(byte[] dst, int offset, int length)
+        {
+            CheckBounds(offset, length, dst.Length);
+            if (length > this.Remaining())
+            {
+                throw new IndexOutOfRangeException();
+            }
+
+            Buffer.BlockCopy(this.hb, this.Ix((int)Position), dst, offset, length);
+            this.Position = this.Position + length;
+            return this;
+        }
+
+        public bool IsDirect()
+        {
+            return false;
+        }
+
+        public bool IsReadOnly()
+        {
+            return false;
+        }
+
+        public ByteBuffer Put(byte x)
+        {
+            this.hb[this.Ix(this.NextPutIndex())] = x;
+            return this;
+        }
+
+        public ByteBuffer Put(int i, byte x)
+        {
+            this.hb[this.Ix(this.CheckIndex(i))] = x;
+            return this;
+        }
+
+        public ByteBuffer Put(byte[] src, int offset, int length)
+        {
+            CheckBounds(offset, length, src.Length);
+            if (length > this.Remaining())
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+                
+            Buffer.BlockCopy(src, offset, this.hb, this.Ix((int)Position), length);
+            this.Position = this.Position + length;
+            return this;
+        }
+
+        public ByteBuffer Put(ByteBuffer src)
+        {
+            if (ReferenceEquals(src, this))
+            {
+                throw new ArgumentNullException("src");
+            }
+                
+            int n = src.Remaining();
+            if (n > this.Remaining())
+            {
+                throw new IndexOutOfRangeException();
+            }
+
+            Buffer.BlockCopy(src.hb, src.Ix(src.position), this.hb, this.Ix(this.position), n);
+            this.position += n;
+
+            return this;
+        }
+
+        public ByteBuffer Compact()
+        {
+            Buffer.BlockCopy(this.hb, this.Ix((int)Position), this.hb, this.Ix(0), this.Remaining());
+            this.Position = this.Remaining();
+            this.Limit(this.Capacity());
+            this.DiscardMark();
+            return this;
+        }
+
+        internal byte _Get(int i)
+        {
+            return this.hb[i];
+        }
+
+        internal void _Put(int i, byte b)
+        {
+            this.hb[i] = b;
+        }
+
+        public short GetShort()
+        {
+            int startIndex = this.Ix(this.NextGetIndex(2));
+
+            var value = (short)(hb[startIndex] | hb[startIndex + 1] << 8);
+
+            return IPAddress.NetworkToHostOrder(value);
+        }
+
+        public short GetShort(int i)
+        {
+            int startIndex = this.Ix(this.CheckIndex(i, 2));
+
+            var value = (short)(hb[startIndex] | hb[startIndex + 1] << 8);
+
+            return IPAddress.NetworkToHostOrder(value);
+        }
+
+        public ByteBuffer PutShort(short x)
+        {
+            x = IPAddress.HostToNetworkOrder(x);
+
+            var startIndex = this.Ix(this.NextPutIndex(2));
+            this.hb[startIndex] = (byte)x;
+            this.hb[startIndex + 1] = (byte)(x >> 8);
+            return this;
+        }
+
+        public ByteBuffer PutShort(int i, short x)
+        {
+            x = IPAddress.HostToNetworkOrder(x);
+
+            var startIndex = this.Ix(this.CheckIndex(i, 2));
+            this.hb[startIndex] = (byte)x;
+            this.hb[startIndex + 1] = (byte)(x >> 8);
+            return this;
+        }
+
+        public int GetInt()
+        {
+            int startIndex = this.Ix(this.NextGetIndex(4));
+
+            var value = hb[startIndex] | hb[startIndex + 1] << 8 | hb[startIndex + 2] << 16 | hb[startIndex + 3] << 24;
+
+            return IPAddress.NetworkToHostOrder(value);
+        }
+
+        public int GetInt(int i)
+        {
+            int startIndex = this.Ix(this.CheckIndex(i, 4));
+
+            var value = hb[startIndex] | hb[startIndex + 1] << 8 | hb[startIndex + 2] << 16 | hb[startIndex + 3] << 24;
+
+            return IPAddress.NetworkToHostOrder(value);
+        }
+
+        public ByteBuffer PutInt(int x)
+        {
+            x = IPAddress.HostToNetworkOrder(x);
+
+            var startIndex = this.Ix(this.NextPutIndex(4));
+            this.hb[startIndex] = (byte)x;
+            this.hb[startIndex + 1] = (byte)(x >> 8);
+            this.hb[startIndex + 2] = (byte)(x >> 16);
+            this.hb[startIndex + 3] = (byte)(x >> 24);
+            return this;
+        }
+
+        public ByteBuffer PutInt(int i, int x)
+        {
+            x = IPAddress.HostToNetworkOrder(x);
+
+            var startIndex = this.Ix(this.CheckIndex(i, 4));
+            this.hb[startIndex] = (byte)x;
+            this.hb[startIndex + 1] = (byte)(x >> 8);
+            this.hb[startIndex + 2] = (byte)(x >> 16);
+            this.hb[startIndex + 3] = (byte)(x >> 24);
+            return this;
+        }
+
+        public long GetLong()
+        {
+            int startIndex = this.Ix(this.NextGetIndex(8));
+
+            var lo = (uint)(hb[startIndex] | hb[startIndex + 1] << 8 |
+                             hb[startIndex + 2] << 16 | hb[startIndex + 3] << 24);
+            var hi = (uint)(hb[startIndex + 4] | hb[startIndex + 5] << 8 |
+                             hb[startIndex + 6] << 16 | hb[startIndex + 7] << 24);
+            return IPAddress.NetworkToHostOrder((long)((ulong)hi) << 32 | lo);
+        }
+
+        public long GetLong(int i)
+        {
+            int startIndex = this.Ix(this.CheckIndex(i, 8));
+
+            var lo = (uint)(hb[startIndex] | hb[startIndex + 1] << 8 |
+                             hb[startIndex + 2] << 16 | hb[startIndex + 3] << 24);
+            var hi = (uint)(hb[startIndex + 4] | hb[startIndex + 5] << 8 |
+                             hb[startIndex + 6] << 16 | hb[startIndex + 7] << 24);
+            return IPAddress.NetworkToHostOrder((long)((ulong)hi) << 32 | lo);
+        }
+
+        public ByteBuffer PutLong(long x)
+        {
+            x = IPAddress.HostToNetworkOrder(x);
+
+            var startIndex = this.Ix(this.NextPutIndex(8));
+            this.hb[startIndex] = (byte)x;
+            this.hb[startIndex + 1] = (byte)(x >> 8);
+            this.hb[startIndex + 2] = (byte)(x >> 16);
+            this.hb[startIndex + 3] = (byte)(x >> 24);
+            this.hb[startIndex + 4] = (byte)(x >> 32);
+            this.hb[startIndex + 5] = (byte)(x >> 40);
+            this.hb[startIndex + 6] = (byte)(x >> 48);
+            this.hb[startIndex + 7] = (byte)(x >> 56);
+            return this;
+        }
+
+        public ByteBuffer PutLong(int i, long x)
+        {
+            x = IPAddress.HostToNetworkOrder(x);
+
+            var startIndex = this.Ix(this.CheckIndex(i, 8));
+            this.hb[startIndex] = (byte)x;
+            this.hb[startIndex + 1] = (byte)(x >> 8);
+            this.hb[startIndex + 2] = (byte)(x >> 16);
+            this.hb[startIndex + 3] = (byte)(x >> 24);
+            this.hb[startIndex + 4] = (byte)(x >> 32);
+            this.hb[startIndex + 5] = (byte)(x >> 40);
+            this.hb[startIndex + 6] = (byte)(x >> 48);
+            this.hb[startIndex + 7] = (byte)(x >> 56);
+            return this;
+        }
+    
     }
 }

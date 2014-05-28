@@ -9,13 +9,13 @@
     /// </summary>
     public class KeyedMessage<TKey, TValue>
     {
-        public string Topic { get; set; }
+        public readonly string Topic;
 
-        public TKey Key { get; set; }
+        public readonly TKey Key;
 
-        public object PartKey { get; set; }
+        public readonly object PartKey;
 
-        public TValue Message { get; set; }
+        public readonly TValue Message;
 
         public KeyedMessage(string topic, TKey key, object partKey, TValue message)
         {
