@@ -150,7 +150,6 @@
 
             Assert.True(messages.Equals(moreMessages));
         }
-
         
         [Fact]
         public void TestIterator()

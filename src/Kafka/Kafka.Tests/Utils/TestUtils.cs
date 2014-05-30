@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Reflection;
@@ -11,7 +12,6 @@
 
     using Kafka.Client.Api;
     using Kafka.Client.Cfg;
-    using Kafka.Client.Clusters;
     using Kafka.Client.Common;
     using Kafka.Client.Common.Imported;
     using Kafka.Client.Consumers;
@@ -22,16 +22,15 @@
     using Kafka.Client.ZKClient;
     using Kafka.Tests.Custom.Server;
 
+    using log4net;
+
     using Spring.Threading.Locks;
 
     using Xunit;
 
-    using log4net;
-
-    //TODO: reorder methods
     internal static class TestUtils
     {
-        static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        public static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private static readonly string IoTmpDir = Path.GetTempPath();
 
@@ -59,6 +58,7 @@
             {
                 throw new KafkaException("Unable to get " + count + " ports as only " + AvailablePorts.Count + " left");
             }
+
             return Enumerable.Range(1, count).Select(idx =>
                 {
                     var randomPort = AvailablePorts.ToArray()[random.Next(AvailablePorts.Count)];
@@ -99,19 +99,18 @@
         {
             return
                 configs.Select(
-                    c => new BrokerConfiguration() { BrokerId = c.BrokerId, Host = "localhost", Port = c.Port })
+                    c => new BrokerConfiguration { BrokerId = c.BrokerId, Host = "localhost", Port = c.Port })
                        .ToList();
         }
-
 
         public static TempKafkaConfig CreateBrokerConfig(
             int nodeId, int port, Func<int, Dictionary<string, string>> customProps = null)
         {
             var props = new Dictionary<string, string>
                             {
-                                { "broker.id", nodeId.ToString() },
+                                { "broker.id", nodeId.ToString(CultureInfo.InvariantCulture) },
                                 { "host.name", "localhost" },
-                                { "port", port.ToString() },
+                                { "port", port.ToString(CultureInfo.InvariantCulture) },
                                 { "log.dir", TempDir().FullName.Replace("\\", "\\\\") },
                                 { "zookeeper.connect", TestZkUtils.ZookeeperConnect },
                                 { "replica.socket.timeout.ms", "1500" }
@@ -124,6 +123,7 @@
                     props[kvp.Key] = kvp.Value;
                 }
             }
+
             return TempKafkaConfig.Create(props);
         }
 
@@ -166,13 +166,13 @@
                 config.ZooKeeper.ZkSessionTimeoutMs,
                 config.ZooKeeper.ZkConnectionTimeoutMs,
                 new ZkStringSerializer());
-            ZkUtils.UpdatePersistentPath(zkClient, path, offset.ToString());
+
+            ZkUtils.UpdatePersistentPath(zkClient, path, offset.ToString(CultureInfo.InvariantCulture));
         }
 
-
-        class MessageIterator : IteratorTemplate<Message>
+        internal class MessageIterator : IteratorTemplate<Message>
         {
-            private IIterator<MessageAndOffset> iter;
+            private readonly IIterator<MessageAndOffset> iter;
 
             public MessageIterator(IIterator<MessageAndOffset> iter)
             {
@@ -183,8 +183,9 @@
             {
                 if (this.iter.HasNext())
                 {
-                    return iter.Next().Message;
+                    return this.iter.Next().Message;
                 }
+
                 return this.AllDone();
             }
         }
@@ -201,6 +202,7 @@
             {
                 buffer.Add("msg" + i);    
             }
+
             return buffer;
         }
 
@@ -219,7 +221,8 @@
 
         public static ProducerRequest ProduceRequestWithAcks(
             List<string> topics,
-            List<int> partitions, ByteBufferMessageSet message, 
+            List<int> partitions, 
+            ByteBufferMessageSet message, 
             int acks = SyncProducerConfig.DefaultRequiredAcks,
             int timeout = SyncProducerConfig.DefaultAckTimeout,
             int correlationId = 0,
@@ -235,8 +238,6 @@
                 correlationId, clientId, (short)acks, timeout, data.ToDictionary(x => x.Item1, x => x.Item2));
         }
     
-
-
         public static string RandomString(int len)
         {
             var b = new StringBuilder();
@@ -244,6 +245,7 @@
             {
                 b.Append(LettersAndDigits.ToCharArray()[seededRandom.Next(LettersAndDigits.Length)]);
             }
+
             return b.ToString();
         }
 
@@ -261,10 +263,9 @@
             }
         }
 
-
         /// <summary>
-         /// Throw an exception if the two iterators are of differing lengths or contain
-         /// different messages on their Nth element
+        /// Throw an exception if the two iterators are of differing lengths or contain
+        /// different messages on their Nth element
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="expected"></param>
@@ -287,6 +288,7 @@
                     var current = expected.Current;
                     length1++;
                 }
+
                 Assert.False(false, "Iterators have uneven length -- first has more " + length1 + " > " + length);
             }
 
@@ -299,6 +301,7 @@
                     var current = actual.Current;
                     length2++;
                 }
+
                 Assert.False(false, "Iterators have uneven length -- second has more " + length2 + " > " + length);
             }
         }
@@ -336,7 +339,7 @@
 
         public static ProducerConfig GetProducerConfig(List<BrokerConfiguration> brokerList, string partitioner)
         {
-            ProducerConfig config = new ProducerConfig();
+            var config = new ProducerConfig();
             config.Brokers = brokerList;
             config.PartitionerClass = partitioner;
             config.MessageSendMaxRetries = 3;
@@ -362,6 +365,7 @@
             {
                 Logger.InfoFormat("Waiting for leader for partition [{0},{1}] to be changed from old leader {2}", topic, partition, oldLeaderOpt.Value);
             }
+
             leaderLock.Lock();
             try
             {
@@ -390,6 +394,7 @@
                 {
                     Logger.ErrorFormat("Timing out after {0} ms since leader is not elected for partition [{1},{2}]", timeoutMs, topic, partition);
                 }
+
                 return leader;
             }
             finally
@@ -401,7 +406,6 @@
         public static void WaitUntilMetadataIsPropagated(List<Process> serves, string topic, int partition, long timeout)
         {
             Thread.Sleep((int)timeout);
-            //TODO 
         }
 
     }
@@ -422,15 +426,13 @@
             ZookeeperPort = TestUtils.ChoosePort();
             ZookeeperConnect = "127.0.0.1:" + ZookeeperPort;
         }
-
     }
 
     public class IntEncoder : IEncoder<int>
     {
-
-         public IntEncoder(ProducerConfig config = null)
-         {
-         }
+        public IntEncoder(ProducerConfig config = null)
+        {
+        }
 
         public byte[] ToBytes(int t)
         {

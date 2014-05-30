@@ -115,5 +115,16 @@
                 logger.Error(e.Message, e);
             }
         }
+
+        public static void Swallow(Action action)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception)
+            {
+            }
+        }
     }
 }

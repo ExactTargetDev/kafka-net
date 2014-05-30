@@ -45,7 +45,7 @@
             {
                 using (this.Zookeeper)
                 {
-                    Zookeeper.Kill();
+                    this.Zookeeper.Kill();
                     SpinWait.SpinUntil(() => this.Zookeeper.HasExited, 5000);
                 }
             }

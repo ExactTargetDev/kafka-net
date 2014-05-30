@@ -6,6 +6,7 @@
     using System.Threading;
 
     using Kafka.Client.Common.Imported;
+    using Kafka.Client.Utils;
 
     using Xunit;
 
@@ -38,13 +39,7 @@
                 SpinWait.SpinUntil(
                     () =>
                         {
-                            try
-                            {
-                                File.Delete(path);
-                            }
-                            catch
-                            {
-                            }
+                            Util.Swallow(() => File.Delete(path));
                             return !File.Exists(path);
                         },
                     1000);

@@ -4,12 +4,9 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Text;
-    using System.Threading;
 
     using Kafka.Client.Messages;
     using Kafka.Tests.Utils;
-
-    using Xunit;
 
     public class TempKafkaConfig : Dictionary<string, string>, IDisposable
     {

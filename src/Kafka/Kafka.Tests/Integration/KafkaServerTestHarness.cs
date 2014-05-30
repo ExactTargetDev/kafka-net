@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
-    using System.Threading;
 
     using Kafka.Client.Common;
     using Kafka.Client.Utils;
@@ -41,7 +40,7 @@
 
         public void WaitForServersToSettle()
         {
-            foreach (TempKafkaConfig config in Configs)
+            foreach (TempKafkaConfig config in this.Configs)
             {
                 if (!ZkClient.WaitUntilExists(ZkUtils.BrokerIdsPath + "/" + config.BrokerId, TimeSpan.FromSeconds(5)))
                 {
@@ -61,10 +60,12 @@
                     Assert.True(process.HasExited);
                 }
             }
+
             foreach (var serverConfig in this.Configs)
             {
                 serverConfig.Dispose();
             }
+
             base.Dispose();
         }
     }

@@ -361,7 +361,7 @@
 
             // create topic topic1 with 1 partition on broker 0
             AdminUtils.CreateTopic(zkClient, Topic, 1, 1, new Dictionary<string, string>());
-            TestUtils.WaitUntilMetadataIsPropagated(Servers, Topic, 0, 3000);
+            TestUtils.WaitUntilMetadataIsPropagated(this.Servers, Topic, 0, 3000);
 
             var sentMessages1 = this.SendMessages(
                 Configs.First(), nMessages, "batch1", CompressionCodecs.NoCompressionCodec, 1);

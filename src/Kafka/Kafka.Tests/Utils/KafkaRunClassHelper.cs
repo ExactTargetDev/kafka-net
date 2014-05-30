@@ -1,7 +1,5 @@
 ﻿namespace Kafka.Tests.Utils
 {
-    using System;
-    using System.Collections.Generic;
     using System.Configuration;
     using System.Diagnostics;
     using System.IO;
@@ -41,7 +39,6 @@
             startInfo.UseShellExecute = false;
             startInfo.Arguments = MakeArgs(mainClass, args);
             startInfo.FileName = JavaExec;
-            //TODO: startInfo.CreateNoWindow = true;
 
             p.StartInfo = startInfo;
             p.Start();

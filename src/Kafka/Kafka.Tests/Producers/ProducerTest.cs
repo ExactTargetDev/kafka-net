@@ -22,14 +22,10 @@
     using Kafka.Tests.Utils;
     using Kafka.Tests.Zk;
 
-    using log4net;
-
     using Xunit;
 
     public class ProducerTest : ZooKeeperTestHarness
     {
-        private static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
         private const int BrokerId1 = 0;
 
         private const int BrokerId2 = 1;
@@ -79,40 +75,24 @@
         public override void Dispose()
         {
             base.Dispose();
-            try
-            {
-                using (this.server1)
+            Util.Swallow(() =>
                 {
-                    this.server1.Kill();    
-                }
-            }
-            catch
-            {
-            }
-            try
+                    using (this.server1)
+                    {
+                        this.server1.Kill();
+                    }
+                });
+
+            Util.Swallow(() =>
             {
                 using (this.server2)
                 {
                     this.server2.Kill();
                 }
-            }
-            catch
-            {
-            }
-            try
-            {
-                this.config1.Dispose();
-            }
-            catch
-            {
-            }
-            try
-            {
-                this.config2.Dispose();
-            }
-            catch
-            {
-            }
+            });
+
+            Util.Swallow(() => this.config1.Dispose());
+            Util.Swallow(() => this.config2.Dispose());
         }
 
         private Process StartServer(TempKafkaConfig config)
@@ -122,7 +102,7 @@
 
         public void WaitForServersToSettle()
         {
-            foreach (TempKafkaConfig config in new List<TempKafkaConfig> {this.config1, this.config2})
+            foreach (TempKafkaConfig config in new List<TempKafkaConfig> { this.config1, this.config2 })
             {
                 if (!ZkClient.WaitUntilExists(ZkUtils.BrokerIdsPath + "/" + config.BrokerId, TimeSpan.FromSeconds(5)))
                 {
@@ -209,13 +189,13 @@
                                                   {
                                                      BrokerId = 0,
                                                      Host = "localhost",
-                                                     Port = port1
+                                                     Port = this.port1
                                                   },
                                                   new BrokerConfiguration
                                                       {
                                                           BrokerId = 1,
                                                           Host = "localhost",
-                                                          Port = port2
+                                                          Port = this.port2
                                                       }
                                           };
             producerConfig3.KeySerializer = typeof(StringEncoder).AssemblyQualifiedName;
@@ -263,9 +243,9 @@
             var topic = "new-topic";
 
             // create topic with 1 partition and await leadership
-            AdminUtils.CreateTopic(ZkClient, topic, 1, 2, new Dictionary<string, string>());
-            TestUtils.WaitUntilMetadataIsPropagated(servers, topic, 0, 1000);
-            TestUtils.WaitUntilLeaderIsElectedOrChanged(ZkClient, topic, 0, 500);
+            AdminUtils.CreateTopic(this.ZkClient, topic, 1, 2, new Dictionary<string, string>());
+            TestUtils.WaitUntilMetadataIsPropagated(this.servers, topic, 0, 1000);
+            TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, topic, 0, 500);
 
             var producer1 = new Producer<string, string>(producerConfig1);
             var producer2 = new Producer<string, string>(producerConfig2);
@@ -280,13 +260,13 @@
 
             var leader = leaderOpt.Value;
 
-            var messageSet = (leader == config1.BrokerId)
-                                 ? consumer1.Fetch(new FetchRequestBuilder().AddFetch(topic, 0, 0, 10000).Build())
+            var messageSet = (leader == this.config1.BrokerId)
+                                 ? this.consumer1.Fetch(new FetchRequestBuilder().AddFetch(topic, 0, 0, 10000).Build())
                                             .MessageSet("new-topic", 0)
                                             .Iterator()
                                             .ToEnumerable()
                                             .ToList()
-                                 : consumer2.Fetch(new FetchRequestBuilder().AddFetch(topic, 0, 0, 10000).Build())
+                                 : this.consumer2.Fetch(new FetchRequestBuilder().AddFetch(topic, 0, 0, 10000).Build())
                                             .MessageSet("new-topic", 0)
                                             .Iterator()
                                             .ToEnumerable()
@@ -334,11 +314,12 @@
                 topic,
                 new Dictionary<int, List<int>>
                     {
-                        { 0, new List<int> { 0 }},
-                        { 1, new List<int> { 0 }},
-                        { 2, new List<int> { 0 }},
-                        { 3, new List<int> { 0 }},
-                    }, new Dictionary<string, string>());
+                        { 0, new List<int> { 0 } },
+                        { 1, new List<int> { 0 } },
+                        { 2, new List<int> { 0 } },
+                        { 3, new List<int> { 0 } },
+                    }, 
+                    new Dictionary<string, string>());
 
             // waiting for 1 partition is enought
             TestUtils.WaitUntilMetadataIsPropagated(this.servers, topic, 0, 1000);
@@ -395,7 +376,7 @@
            try
            {
                // create topic
-               AdminUtils.CreateTopic(ZkClient, "new-topic", 2, 1, new Dictionary<string, string>());
+               AdminUtils.CreateTopic(this.ZkClient, "new-topic", 2, 1, new Dictionary<string, string>());
                TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, "new-topic", 0, 500);
 
                producer.Send(new KeyedMessage<string, string>("new-topic", "key", null));

@@ -24,7 +24,7 @@
     {
         private int i = -1;
 
-        private readonly List<string> items = new List<string> {"1", "2", "3"};  
+        private readonly List<string> items = new List<string> { "1", "2", "3" };  
 
         protected override string MakeNext()
         {
@@ -33,6 +33,7 @@
             {
                 return this.items[this.i];
             }
+
             this.AllDone();
             return null;
         }

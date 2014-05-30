@@ -115,7 +115,7 @@
             var intPartitioner = new IntPartitioner();
 
             var config = new ProducerConfig();
-            config.Brokers = TestUtils.GetBrokerListFromConfigs(props);
+            config.Brokers = TestUtils.GetBrokerListFromConfigs(this.props);
 
             var producerPool = new ProducerPool(config);
             var handler = new DefaultEventHandler<int, string>(
@@ -164,15 +164,20 @@
 
             var expectedResult = new Dictionary<int, Dictionary<TopicAndPartition, List<KeyedMessage<int, Message>>>>
                                       {
-                                          { 0, new Dictionary<TopicAndPartition, List<KeyedMessage<int, Message>>>
+                                          { 0, 
+                                              new Dictionary<TopicAndPartition, List<KeyedMessage<int, Message>>>
                                                    {
                                                        { new TopicAndPartition("topic1", 0), topic1Broker1Data },
                                                        { new TopicAndPartition("topic2", 0), topic2Broker1Data }
-                                                   }},
-                                          { 1, new Dictionary<TopicAndPartition, List<KeyedMessage<int, Message>>>
+                                                   }
+                                                   },
+                                          { 1, 
+                                              new Dictionary<TopicAndPartition, List<KeyedMessage<int, Message>>>
                                                    {
                                                        { new TopicAndPartition("topic1", 1), topic1Broker2Data },
-                                                       { new TopicAndPartition("topic2", 1), topic2Broker2Data }}},
+                                                       { new TopicAndPartition("topic2", 1), topic2Broker2Data }
+                                                   }
+                                          },
                                       };
 
             var actualResut = handler.PartitionAndCollate(producerDataList);
@@ -199,10 +204,10 @@
             var produceData =
                 TestUtils.GetMsgStrings(5).Select(m => new KeyedMessage<string, string>("topic1", m)).ToList();
             var config = new ProducerConfig();
-            config.Brokers = TestUtils.GetBrokerListFromConfigs(props);
+            config.Brokers = TestUtils.GetBrokerListFromConfigs(this.props);
 
             // form expected partitions metadata
-            var topic1Metadata = GetTopicMetadata("topic1", 0, 0, "localhost", 9092);
+            var topic1Metadata = this.GetTopicMetadata("topic1", 0, 0, "localhost", 9092);
             var topicPartitionInfos = new Dictionary<string, TopicMetadata> { { "topic1", topic1Metadata } };
 
             var producerPool = new ProducerPool(config);
@@ -224,10 +229,10 @@
             producerDataList.Add(new KeyedMessage<string, Message>("topic1", "key1", new Message(Encoding.UTF8.GetBytes("msg1"))));
 
             var config = new ProducerConfig();
-            config.Brokers = TestUtils.GetBrokerListFromConfigs(props);
+            config.Brokers = TestUtils.GetBrokerListFromConfigs(this.props);
 
             // form expected partitions metadata
-            var topic1Metadata = GetTopicMetadata("topic1", 0, 0, "localhost", 9092);
+            var topic1Metadata = this.GetTopicMetadata("topic1", 0, 0, "localhost", 9092);
             var topicPartitionInfos = new Dictionary<string, TopicMetadata> { { "topic1", topic1Metadata } };
 
             var producerPool = new ProducerPool(config);
@@ -249,7 +254,7 @@
         public void TestNoBroker()
         {
             var config = new ProducerConfig();
-            config.Brokers = TestUtils.GetBrokerListFromConfigs(props);
+            config.Brokers = TestUtils.GetBrokerListFromConfigs(this.props);
 
             // create topic metadata with 0 partitions
             var topic1Metadata = new TopicMetadata("topic1", new List<PartitionMetadata>());
@@ -278,7 +283,7 @@
         public void TestIncompatibleEncoder()
         {
             var config = new ProducerConfig();
-            config.Brokers = TestUtils.GetBrokerListFromConfigs(props);
+            config.Brokers = TestUtils.GetBrokerListFromConfigs(this.props);
 
             try
             {
@@ -286,7 +291,7 @@
                 producer.Send(this.GetProduceData(1));
                 Assert.False(true, "Should fail with InvalidCastException due to incompatible Encoder");
             }
-            catch (InvalidCastException e)
+            catch (InvalidCastException)
             {
             }
         }
@@ -295,7 +300,7 @@
         public void TestRandomPartitioner()
         {
             var config = new ProducerConfig();
-            config.Brokers = TestUtils.GetBrokerListFromConfigs(props);
+            config.Brokers = TestUtils.GetBrokerListFromConfigs(this.props);
 
             // create topic metadata with 0 partitions
             var topic1Metadata = this.GetTopicMetadata("topic1", 0, 0, "localhost", 9092);
