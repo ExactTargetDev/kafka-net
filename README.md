@@ -9,23 +9,23 @@ The Producer can send one or more messages to Kafka in both a synchronous and as
 ### Producer Usage
 
 ```cs
-    var producerConfig1 = new ProducerConfig();
-    producerConfig1.ProducerType = ProducerTypes.Async; // (or sync)
-    // ...
-    // other configuration settings (described below)
-    // ...
-    producerConfig1.Brokers = new List<BrokerConfiguration>
-               {
-                  new BrokerConfiguration
-                      {
-                         BrokerId = 0, Host = "localhost", Port = 9092
-                      }
-              };
-    producerConfig1.KeySerializer = typeof(StringEncoder).AssemblyQualifiedName;
-    producerConfig1.Serializer = typeof(StringEncoder).AssemblyQualifiedName;
-    using (var producer1 = new Producer<string, string>(producerConfig1))
-        producer1.Send(new KeyedMessage<string, string>(topic, "test", "test1"));
-    }
+var producerConfig1 = new ProducerConfig();
+producerConfig1.ProducerType = ProducerTypes.Async; // (or sync)
+// ...
+// other configuration settings (described below)
+// ...
+producerConfig1.Brokers = new List<BrokerConfiguration>
+           {
+              new BrokerConfiguration
+                  {
+                     BrokerId = 0, Host = "localhost", Port = 9092
+                  }
+          };
+producerConfig1.KeySerializer = typeof(StringEncoder).AssemblyQualifiedName;
+producerConfig1.Serializer = typeof(StringEncoder).AssemblyQualifiedName;
+using (var producer1 = new Producer<string, string>(producerConfig1))
+    producer1.Send(new KeyedMessage<string, string>(topic, "test", "test1"));
+}
 ```
 
 ### Producer Configuration Options
@@ -53,6 +53,7 @@ The Producer can send one or more messages to Kafka in both a synchronous and as
 
 Sample configuration in App.config:
 
+```xml
     <configuration>
       <configSections>
         <section name="producer"
@@ -64,10 +65,13 @@ Sample configuration in App.config:
         </brokers>
       </producer>
     </configuration>
+```
 
 And invocation in application:
 
+```cs
     ProducerConfig configuration = ProducerConfig.configure("producer");
+```    
 
 ## Consumer
 
@@ -75,6 +79,7 @@ The consumer has several functions of interest: `CommitOffsets` and `CreateMessa
 
 ### Consumer Usage
 
+```cs
     var consumerConfig1 = new ConsumerConfig("localhost", "2181", "group1");
     var zkConsumerConnector1 = new ZookeeperConsumerConnector(consumerConfig1);
     var topicMessageStreams1 =
@@ -85,4 +90,4 @@ The consumer has several functions of interest: `CommitOffsets` and `CreateMessa
     {
         Console.WriteLine(messageAndMetadata.Message);
     }
-
+```
