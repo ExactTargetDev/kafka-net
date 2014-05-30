@@ -29,7 +29,7 @@ The Producer can send one or more messages to Kafka in both a synchronous and as
 ### Producer Configuration Options
 
 | XML parameter name  /  Config class parameter name   |  Default value  |  Description  |
-| ---------------------------- |:-----------------------------:| :---------------:|---------------|
+| ---------------------------- |:-----------------------------:|---------------|
 | Brokers  /Brokers                       | -                | This is for bootstrapping and the producer will only use it for getting metadata (topics, partitions and replicas). The socket connections for sending the actual data will be established based on the broker information returned in the metadata.  |
 | partitioner   /PartitionerClass              | DefaultPartitioner | The partitioner class for partitioning messages amongst sub-topics. The default partitioner is based on the hash of the key. |
 | type  /ProducerType                  | Sync             | This parameter specifies whether the messages are sent asynchronously in a background thread. Valid values are async for asynchronous send and sync for synchronous send. By setting the producer to async we allow batching together of requests (which is great for throughput) but open the possibility of a failure of the client machine dropping unsent data. |
