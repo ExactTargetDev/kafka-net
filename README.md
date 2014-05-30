@@ -52,7 +52,6 @@ using (var producer1 = new Producer<string, string>(producerConfig1))
 |  keySerializer / KeySerializer                   | -               |  	The serializer class for keys (defaults to the same as for messages if nothing is given). |
 
 Sample configuration in App.config:
-
 ```xml
 <configuration>
   <configSections>
@@ -68,7 +67,6 @@ Sample configuration in App.config:
 ```
 
 And invocation in application:
-
 ```cs
 ProducerConfig configuration = ProducerConfig.configure("producer");
 ```    
