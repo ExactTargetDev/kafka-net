@@ -51,7 +51,21 @@ The Producer can send one or more messages to Kafka in both a synchronous and as
 
 Sample configuration in App.config:
 
+    <configuration>
+      <configSections>
+        <section name="producer"
+          type="Kafka.Client.Cfg.Sections.ProducerConfigurationSection, Kafka.Client" />
+      </configSections>
+      <producer type="Sync" serializer="Kafka.Client.Serializers.StringEncoder" keySerializer="Kafka.Client.Serializers.StringEncoder">
+        <brokers>
+          <add id="0" host="localhost" port="9092" />
+        </brokers>
+      </producer>
+    </configuration>
 
+And invocation in application:
+
+    ProducerConfig configuration = ProducerConfig.configure("producer");
 
 ## Consumer
 
