@@ -162,9 +162,7 @@
 
             OptionSet.Add(
                 "initial-message-id:",
-                "The is used for generating test data, If set, messages will be tagged with an "
-                + "ID and sent by producer starting from this ID sequentially. Message content will be String type and "
-                + "in the form of 'Message:000...1:xxx...'",
+                "The is used for generating test data, If set, messages will be tagged with an ID and sent by producer starting from this ID sequentially. Message content will be String type and in the form of 'Message:000...1:xxx...'",
                 x => this.InitialMessageId = int.Parse(x));
 
             OptionSet.Add(
@@ -198,9 +196,10 @@
                 {
                     props["kafka.csv.metrics.dir"] = "kafka_metrics";
                 }
+
                 props["kafka.csv.metrics.reporter.enabled"] = "true";
 
-                KafkaMetricsReporter.StartReporters(new Config());//TODO: change me!
+                KafkaMetricsReporter.StartReporters(new Config());  //TODO: change me!
             }
         }
 
@@ -286,11 +285,9 @@
                                   Port = int.Parse(s.Split(':')[1])
                               }).ToList();
 
-            producerConfig.CompressionCodec = config.CompressionCodec;
+            this.producerConfig.CompressionCodec = config.CompressionCodec;
             
-            //TODO: props.put("reconnect.interval", Integer.MAX_VALUE.toString)
-            
-            producerConfig.SendBufferBytes = 64 * 1024;
+            this.producerConfig.SendBufferBytes = 64 * 1024;
             if (!config.IsSync)
             {
                 this.producerConfig.ProducerType = ProducerTypes.Async;
@@ -307,10 +304,10 @@
             this.producerConfig.Serializer = typeof(DefaultEncoder).AssemblyQualifiedName;
             this.producerConfig.KeySerializer = typeof(NullEncoder<long>).AssemblyQualifiedName;
             
-            this.producer = new Producer<long, byte[]>(producerConfig);
+            this.producer = new Producer<long, byte[]>(this.producerConfig);
 
             this.messagesPerThread = config.NumMessages / config.NumThreads;
-            Logger.DebugFormat("Messages per thread = {0}", messagesPerThread);
+            Logger.DebugFormat("Messages per thread = {0}", this.messagesPerThread);
         }
 
         private byte[] GenerateMessageWithSeqId(string topic, long msgId, int msgSize)
@@ -323,9 +320,8 @@
             // . . .
             this.leftPaddedSeqId = string.Format("{0:D10}", msgId);
 
-            var msgHeader = this.topicLabel + this.SEP + topic + this.SEP + this.threadIdLabel + this.SEP + this.threadId + this.SEP + messageIdLabel
+            var msgHeader = this.topicLabel + this.SEP + topic + this.SEP + this.threadIdLabel + this.SEP + this.threadId + this.SEP + this.messageIdLabel
                             + this.SEP + this.leftPaddedSeqId;
-            //TODO: verify me!
 
             var seqMsgString = msgHeader.PadLeft(msgSize, 'x');
             return Encoding.UTF8.GetBytes(seqMsgString);
@@ -346,11 +342,11 @@
             var bytesSent = 0L;
             var nSends = 0;
             var j = 0L;
-            while (j < messagesPerThread)
+            while (j < this.messagesPerThread)
             {
                 try
                 {
-                    foreach (var topic in config.Topics)
+                    foreach (var topic in this.config.Topics)
                     {
                         var producerDataAndBytes = this.GenerateProducerData(topic, j);
                         bytesSent += producerDataAndBytes.Item2;

@@ -11,9 +11,6 @@
     using Kafka.Performance.Common;
 
     using log4net;
-    using log4net.Appender;
-    using log4net.Config;
-    using log4net.Layout;
 
     /// <summary>
     /// Performance test for the full zookeeper consumer
@@ -24,8 +21,6 @@
 
         public static void Main(string[] args)
         {
-           //TODO: BasicConfigurator.Configure(new ConsoleAppender(new SimpleLayout()));
-
             var config = new ConsumerPerfConfig(args);
             Logger.Info("Starting consumer...");
             var totalMessagesRead = new AtomicLong(0);
@@ -92,6 +87,7 @@
                          totalMessagesRead.Get() / elapsedSecs);
                 }
             }
+
             Environment.Exit(0);
         }
     }
@@ -191,7 +187,7 @@
     {
         private int threadId;
 
-        private string name;
+        protected string name;
 
         private KafkaStream<byte[], byte[]> stream;
 

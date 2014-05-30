@@ -553,6 +553,7 @@
 
             Buffer.BlockCopy(src.hb, src.Ix(src.position), this.hb, this.Ix(this.position), n);
             this.position += n;
+            src.position += n;
 
             return this;
         }
