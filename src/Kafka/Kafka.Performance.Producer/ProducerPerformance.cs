@@ -24,11 +24,6 @@
 
         public static void Main(string[] args)
         {
-            //TODO: delete me
-           /* log4net.Config.BasicConfigurator.Configure(
-              new log4net.Appender.ConsoleAppender { Layout = new log4net.Layout.SimpleLayout() }
-            );*/
-
             var config = new ProducerPerfConfig(args);
             if (!config.IsFixedSize)
             {
@@ -69,8 +64,6 @@
                 totalMBSent / elapsedSecs,
                 totalMessagesSent.Get(),
                 totalMessagesSent.Get() / elapsedSecs);
-
-           // Console.ReadKey(); //TODO: remove
         } 
     }
 

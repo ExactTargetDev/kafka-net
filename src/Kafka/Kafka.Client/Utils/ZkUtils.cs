@@ -327,12 +327,27 @@
             }
         }
 
-         public static Tuple<string, Stat> ReadData(ZkClient client, string path)
-         {
+        public static void MaybeDeletePath(string zkUrl, string dir)
+        {
+            try
+            {
+                var zk = new ZkClient(zkUrl, 30 * 1000, 30 * 1000, new ZkStringSerializer());
+                zk.DeleteRecursive(dir);
+                zk.Dispose();
+            }
+            catch
+            {
+                // swallow
+            }
+        }
+
+
+        public static Tuple<string, Stat> ReadData(ZkClient client, string path)
+        {
              var stat = new Stat();
              var dataString = client.ReadData<string>(path, stat);
              return Tuple.Create(dataString, stat);
-         }
+        }
 
         public static Tuple<string, Stat> ReadDataMaybeNull(ZkClient client, string path)
         {
