@@ -51,7 +51,7 @@ using (var producer1 = new Producer<string, string>(producerConfig1))
 |  serializer  / Serializer                       | kafka.serializer. DefaultEncoder  | he serializer class for messages. The default encoder takes a byte[] and returns the same byte[]. | 
 |  keySerializer / KeySerializer                   | -               |  	The serializer class for keys (defaults to the same as for messages if nothing is given). |
 
-Sample configuration in App.config:
+#### Sample configuration in App.config:
 ```xml
 <configuration>
   <configSections>
@@ -89,3 +89,49 @@ foreach (var messageAndMetadata in topicMessageStreams1[Topic][0])
     Console.WriteLine(messageAndMetadata.Message);
 }
 ```
+
+### Consumer Configuration Options 
+
+| XML parameter name / Config class parameter name   |  Default value  |  Description  |
+| --------------------------------------------------:| :---------------:|---------------|
+| groupId / GroupId                                  | REQUIRED         | A string that uniquely identifies the group of consumer processes to which this consumer belongs. By setting the same group id multiple processes indicate that they are all part of the same consumer group.|
+| zookeeper / ZooKeeper                              | REQUIRED         | Specifies the zookeeper locations |
+| consumerId / ConsumerId                            | null             | Generated automatically if not set. | 
+| socketTimeout   / SocketTimeoutMs                  | 30 * 1000        | The socket timeout for network requests. The actual timeout set will be FetchWaitMaxMs + SocketTimeoutMs. | 
+| socketBufferSize  / SocketReceiveBufferBytes       | 64 * 1024        | The socket receive buffer for network requests | 
+| fetchSize  / FetchMessageMaxBytes                  | 1024 * 1024      | The number of byes of messages to attempt to fetch for each topic-partition in each fetch request. These bytes will be read into memory for each partition, so this helps control the memory used by the consumer. The fetch request size must be at least as large as the maximum message size the server allows or else it is possible for the producer to send messages larger than the consumer can fetch. |
+| numConsumerFetchers / NumConsumerFetchers          | 1                | The number threads used to fetch data. |
+| autoCommit / AutoCommitEnable                      | true             |  	If true, periodically commit to zookeeper the offset of messages already fetched by the consumer. This committed offset will be used when the process fails as the position from which the new consumer will begin. |
+| autoCommitInterval / AutoCommitIntervalMs          | 60 * 1000        | The frequency in ms that the consumer offsets are committed to zookeeper. | 
+| maxQueuedChunks / QueuedMaxMessages                | 10               | Max number of message chunks buffered for consumption. Each chunk can be up to FetchMessageMaxBytes | 
+| maxRebalanceRetries / RebalanceMaxRetries          | 4                | When a new consumer joins a consumer group the set of consumers attempt to "rebalance" the load to assign partitions to each consumer. If the set of consumers changes while this assignment is taking place the rebalance will fail and retry. This setting controls the maximum number of attempts before giving up. |
+| minFetchBytes / FetchMinBytes                      | 1                | The minimum amount of data the server should return for a fetch request. If insufficient data is available the request will wait for that much data to accumulate before answering the request. | 
+| maxFetchWaitMs / FetchWaitMaxMs                    | 100              | The maximum amount of time the server will block before answering the fetch request if there isn't sufficient data to immediately satisfy FetchMinBytes | 
+| rebalanceBackoffMs / RebalanceBackoffMs            | 2000             | Backoff time between retries during rebalance. |
+| refreshMetadataBackoffMs / RefreshLeaderBackoffMs  | 200              | Backoff time to wait before trying to determine the leader of a partition that has just lost its leader. |
+| autoOffsetReset / AutoOffsetReset                  | largest          | What to do when there is no initial offset in Zookeeper or if an offset is out of range: <ul><li>smallest : automatically reset the offset to the smallest offset</li><li>largest : automatically reset the offset to the largest offset</li><li>anything else: throw exception to the consumer. If this is set to largest, the consumer may lose some messages when the number of partitions, for the topics it subscribes to, changes on the broker. To prevent data loss during partition addition, set AutoOffsetReset to smallest </li></ul> |
+| consumerTimeoutMs / ConsumerTimeoutMs              | -1               | Throw a timeout exception to the consumer if no message is available for consumption after the specified interval | 
+| clientId / ClientId                                | group id value   | The client id is a user-specified string sent in each request to help trace calls. It should logically identify the application making the request. |
+
+
+#### Sample configuration in App.config:
+```xml
+<configuration>
+  <configSections>
+    <section name="consumer"
+      type="Kafka.Client.Cfg.Sections.ConsumerConfigurationSection, Kafka.Client" />
+  </configSections>
+  <consumer groupId="group1" >
+    <zookeeper>
+      <servers>
+        <add host="localhost" port="2181" />
+      </servers>
+    </zookeeper>
+  </consumer>
+</configuration>
+```
+
+And invocation in application:
+```cs
+ConsumerConfig configuration = ConsumerConfig.Configure("consumer");
+```    
