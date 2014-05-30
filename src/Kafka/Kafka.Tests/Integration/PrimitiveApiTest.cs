@@ -262,7 +262,7 @@
             }
 
             // wait until the messages are published
-            Thread.Sleep(7000); // ugly sleep as we can't access logManager endOffset //TODO: can we reduce this value ?
+            Thread.Sleep(7000); // ugly sleep as we can't access logManager endOffset
 
             var request = builder.Build();
             var response = Consumer.Fetch(request);

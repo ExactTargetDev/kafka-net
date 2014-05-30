@@ -1,5 +1,6 @@
 ﻿namespace Kafka.Tests.Utils
 {
+    using System;
     using System.Configuration;
     using System.Diagnostics;
     using System.IO;
@@ -53,6 +54,11 @@
             sb.AppendFormat(@" -Dlog4j.configuration=file:{0}config\log4j.properties -Dkafka.logs.dir={0}logs ", KafkaInstallationDir);
 
             var libsDir = Path.Combine(KafkaInstallationDir, "libs");
+
+            if (!Directory.Exists(KafkaInstallationDir))
+            {
+                throw new Exception(string.Format("Unable to find kafka installation in: {0}. Verify KafkaInstallationDir in App.config and try again.", KafkaInstallationDir));
+            }
 
             var jarsToInclude = Directory.EnumerateFiles(Path.Combine(KafkaInstallationDir, "libs"))
                      .Select(x => Path.Combine(libsDir, x))
