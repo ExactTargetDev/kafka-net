@@ -54,23 +54,23 @@ using (var producer1 = new Producer<string, string>(producerConfig1))
 Sample configuration in App.config:
 
 ```xml
-    <configuration>
-      <configSections>
-        <section name="producer"
-          type="Kafka.Client.Cfg.Sections.ProducerConfigurationSection, Kafka.Client" />
-      </configSections>
-      <producer type="Sync" serializer="Kafka.Client.Serializers.StringEncoder" keySerializer="Kafka.Client.Serializers.StringEncoder">
-        <brokers>
-          <add id="0" host="localhost" port="9092" />
-        </brokers>
-      </producer>
-    </configuration>
+<configuration>
+  <configSections>
+    <section name="producer"
+      type="Kafka.Client.Cfg.Sections.ProducerConfigurationSection, Kafka.Client" />
+  </configSections>
+  <producer type="Sync" serializer="Kafka.Client.Serializers.StringEncoder" keySerializer="Kafka.Client.Serializers.StringEncoder">
+    <brokers>
+      <add id="0" host="localhost" port="9092" />
+    </brokers>
+  </producer>
+</configuration>
 ```
 
 And invocation in application:
 
 ```cs
-    ProducerConfig configuration = ProducerConfig.configure("producer");
+ProducerConfig configuration = ProducerConfig.configure("producer");
 ```    
 
 ## Consumer
@@ -80,14 +80,14 @@ The consumer has several functions of interest: `CommitOffsets` and `CreateMessa
 ### Consumer Usage
 
 ```cs
-    var consumerConfig1 = new ConsumerConfig("localhost", "2181", "group1");
-    var zkConsumerConnector1 = new ZookeeperConsumerConnector(consumerConfig1);
-    var topicMessageStreams1 =
-        zkConsumerConnector1.CreateMessageStreams(
-            new Dictionary<string, int> { { Topic, 1 } }, new StringDecoder(), new StringDecoder());
+var consumerConfig1 = new ConsumerConfig("localhost", "2181", "group1");
+var zkConsumerConnector1 = new ZookeeperConsumerConnector(consumerConfig1);
+var topicMessageStreams1 =
+    zkConsumerConnector1.CreateMessageStreams(
+        new Dictionary<string, int> { { Topic, 1 } }, new StringDecoder(), new StringDecoder());
 
-    foreach (var messageAndMetadata in topicMessageStreams1[Topic][0])
-    {
-        Console.WriteLine(messageAndMetadata.Message);
-    }
+foreach (var messageAndMetadata in topicMessageStreams1[Topic][0])
+{
+    Console.WriteLine(messageAndMetadata.Message);
+}
 ```
