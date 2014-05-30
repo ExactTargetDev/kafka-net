@@ -8,6 +8,7 @@ The Producer can send one or more messages to Kafka in both a synchronous and as
 
 ### Producer Usage
 
+```cs
     var producerConfig1 = new ProducerConfig();
     producerConfig1.ProducerType = ProducerTypes.Async; // (or sync)
     // ...
@@ -25,7 +26,8 @@ The Producer can send one or more messages to Kafka in both a synchronous and as
     using (var producer1 = new Producer<string, string>(producerConfig1))
         producer1.Send(new KeyedMessage<string, string>(topic, "test", "test1"));
     }
-    
+```
+
 ### Producer Configuration Options
 
 | XML parameter name  /  Config class parameter name   |  Default value  |  Description  |
