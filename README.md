@@ -51,7 +51,7 @@ using (var producer1 = new Producer<string, string>(producerConfig1))
 |  serializer  / Serializer                       | kafka.serializer. DefaultEncoder  | he serializer class for messages. The default encoder takes a byte[] and returns the same byte[]. | 
 |  keySerializer / KeySerializer                   | -               |  	The serializer class for keys (defaults to the same as for messages if nothing is given). |
 
-#### Sample configuration in App.config:
+#### Sample producer configuration in App.config:
 ```xml
 <configuration>
   <configSections>
@@ -114,7 +114,7 @@ foreach (var messageAndMetadata in topicMessageStreams1[Topic][0])
 | clientId / ClientId                                | group id value   | The client id is a user-specified string sent in each request to help trace calls. It should logically identify the application making the request. |
 
 
-#### Sample configuration in App.config:
+#### Sample consumer configuration in App.config:
 ```xml
 <configuration>
   <configSections>
