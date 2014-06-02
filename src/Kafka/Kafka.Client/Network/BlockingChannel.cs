@@ -51,7 +51,8 @@
         {
             lock (@lock)
             {
-                this.channel = new TcpClient(this.Host, this.Port);
+                this.channel = new TcpClient();
+                this.channel.Connect(this.Host, this.Port);
                 if (this.ReadBufferSize > 0)
                 {
                     this.channel.ReceiveBufferSize = this.ReadBufferSize;

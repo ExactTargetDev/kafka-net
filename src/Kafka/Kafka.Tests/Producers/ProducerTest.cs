@@ -128,13 +128,13 @@
                                                   {
                                                      BrokerId = 0,
                                                      Host = "localhost",
-                                                     Port = 80
+                                                     Port = 18203
                                                   },
                                                   new BrokerConfiguration
                                                       {
                                                           BrokerId = 1,
                                                           Host = "localhost",
-                                                          Port = 81
+                                                          Port = 18204
                                                       }
                                           };
             producerConfig1.KeySerializer = typeof(StringEncoder).AssemblyQualifiedName;
@@ -161,7 +161,7 @@
                                                   {
                                                      BrokerId = 0,
                                                      Host = "localhost",
-                                                     Port = 80
+                                                     Port = 18203
                                                   },
                                                   new BrokerConfiguration
                                                       {
