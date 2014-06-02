@@ -118,7 +118,7 @@
             AdminUtils.CreateTopic(this.ZkClient, topic, 1, 2, new Dictionary<string, string>());
 
             // wait until the update metadata request for new topic reaches all servers
-            TestUtils.WaitUntilMetadataIsPropagated(this.servers, topic, 0, 500);
+            TestUtils.WaitUntilMetadataIsPropagated(this.servers, topic, 0, 3000);
             TestUtils.WaitUntilLeaderIsElectedOrChanged(this.ZkClient, topic, 0, 500);
 
             var producerConfig1 = new ProducerConfig();
