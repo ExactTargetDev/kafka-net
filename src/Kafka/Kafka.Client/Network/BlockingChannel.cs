@@ -52,7 +52,7 @@
             lock (@lock)
             {
                 this.channel = new TcpClient();
-                this.channel.Connect(this.Host, this.Port);
+                
                 if (this.ReadBufferSize > 0)
                 {
                     this.channel.ReceiveBufferSize = this.ReadBufferSize;
@@ -66,6 +66,8 @@
                 this.channel.ReceiveTimeout = this.ReadTimeoutMs;
                 this.channel.NoDelay = true;
                 this.channel.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, 1);
+
+                this.channel.Connect(this.Host, this.Port);
 
                 this.writeChannel = this.channel.GetStream();
                 this.readChannel = this.channel.GetStream();
