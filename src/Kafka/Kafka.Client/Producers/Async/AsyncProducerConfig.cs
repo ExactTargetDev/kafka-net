@@ -76,7 +76,5 @@ namespace Kafka.Client.Producers.Async
         public int QueueEnqueueTimeoutMs { get; set; }
 
         public int BatchNumMessages { get; set; }
-
-        
     }
 }

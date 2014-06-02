@@ -1,5 +1,9 @@
-﻿using Kafka.Client.Api;
+﻿using System.Configuration;
+
+using Kafka.Client.Api;
+using Kafka.Client.Cfg.Sections;
 using Kafka.Client.Common.Imported;
+using Kafka.Client.Producers;
 using Kafka.Tests.Api;
 
 using Xunit;
