@@ -1,6 +1,6 @@
 # .NET Kafka Client
 
-This is a .NET implementation of a client for Kafka using C#.  It provides for an implementation that covers most basic functionalities to include a simple Producer and Consumer.
+This is a .NET implementation of a client for Kafka using C# for Kafka 0.8.  It provides for an implementation that covers most basic functionalities to include a simple Producer and Consumer.
 
 ## Producer
 
