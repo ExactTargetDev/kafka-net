@@ -1,4 +1,6 @@
-﻿namespace Kafka.Client.Consumers
+﻿using Kafka.Client.Cfg;
+
+namespace Kafka.Client.Consumers
 {
     using System;
     using System.Collections.Generic;
@@ -137,9 +139,22 @@
         internal FetchResponse Fetch(FetchRequest request)
         {
             Receive response = null;
-            var specificTimer = this.fetchRequestAndResponseStats.GetFetchRequestAndResponseStats(this.BrokerInfo).RequestTimer;
-            var aggregateTimer = this.fetchRequestAndResponseStats.GetFetchRequestAndResponseAllBrokersStats().RequestTimer;
-            aggregateTimer.Time(() => specificTimer.Time(() => { response = this.SendRequest(request); }));
+            if (StatSettings.ConsumerStatsEnabled)
+            {
+                var specificTimer =
+                    this.fetchRequestAndResponseStats.GetFetchRequestAndResponseStats(this.BrokerInfo).RequestTimer;
+                var aggregateTimer =
+                    this.fetchRequestAndResponseStats.GetFetchRequestAndResponseAllBrokersStats().RequestTimer;
+                aggregateTimer.Time(() => specificTimer.Time(() =>
+                {
+                    response = this.SendRequest(request);
+
+                }));
+            }
+            else
+            {
+                response = this.SendRequest(request);
+            }
 
             var fetchResponse = FetchResponse.ReadFrom(response.Buffer);
             var fetchedSize = fetchResponse.SizeInBytes;

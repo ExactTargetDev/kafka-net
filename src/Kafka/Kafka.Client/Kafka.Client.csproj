@@ -142,6 +142,7 @@
     <Compile Include="Api\TopicMetadata.cs" />
     <Compile Include="Api\TopicMetadataRequest.cs" />
     <Compile Include="Api\TopicMetadataResponse.cs" />
+    <Compile Include="Cfg\StatSettings.cs" />
     <Compile Include="Common\Config.cs" />
     <Compile Include="Consumers\TopicEventHandler.cs" />
     <Compile Include="Extensions\DictionaryExtensions.cs" />

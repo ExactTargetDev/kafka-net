@@ -1,4 +1,6 @@
-﻿namespace Kafka.Client.Producers
+﻿using Kafka.Client.Cfg;
+
+namespace Kafka.Client.Producers
 {
     using System;
     using System.IO;
@@ -92,18 +94,26 @@
 
         public ProducerResponse Send(ProducerRequest producerRequest)
         {
-            var requestSize = producerRequest.SizeInBytes;
-            this.producerRequestStats.GetProducerRequestStats(this.BrokerInfo).RequestSizeHist.Update(requestSize);
-            this.producerRequestStats.GetProducerRequestAllBrokersStats().RequestSizeHist.Update(requestSize);
-
             Receive response = null;
-            var specificTimer = this.producerRequestStats.GetProducerRequestStats(this.BrokerInfo).RequestTimer;
-            var aggregateTimer = this.producerRequestStats.GetProducerRequestAllBrokersStats().RequestTimer;
 
-            aggregateTimer.Time(() => specificTimer.Time(() =>
+            if (StatSettings.ProducerStatsEnabled)
+            {
+                var requestSize = producerRequest.SizeInBytes;
+                this.producerRequestStats.GetProducerRequestStats(this.BrokerInfo).RequestSizeHist.Update(requestSize);
+                this.producerRequestStats.GetProducerRequestAllBrokersStats().RequestSizeHist.Update(requestSize);
+
+                var specificTimer = this.producerRequestStats.GetProducerRequestStats(this.BrokerInfo).RequestTimer;
+                var aggregateTimer = this.producerRequestStats.GetProducerRequestAllBrokersStats().RequestTimer;
+
+                aggregateTimer.Time(() => specificTimer.Time(() =>
                 {
                     response = this.DoSend(producerRequest, producerRequest.RequiredAcks != 0);
                 }));
+            }
+            else
+            {
+                response = this.DoSend(producerRequest, producerRequest.RequiredAcks != 0);
+            }
 
             if (producerRequest.RequiredAcks != 0)
             {
