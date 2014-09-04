@@ -1,4 +1,6 @@
-﻿namespace Kafka.Client.Server
+﻿using Kafka.Client.Cfg;
+
+namespace Kafka.Client.Server
 {
     using System;
     using System.Collections.Generic;
@@ -201,7 +203,6 @@
                                     try
                                     {
                                         var messages = (ByteBufferMessageSet)partitionData.Messages;
-                                        var validBytes = messages.ValidBytes;
                                         var messageAndOffset =
                                             messages.ShallowIterator().ToEnumerable().LastOrDefault();
                                         var newOffset = messageAndOffset != null
@@ -209,9 +210,16 @@
                                                             : currentOffset;
 
                                         this.partitionMap[topicAndPartition] = newOffset;
-                                        this.FetcherLagStats.GetFetcherLagStats(topic, partitionId).Lag = partitionData.Hw
-                                                                                                     - newOffset;
-                                        this.FetcherStats.ByteRate.Mark(validBytes);
+
+                                        if (StatSettings.FetcherThreadStatsEnabled)
+                                        {
+                                            var validBytes = messages.ValidBytes;
+
+                                            this.FetcherLagStats.GetFetcherLagStats(topic, partitionId).Lag = partitionData.Hw
+                                                                                                              -
+                                                                                                              newOffset;
+                                            this.FetcherStats.ByteRate.Mark(validBytes);
+                                        }
 
                                         // Once we hand off the partition Data to the subclass, we can't mess with it any more in this thread
                                         this.ProcessPartitionData(topicAndPartition, currentOffset, partitionData);
