@@ -22,7 +22,7 @@
 
         public static ZkException Create(KeeperException e)
         {
-            switch (e.GetCode())
+            switch (e.ErrorCode)
             {
                 case KeeperException.Code.NONODE:
                     return new ZkNoNodeException(e.Message, e);
