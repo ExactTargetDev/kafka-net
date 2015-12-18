@@ -7,6 +7,7 @@
     using System.Reflection;
     using System.Text;
     using System.Threading;
+	using System.Linq;
 
     using Kafka.Client.Utils;
     using Kafka.Client.ZKClient.Exceptions;
@@ -88,7 +89,7 @@
             this.Connect(connectionTimeout, this);
         }
 
-        public List<string> SubscribeChildChanges(string path, IZkChildListener listener)
+        public IEnumerable<string> SubscribeChildChanges(string path, IZkChildListener listener)
         {
             lock (_childListener)
             {
@@ -368,12 +369,12 @@
             }
         }
 
-        public List<string> GetChildren(string path)
+        public IEnumerable<string> GetChildren(string path)
         {
             return this.GetChildren(path, this.HasListeners(path));
         }
 
-        protected List<string> GetChildren(string path, bool watch)
+        protected IEnumerable<string> GetChildren(string path, bool watch)
         {
             return RetryUntilConnected(() => _connection.GetChildren(path, watch));
         }
@@ -387,7 +388,7 @@
         {
             try
             {
-                return GetChildren(path).Count;
+                return GetChildren(path).Count();
             }
             catch (ZkNoNodeException)
             {
@@ -476,7 +477,7 @@
 
         public bool DeleteRecursive(String path)
         {
-            List<String> children;
+			IEnumerable<String> children;
             try
             {
                 children = GetChildren(path, false);
@@ -838,7 +839,7 @@
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public List<String> WatchForChilds(string path)
+        public IEnumerable<String> WatchForChilds(string path)
         {
             if (_zookeeperEventThread != null && Thread.CurrentThread == _zookeeperEventThread)
             {
@@ -934,8 +935,7 @@
                 ShutdownTrigger = true;
                 _eventThread.Interrupt();
                 _eventThread.Join(2000);
-                _connection.Dispose();
-                _connection = null;
+                
             }
             catch (ThreadInterruptedException e)
             {
@@ -946,7 +946,10 @@
                 EventLock.Unlock();
             }
 
-            Logger.Debug("Closing ZkClient...done");
+			_connection.Dispose();
+			_connection = null;
+
+			Logger.Debug("Closing ZkClient...done");
         }
 
         private void Reconnect()

@@ -4,6 +4,6 @@
 
     public interface ITopicEventHandler<T>
     {
-        void HandleTopicEvent(List<T> allTopics);
+        void HandleTopicEvent(IEnumerable<T> allTopics);
     }
 }

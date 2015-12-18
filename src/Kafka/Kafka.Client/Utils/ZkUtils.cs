@@ -363,12 +363,12 @@
             }
         }
 
-        public static List<string> GetChildren(ZkClient zkClient, string path)
+        public static IEnumerable<string> GetChildren(ZkClient zkClient, string path)
         {
             return zkClient.GetChildren(path);
         } 
 
-        public static IList<string> GetChildrenParentMayNotExist(ZkClient client, string path)
+        public static IEnumerable<string> GetChildrenParentMayNotExist(ZkClient client, string path)
         {
             try
             {

@@ -71,7 +71,7 @@
                 this.parent = parent;
             }
 
-            public void HandleChildChange(string parentPath, IList<string> currentChilds)
+            public void HandleChildChange(string parentPath, IEnumerable<string> currentChilds)
             {
                 lock (this.parent.@lock)
                 {
