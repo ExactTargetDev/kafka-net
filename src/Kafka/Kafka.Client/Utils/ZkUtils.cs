@@ -601,7 +601,7 @@
         {
             get
             {
-                return this.ConsumerDir + "/ids";
+                return this.ConsumerGroupDir + "/ids";
             }
         }
     }
