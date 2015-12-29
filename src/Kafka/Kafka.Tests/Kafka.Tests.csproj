@@ -42,9 +42,8 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\lib\log4Net\log4net.dll</HintPath>
     </Reference>
-    <Reference Include="Spring.Threading, Version=1.0.0.22880, Culture=neutral, PublicKeyToken=b745dc0af8c84db9, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Kafka.Client\bin\Debug\Spring.Threading.dll</HintPath>
+    <Reference Include="Spring.Threading">
+      <HintPath>..\..\..\lib\Spring.Threading\Spring.Threading.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
