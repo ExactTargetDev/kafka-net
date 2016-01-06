@@ -20,5 +20,38 @@
         {
             return string.Format("{0}-{1}", this.ClientId, this.BrokerInfo);
         }
+
+        protected bool Equals(ClientIdAndBroker other)
+        {
+            return this.ClientId == other.ClientId && this.BrokerInfo == other.BrokerInfo;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+
+            return this.Equals((ClientIdAndBroker)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((this.ClientId != null ? this.ClientId.GetHashCode() : 0) * 397) ^ (this.BrokerInfo != null ? this.BrokerInfo.GetHashCode() : 0);
+            }
+        }
     }
 }
