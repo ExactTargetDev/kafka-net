@@ -428,5 +428,46 @@
             this.Topic = topic;
             this.PartitonId = partitonId;
         }
+
+        public override string ToString()
+        {
+            return string.Format("{0}-{1}-{2}-{3}", this.ClientId, this.BrokerInfo, this.Topic, this.PartitonId);
+        }
+
+        protected bool Equals(ClientIdBrokerTopicPartition other)
+        {
+            return this.ClientId == other.ClientId && this.BrokerInfo == other.BrokerInfo && this.Topic == other.Topic && this.PartitonId == other.PartitonId;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+
+            return this.Equals((ClientIdBrokerTopicPartition)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((this.ClientId != null ? this.ClientId.GetHashCode() : 0) * 397) ^
+                        (this.BrokerInfo != null ? this.BrokerInfo.GetHashCode() * 164 : 0) ^
+                        (this.Topic != null ? this.Topic.GetHashCode() * 62 : 0) ^
+                        (this.PartitonId.GetHashCode());
+            }
+        }
     }
 }
