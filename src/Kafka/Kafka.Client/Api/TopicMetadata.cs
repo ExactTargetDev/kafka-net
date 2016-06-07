@@ -156,7 +156,8 @@
                 buffer, "error code", Tuple.Create<short, short>(-1, short.MaxValue));
             var partitionId = ApiUtils.ReadIntInRange(buffer, "partition id", Tuple.Create(0, int.MaxValue)); // partition id
             var leaderId = buffer.GetInt();
-            var leader = brokers[leaderId];
+			Broker leader;
+			brokers.TryGetValue(leaderId, out leader);
 
             // list of all replicas
             var numReplicas = ApiUtils.ReadIntInRange(buffer, "number of all replicas", Tuple.Create(0, int.MaxValue));

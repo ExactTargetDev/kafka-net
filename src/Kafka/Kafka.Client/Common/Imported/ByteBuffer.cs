@@ -1,16 +1,19 @@
 ﻿namespace Kafka.Client.Common.Imported
 {
-    using System;
-    using System.IO;
-    using System.Net;
-    using System.Text;
+	using log4net;
+	using System;
+	using System.IO;
+	using System.Net;
+	using System.Reflection;
+	using System.Text;
 
-    public class ByteBuffer : Stream
+	public class ByteBuffer : Stream
     {
-       
-         #region Buffer
+		protected static readonly ILog Logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        private int mark = -1;
+		#region Buffer
+
+		private int mark = -1;
 
         private int position;
 

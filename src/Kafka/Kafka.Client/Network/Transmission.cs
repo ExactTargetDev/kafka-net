@@ -46,12 +46,18 @@
         public int ReadCompletely(Stream channel)
         {
             var totalRead = 0;
+			var iter = 0;
             while (!this.complete)
             {
                 var read = this.ReadFrom(channel);
                 Logger.DebugFormat("{0} bytes read", read);
 
                 totalRead += read;
+				iter++;
+				if(iter > 1 && totalRead == 0)
+				{
+					throw new InvalidRequestException("Reading 0 bytes");
+				}
             }
 
             return totalRead;
