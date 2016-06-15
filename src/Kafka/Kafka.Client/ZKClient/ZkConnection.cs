@@ -98,7 +98,7 @@
             return this._zk.Exists(path, watch) != null;
         }
 
-        public List<string> GetChildren(string path, bool watch) 
+        public IEnumerable<string> GetChildren(string path, bool watch) 
         {
             return this._zk.GetChildren(path, watch);
         }

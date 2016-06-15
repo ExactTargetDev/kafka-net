@@ -521,7 +521,7 @@
                 this.watcherExecutorThread.Start();
             }
 
-            public void HandleChildChange(string parentPath, IList<string> curChilds)
+            public void HandleChildChange(string parentPath, IEnumerable<string> curChilds)
             {
                 this.RebalanceEventTriggered();
             }
@@ -1056,7 +1056,7 @@
 
             private readonly ZKGroupDirs dirs;
 
-            public void HandleTopicEvent(List<string> allTopics)
+            public void HandleTopicEvent(IEnumerable<string> allTopics)
             {
                 Logger.Debug("Handling topic event");
                 var updatedTopics = allTopics.Where(topicFilter.IsTopicAllowed).ToList();

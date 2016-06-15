@@ -17,6 +17,6 @@
         /// </summary>
         /// <param name="parentPath"></param>
         /// <param name="currentChilds"></param>
-        void HandleChildChange(string parentPath, IList<string> currentChilds);
+        void HandleChildChange(string parentPath, IEnumerable<string> currentChilds);
     }
 }

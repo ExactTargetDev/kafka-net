@@ -17,7 +17,7 @@
 
         bool Exists(string path, bool watch);
 
-        List<string> GetChildren(string path, bool watch);
+        IEnumerable<string> GetChildren(string path, bool watch);
 
         byte[] ReadData(string path, Stat stat, bool watch);
 

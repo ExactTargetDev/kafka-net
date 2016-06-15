@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Kafka.Client</id>
+    <version>0.7.0.4</version>
+    <title>Kafka .NET</title>
+    <authors>martijnv</authors>
+    <owners>martijnv</owners>
+    <projectUrl>https://github.com/orthrus/kafka-net</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>This is a .NET implementation of a client for Kafka using C# for Kafka 0.8. It provides for an implementation that covers most basic functionalities to include a simple Producer and Consumer.</description>
+    <copyright>Copyright 2016</copyright>
+    <tags>apache kafka</tags>
+	<dependencies>
+      <dependency id="ZooKeeperNet" version="3.3" />
+    </dependencies>
+  </metadata>
+</package>

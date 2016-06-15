@@ -26,8 +26,8 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCopyright("Copyright © ExactTarget 2011")]
 
 [assembly: ComVisible(false)]
-[assembly: AssemblyVersion("0.7.0.3")]
-[assembly: AssemblyFileVersion("0.7.0.3")]
+[assembly: AssemblyVersion("0.7.0.4")]
+[assembly: AssemblyFileVersion("0.7.0.4")]
 [assembly: InternalsVisibleTo("Kafka.Tests")]
 [assembly: InternalsVisibleTo("Kafka.Console")]
 [assembly: CLSCompliant(false)]
