@@ -100,7 +100,7 @@
 
         public List<string> GetChildren(string path, bool watch) 
         {
-            return this._zk.GetChildren(path, watch);
+            return new List<string>(this._zk.GetChildren(path, watch));
         }
 
         public byte[] ReadData(string path, Stat stat, bool watch) 

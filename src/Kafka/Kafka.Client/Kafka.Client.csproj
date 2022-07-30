@@ -106,7 +106,7 @@
       <HintPath>..\..\..\lib\Crc32C\Crc32C.NET.dll</HintPath>
     </Reference>
     <Reference Include="log4net">
-      <HintPath>..\..\..\lib\log4Net\log4net.dll</HintPath>
+      <HintPath>..\packages\log4net.2.0.3\lib\net40-full\log4net.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.6.0.2\lib\net40\Newtonsoft.Json.dll</HintPath>
@@ -125,7 +125,7 @@
     <Reference Include="System.XML" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="ZooKeeperNet">
-      <HintPath>..\..\..\lib\zookeeper\ZooKeeperNet.dll</HintPath>
+      <HintPath>..\packages\ZooKeeper.Net.3.4.6.0\lib\net40\ZooKeeperNet.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
